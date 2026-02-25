@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Vedic Fasting Tracker",
-    "slug": "vedic-fasting-tracker",
+    "name": "Vedic Intermittent Fasting",
+    "slug": "vedic-intermittent-fasting",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.vedic-fasting-tracker"
+      "bundleIdentifier": "com.vedicintermittentfasting.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.vedic_fasting_tracker"
+      "package": "com.vedicintermittentfasting.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
