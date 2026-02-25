@@ -51,6 +51,14 @@ function RootLayoutNav() {
           animation: 'fade',
         }}
       />
+      <Stack.Screen
+        name="fast-complete"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
     </Stack>
   );
 }

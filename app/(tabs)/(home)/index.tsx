@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Play, Square, Flame, Clock, Trophy, Sun, Moon } from 'lucide-react-native';
@@ -136,6 +137,7 @@ export default function HomeScreen() {
     );
     endFast(completed);
     console.log('Fast ended with current time');
+    setTimeout(() => router.push('/fast-complete' as any), 300);
   }, [activeFast, elapsed, endFast]);
 
   const handleEndCustom = useCallback((timestamp: number) => {
@@ -150,6 +152,7 @@ export default function HomeScreen() {
     );
     endFast(completed, timestamp);
     console.log('Fast ended with custom time:', new Date(timestamp).toLocaleString());
+    setTimeout(() => router.push('/fast-complete' as any), 300);
   }, [activeFast, endFast]);
 
   const handleButtonPressIn = useCallback(() => {

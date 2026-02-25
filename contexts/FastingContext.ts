@@ -29,6 +29,7 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [records, setRecords] = useState<FastRecord[]>([]);
   const [activeFast, setActiveFast] = useState<FastRecord | null>(null);
+  const [lastCompletedFast, setLastCompletedFast] = useState<FastRecord | null>(null);
 
   const recordsQuery = useQuery({
     queryKey: ['fasting-records'],
@@ -71,16 +72,22 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
   const endFast = useCallback((completed: boolean, customEndTime?: number) => {
     if (!activeFast) return;
     const endTime = customEndTime ?? Date.now();
+    const finishedFast: FastRecord = { ...activeFast, endTime, completed };
     const updated = records.map(r =>
       r.id === activeFast.id
-        ? { ...r, endTime, completed }
+        ? finishedFast
         : r
     );
     setRecords(updated);
     setActiveFast(null);
+    setLastCompletedFast(finishedFast);
     saveMutation.mutate(updated);
     console.log('Ended fast:', activeFast.label, 'at', new Date(endTime).toISOString(), completed ? '(completed)' : '(cancelled)');
   }, [activeFast, records, saveMutation]);
+
+  const clearLastCompleted = useCallback(() => {
+    setLastCompletedFast(null);
+  }, []);
 
   const completedRecords = useMemo(() =>
     records.filter(r => r.endTime !== null),
@@ -137,6 +144,8 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
     thisMonthRecords,
     startFast,
     endFast,
+    lastCompletedFast,
+    clearLastCompleted,
     isLoading: recordsQuery.isLoading,
   };
 });
