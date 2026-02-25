@@ -212,7 +212,7 @@ export default function FastCompleteScreen() {
 
   const buildShareText = useCallback(() => {
     if (!fast) return '';
-    return `🕉️ Vedic Fasting Achievement!\n\n🏆 ${fast.label}\n⏱️ Duration: ${formatDurationLong(durationMs)}\n📊 ${completionPct}% completed\n🔥 ${streak} day streak\n${zone.icon} Zone: ${zone.name}\n\nFasting with discipline 🙏\n#VedicFasting #Intermittentfasting #Health`;
+    return `🕉️ Vedic Intermittent Fasting Achievement!\n\n🏆 ${fast.label}\n⏱️ Duration: ${formatDurationLong(durationMs)}\n📊 ${completionPct}% completed\n🔥 ${streak} day streak\n${zone.icon} Zone: ${zone.name}\n\nFasting with discipline 🙏\n#VedicIntermittentFasting #VedicFasting #Health`;
   }, [fast, durationMs, completionPct, streak, zone]);
 
   const handleClose = useCallback(() => {
@@ -312,7 +312,7 @@ export default function FastCompleteScreen() {
             style={styles.shareCardGradient}
           >
             <View style={styles.cardHeader}>
-              <Text style={styles.cardBrand}>🕉️ Vedic Fasting</Text>
+              <Text style={styles.cardBrand}>🕉️ Vedic Intermittent Fasting</Text>
               <View style={[styles.completionBadge, { backgroundColor: fast.completed ? colors.success + '18' : colors.warning + '18' }]}>
                 <Text style={[styles.completionBadgeText, { color: fast.completed ? colors.success : colors.warning }]}>
                   {completionPct}%

@@ -201,7 +201,7 @@ export default function HomeScreen() {
                 </View>
                 <View>
                   <Text style={styles.greeting}>🙏 {getGreeting()}</Text>
-                  <Text style={styles.title}>Vedic Fasting</Text>
+                  <Text style={styles.title}>Vedic Intermittent Fasting</Text>
                 </View>
               </View>
               <TouchableOpacity

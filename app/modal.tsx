@@ -21,7 +21,7 @@ export default function ModalScreen() {
     >
       <Pressable style={styles.overlay} onPress={() => router.back()}>
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Vedic Fasting</Text>
+          <Text style={styles.title}>Vedic Intermittent Fasting</Text>
           <Text style={styles.description}>
             Embrace the ancient wisdom of Vedic fasting for spiritual growth and physical well-being.
           </Text>

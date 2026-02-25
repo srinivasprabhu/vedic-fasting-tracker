@@ -31,7 +31,7 @@ interface OnboardingPage {
 
 const pages: OnboardingPage[] = [
   {
-    title: 'Vedic\nFasting',
+    title: 'Vedic Intermittent\nFasting',
     subtitle: 'Ancient wisdom, modern wellness',
     description:
       'Discover the sacred art of Upavasa — fasting rooted in thousands of years of Vedic tradition.',
