@@ -13,9 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Play, Square, Flame, Clock, Trophy, Sun, Moon } from 'lucide-react-native';
+import { Play, Square, Flame, Clock, Trophy, Settings } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import { FAST_TYPES, INTERMITTENT_FAST_TYPES, VEDIC_QUOTES, UPCOMING_VEDIC_DAYS } from '@/mocks/vedic-data';
 import CircularTimer from '@/components/CircularTimer';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
@@ -39,9 +40,10 @@ function formatShortDuration(ms: number): string {
 }
 
 export default function HomeScreen() {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, startFast, endFast, streak, totalHours, completedRecords } = useFasting();
+  const { getGreeting, getInitial } = useUserProfile();
   const [elapsed, setElapsed] = useState(0);
   const [showFastPicker, setShowFastPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState<FastCategory>('intermittent');
@@ -193,20 +195,22 @@ export default function HomeScreen() {
         >
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.headerRow}>
-              <View>
-                <Text style={styles.greeting}>🙏 Namaste</Text>
-                <Text style={styles.title}>Vedic Fasting</Text>
+              <View style={styles.headerLeft}>
+                <View style={styles.avatarSmall}>
+                  <Text style={styles.avatarSmallText}>{getInitial()}</Text>
+                </View>
+                <View>
+                  <Text style={styles.greeting}>🙏 {getGreeting()}</Text>
+                  <Text style={styles.title}>Vedic Fasting</Text>
+                </View>
               </View>
               <TouchableOpacity
-                style={styles.themeToggle}
-                onPress={toggleTheme}
+                style={styles.settingsButton}
+                onPress={() => router.push('/settings' as any)}
                 activeOpacity={0.7}
-                testID="theme-toggle"
+                testID="settings-button"
               >
-                {isDark
-                  ? <Sun size={20} color={colors.primary} />
-                  : <Moon size={20} color={colors.textSecondary} />
-                }
+                <Settings size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -406,18 +410,37 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
     },
+    headerLeft: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+      flex: 1,
+    },
+    avatarSmall: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: colors.primary,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    avatarSmallText: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: '#FFFFFF',
+    },
     greeting: {
-      fontSize: 15,
+      fontSize: 13,
       color: colors.textSecondary,
-      marginBottom: 2,
+      marginBottom: 1,
     },
     title: {
-      fontSize: 28,
+      fontSize: 22,
       fontWeight: '700' as const,
       color: colors.text,
-      letterSpacing: -0.5,
+      letterSpacing: -0.3,
     },
-    themeToggle: {
+    settingsButton: {
       width: 40,
       height: 40,
       borderRadius: 20,

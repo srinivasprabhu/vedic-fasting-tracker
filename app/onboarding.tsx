@@ -161,7 +161,7 @@ export default function OnboardingScreen() {
     } catch (e) {
       console.log('Failed to save onboarding state:', e);
     }
-    router.replace('/(tabs)');
+    router.replace('/profile-setup' as any);
   }, []);
 
   const handleSkip = useCallback(async () => {
@@ -170,7 +170,7 @@ export default function OnboardingScreen() {
     } catch (e) {
       console.log('Failed to save onboarding state:', e);
     }
-    router.replace('/(tabs)');
+    router.replace('/profile-setup' as any);
   }, []);
 
   const handleNext = useCallback(() => {

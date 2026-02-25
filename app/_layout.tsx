@@ -6,22 +6,30 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FastingProvider } from '@/contexts/FastingContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { UserProfileProvider } from '@/contexts/UserProfileContext';
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 const ONBOARDING_KEY = 'vedic_onboarding_complete';
+const PROFILE_KEY = 'vedic_user_profile';
 
 function RootLayoutNav() {
   const [isReady, setIsReady] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [needsProfile, setNeedsProfile] = useState<boolean>(false);
 
   useEffect(() => {
     async function checkOnboarding() {
       try {
         const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
-        console.log('Onboarding status:', completed);
-        setShowOnboarding(completed !== 'true');
+        const profileData = await AsyncStorage.getItem(PROFILE_KEY);
+        console.log('Onboarding status:', completed, 'Profile:', !!profileData);
+        if (completed !== 'true') {
+          setShowOnboarding(true);
+        } else if (!profileData) {
+          setNeedsProfile(true);
+        }
       } catch (e) {
         console.log('Error checking onboarding:', e);
         setShowOnboarding(true);
@@ -36,8 +44,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isReady && showOnboarding) {
       router.replace('/onboarding' as any);
+    } else if (isReady && needsProfile) {
+      router.replace('/profile-setup' as any);
     }
-  }, [isReady, showOnboarding]);
+  }, [isReady, showOnboarding, needsProfile]);
 
   if (!isReady) return null;
 
@@ -49,6 +59,19 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           animation: 'fade',
+        }}
+      />
+      <Stack.Screen
+        name="profile-setup"
+        options={{
+          headerShown: false,
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen
+        name="settings"
+        options={{
+          presentation: 'card',
         }}
       />
       <Stack.Screen
@@ -68,9 +91,11 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView>
         <ThemeProvider>
-          <FastingProvider>
-            <RootLayoutNav />
-          </FastingProvider>
+          <UserProfileProvider>
+            <FastingProvider>
+              <RootLayoutNav />
+            </FastingProvider>
+          </UserProfileProvider>
         </ThemeProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
