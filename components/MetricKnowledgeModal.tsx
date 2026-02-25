@@ -262,7 +262,7 @@ function makeStyles(colors: ColorScheme) {
       backgroundColor: colors.background,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
-      maxHeight: SCREEN_HEIGHT * 0.85,
+      height: SCREEN_HEIGHT * 0.80,
       paddingHorizontal: 22,
       paddingTop: 10,
     },
@@ -325,6 +325,7 @@ function makeStyles(colors: ColorScheme) {
     },
     scrollArea: {
       flex: 1,
+      flexGrow: 1,
     },
     scrollContent: {
       paddingTop: 12,

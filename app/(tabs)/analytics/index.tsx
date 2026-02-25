@@ -845,6 +845,7 @@ function makeStyles(colors: ColorScheme) {
     },
     scrollContent: {
       paddingHorizontal: 20,
+      paddingBottom: 100,
     },
     screenTitle: {
       fontSize: 28,
