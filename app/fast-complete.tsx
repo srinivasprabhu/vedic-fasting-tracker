@@ -10,6 +10,7 @@ import {
   Share,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +28,10 @@ import {
   ChevronRight,
   Sparkles,
   TrendingUp,
+  Copy,
+  Check,
 } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
 import type { ColorScheme } from '@/constants/colors';
@@ -161,7 +165,21 @@ export default function FastCompleteScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (Platform.OS === 'web') {
         const shareText = buildShareText();
-        await Share.share({ message: shareText });
+        if (navigator.share) {
+          try {
+            await navigator.share({ text: shareText });
+            return;
+          } catch (webShareErr) {
+            console.log('Web Share API failed, falling back to clipboard:', webShareErr);
+          }
+        }
+        try {
+          await Clipboard.setStringAsync(shareText);
+          Alert.alert('Copied!', 'Achievement text copied to clipboard. Paste it anywhere to share!');
+        } catch (clipErr) {
+          console.log('Clipboard fallback failed:', clipErr);
+          Alert.alert('Share', shareText);
+        }
         return;
       }
       const uri = await captureRef(shareCardRef, {
@@ -182,8 +200,13 @@ export default function FastCompleteScreen() {
       }
     } catch (e) {
       console.log('Share failed:', e);
-      const shareText = buildShareText();
-      await Share.share({ message: shareText });
+      try {
+        const shareText = buildShareText();
+        await Clipboard.setStringAsync(shareText);
+        Alert.alert('Copied!', 'Achievement text copied to clipboard.');
+      } catch (fallbackErr) {
+        console.log('All share methods failed:', fallbackErr);
+      }
     }
   }, [fast, durationMs, completionPct, streak, zone]);
 
