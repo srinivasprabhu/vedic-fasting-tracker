@@ -299,7 +299,7 @@ export default function FastCompleteScreen() {
           <Text style={styles.heroTitle}>
             {fast.completed
               ? (userName ? `${userName}, Fast Complete!` : 'Fast Complete!')
-              : (userName ? `${userName}, Fast Ended` : 'Fast Ended')}
+              : 'Congratulations, Fast Completed'}
           </Text>
           <Text style={styles.heroSubtitle}>
             {getMotivationalMessage(fast.completed, durationHours)}
