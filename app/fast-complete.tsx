@@ -11,6 +11,7 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +35,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { ColorScheme } from '@/constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -76,6 +78,8 @@ function getMotivationalMessage(completed: boolean, durationHours: number): stri
 export default function FastCompleteScreen() {
   const { colors, isDark } = useTheme();
   const { lastCompletedFast, clearLastCompleted, streak, completedRecords } = useFasting();
+  const { profile } = useUserProfile();
+  const userName = profile?.name ?? '';
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const shareCardRef = useRef<View>(null);
 
@@ -212,7 +216,8 @@ export default function FastCompleteScreen() {
 
   const buildShareText = useCallback(() => {
     if (!fast) return '';
-    return `🕉️ Vedic Intermittent Fasting Achievement!\n\n🏆 ${fast.label}\n⏱️ Duration: ${formatDurationLong(durationMs)}\n📊 ${completionPct}% completed\n🔥 ${streak} day streak\n${zone.icon} Zone: ${zone.name}\n\nFasting with discipline 🙏\n#VedicIntermittentFasting #VedicFasting #Health`;
+    const nameStr = userName ? `\n👤 ${userName}` : '';
+    return `🪷 Vedic Intermittent Fasting Achievement!${nameStr}\n\n🏆 ${fast.label}\n⏱️ Duration: ${formatDurationLong(durationMs)}\n📊 ${completionPct}% completed\n🔥 ${streak} day streak\n${zone.icon} Zone: ${zone.name}\n\nFasting with discipline 🙏\n#VedicIntermittentFasting #VedicFasting #Health`;
   }, [fast, durationMs, completionPct, streak, zone]);
 
   const handleClose = useCallback(() => {
@@ -236,7 +241,7 @@ export default function FastCompleteScreen() {
     outputRange: [0.3, 1.2, 1],
   });
 
-  const confettiEmojis = ['🎉', '✨', '🌟', '🔥', '💪', '🙏', '🕉️', '⭐', '🎊', '💫', '🌸', '🪷'];
+  const confettiEmojis = ['🎉', '✨', '🌟', '🔥', '💪', '🙏', '🪷', '⭐', '🎊', '💫', '🌸', '🪷'];
 
   return (
     <View style={styles.container}>
@@ -292,7 +297,9 @@ export default function FastCompleteScreen() {
           </Animated.View>
 
           <Text style={styles.heroTitle}>
-            {fast.completed ? 'Fast Complete!' : 'Fast Ended'}
+            {fast.completed
+              ? (userName ? `${userName}, Fast Complete!` : 'Fast Complete!')
+              : (userName ? `${userName}, Fast Ended` : 'Fast Ended')}
           </Text>
           <Text style={styles.heroSubtitle}>
             {getMotivationalMessage(fast.completed, durationHours)}
@@ -312,7 +319,10 @@ export default function FastCompleteScreen() {
             style={styles.shareCardGradient}
           >
             <View style={styles.cardHeader}>
-              <Text style={styles.cardBrand}>🕉️ Vedic Intermittent Fasting</Text>
+              <View style={styles.cardBrandRow}>
+                <Image source={require('@/assets/images/mandala-icon.png')} style={styles.brandIcon} />
+                <Text style={styles.cardBrand}>Vedic Fasting</Text>
+              </View>
               <View style={[styles.completionBadge, { backgroundColor: fast.completed ? colors.success + '18' : colors.warning + '18' }]}>
                 <Text style={[styles.completionBadgeText, { color: fast.completed ? colors.success : colors.warning }]}>
                   {completionPct}%
@@ -376,6 +386,15 @@ export default function FastCompleteScreen() {
                 <Text style={styles.miniStatLabel}>Fasted</Text>
               </View>
             </View>
+
+            {userName ? (
+              <View style={styles.userBadge}>
+                <View style={styles.userBadgeAvatar}>
+                  <Text style={styles.userBadgeInitial}>{userName.charAt(0).toUpperCase()}</Text>
+                </View>
+                <Text style={styles.userBadgeName}>{userName}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.cardFooter}>
               <Text style={styles.cardFooterText}>🙏 Fasting with discipline</Text>
@@ -530,11 +549,52 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       justifyContent: 'space-between' as const,
       marginBottom: 16,
     },
+    cardBrandRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+    },
+    brandIcon: {
+      width: 24,
+      height: 24,
+      borderRadius: 6,
+    },
     cardBrand: {
       fontSize: 13,
       fontWeight: '600' as const,
       color: colors.textSecondary,
       letterSpacing: 0.5,
+    },
+    userBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: 8,
+      marginBottom: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+      borderRadius: 20,
+      alignSelf: 'center' as const,
+    },
+    userBadgeAvatar: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    userBadgeInitial: {
+      fontSize: 12,
+      fontWeight: '700' as const,
+      color: '#FFFFFF',
+    },
+    userBadgeName: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: colors.text,
+      letterSpacing: 0.3,
     },
     completionBadge: {
       paddingHorizontal: 10,
