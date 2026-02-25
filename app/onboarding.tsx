@@ -286,13 +286,13 @@ export default function OnboardingScreen() {
       >
         <View style={styles.pagination}>
           {pages.map((_, index) => {
-            const dotWidth = scrollX.interpolate({
+            const dotScale = scrollX.interpolate({
               inputRange: [
                 (index - 1) * width,
                 index * width,
                 (index + 1) * width,
               ],
-              outputRange: [6, 28, 6],
+              outputRange: [1, 28 / 6, 1],
               extrapolate: 'clamp',
             });
             const dotOpacity = scrollX.interpolate({
@@ -311,7 +311,7 @@ export default function OnboardingScreen() {
                 style={[
                   styles.dot,
                   {
-                    width: dotWidth,
+                    transform: [{ scaleX: dotScale }],
                     opacity: dotOpacity,
                     backgroundColor:
                       currentPage === pages.length - 1
