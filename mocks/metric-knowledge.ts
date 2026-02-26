@@ -154,10 +154,10 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
     color: '#5B8C5A',
     shortDesc: 'Fasting naturally reduces food expenses while potentially saving on long-term healthcare costs.',
     science: 'The financial impact of intermittent fasting extends beyond direct meal savings. Reduced caloric intake means lower grocery bills and fewer restaurant expenses. More significantly, the health improvements from consistent fasting — reduced diabetes risk (30-40%), lower cardiovascular disease risk (20-30%), and decreased inflammation — translate to substantial long-term healthcare savings. Studies estimate that preventing Type 2 diabetes alone saves an average of $9,600 per year in medical costs.',
-    howFastingHelps: 'Each skipped meal saves an average of ₹150 in direct costs. Over a year of consistent intermittent fasting, this adds up significantly. But the hidden savings are even larger: fewer doctor visits, reduced medication needs, lower health insurance premiums, and avoided hospital stays from preventable chronic diseases.',
+    howFastingHelps: 'Each skipped meal saves the cost of one meal in direct savings. Over a year of consistent intermittent fasting, this adds up significantly. But the hidden savings are even larger: fewer doctor visits, reduced medication needs, lower health insurance premiums, and avoided hospital stays from preventable chronic diseases.',
     keyFacts: [
-      'Average meal cost savings: ₹150 per skipped meal',
-      'Preventing diabetes saves ~₹800,000+ per year in medical costs',
+      'Significant savings per skipped meal based on local meal costs',
+      'Preventing diabetes saves thousands per year in medical costs',
       'Reduced snacking eliminates impulse food spending',
       'Long-term healthcare savings compound over decades',
       'Fasting is the most cost-effective health intervention',

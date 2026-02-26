@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { UserProfile } from '@/types/user';
+import { detectCurrencyFromLocale, getCurrencyInfo } from '@/constants/currencies';
 
 const PROFILE_KEY = 'vedic_user_profile';
 
@@ -49,6 +50,9 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
     saveMutation.mutate(newProfile);
   }, [saveMutation]);
 
+  const currencyCode = profile?.currency ?? detectCurrencyFromLocale();
+  const currencyInfo = getCurrencyInfo(currencyCode);
+
   const hasProfile = profile !== null;
 
   const getGreeting = useCallback(() => {
@@ -73,5 +77,6 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
     updateProfile,
     getGreeting,
     getInitial,
+    currencyInfo,
   };
 });
