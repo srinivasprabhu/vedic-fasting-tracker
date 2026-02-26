@@ -431,6 +431,15 @@ function buildVedicDays(): VedicFastDay[] {
 
 export const UPCOMING_VEDIC_DAYS = buildVedicDays();
 
+export function getNextUpcomingVedicDay(): ReturnType<typeof buildVedicDays>[number] | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0];
+
+  const upcoming = UPCOMING_VEDIC_DAYS.filter(day => day.date >= todayStr);
+  return upcoming.length > 0 ? upcoming[0] : null;
+}
+
 export const VEDIC_QUOTES = [
   { text: 'Fasting is the greatest remedy — the physician within.', source: 'Ayurvedic Wisdom' },
   { text: 'When the body fasts, the soul feasts.', source: 'Vedic Teaching' },

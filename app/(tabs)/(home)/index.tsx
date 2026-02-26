@@ -13,11 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Play, Square, Flame, Clock, Trophy, Settings } from 'lucide-react-native';
+import { Play, Square, Flame, Clock, Trophy, Settings, Activity } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-import { FAST_TYPES, INTERMITTENT_FAST_TYPES, VEDIC_QUOTES, UPCOMING_VEDIC_DAYS } from '@/mocks/vedic-data';
+import { FAST_TYPES, INTERMITTENT_FAST_TYPES, VEDIC_QUOTES, getNextUpcomingVedicDay } from '@/mocks/vedic-data';
+import { METABOLIC_ZONES } from '@/utils/analytics-helpers';
 import CircularTimer from '@/components/CircularTimer';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
 import { FastType, FastCategory } from '@/types/fasting';
@@ -56,7 +57,7 @@ export default function HomeScreen() {
   const buttonScale = useRef(new Animated.Value(1)).current;
 
   const quote = VEDIC_QUOTES[Math.floor(Date.now() / 86400000) % VEDIC_QUOTES.length];
-  const nextFast = UPCOMING_VEDIC_DAYS[0];
+  const nextFast = useMemo(() => getNextUpcomingVedicDay(), []);
 
   useEffect(() => {
     Animated.parallel([
@@ -175,6 +176,14 @@ export default function HomeScreen() {
 
   const progress = activeFast ? elapsed / activeFast.targetDuration : 0;
   const remaining = activeFast ? Math.max(0, activeFast.targetDuration - elapsed) : 0;
+
+  const currentFastHours = activeFast ? elapsed / 3600000 : 0;
+  const currentMetabolicZone = useMemo(() => {
+    for (let i = METABOLIC_ZONES.length - 1; i >= 0; i--) {
+      if (currentFastHours >= METABOLIC_ZONES[i].minHours) return METABOLIC_ZONES[i];
+    }
+    return METABOLIC_ZONES[0];
+  }, [currentFastHours]);
 
   const pickerTranslate = pickerAnim.interpolate({
     inputRange: [0, 1],
@@ -331,6 +340,61 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.statValue}>{completedRecords.filter(r => r.completed).length}</Text>
               <Text style={styles.statLabel}>Completed</Text>
+            </View>
+          </View>
+
+          <View style={styles.metabolicSection}>
+            <View style={styles.metabolicHeader}>
+              <Activity size={16} color={colors.primary} />
+              <Text style={styles.metabolicTitle}>Metabolic Zone</Text>
+              {activeFast ? (
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>LIVE</Text>
+                </View>
+              ) : (
+                <View style={styles.idleBadge}>
+                  <Text style={styles.idleText}>IDLE</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.zonesContainer}>
+              {METABOLIC_ZONES.map((zone) => {
+                const isActive = activeFast && zone.id === currentMetabolicZone.id;
+                const isPassed = activeFast && currentFastHours > zone.maxHours;
+                const isUpcoming = !activeFast || (!isActive && !isPassed);
+                return (
+                  <View
+                    key={zone.id}
+                    style={[
+                      styles.zoneRow,
+                      isActive && { backgroundColor: zone.color + '15', borderColor: zone.color + '40' },
+                    ]}
+                  >
+                    <View style={[
+                      styles.zoneDot,
+                      { backgroundColor: isActive ? zone.color : isPassed ? zone.color : colors.borderLight },
+                      isActive && styles.zoneDotActive,
+                    ]} />
+                    <View style={styles.zoneInfo}>
+                      <Text style={[
+                        styles.zoneName,
+                        isActive && { color: zone.color, fontWeight: '700' as const },
+                        !activeFast && { color: colors.textMuted },
+                      ]}>{zone.icon} {zone.name}</Text>
+                      <Text style={styles.zoneRange}>{zone.range}</Text>
+                    </View>
+                    {isActive && (
+                      <View style={[styles.zoneNowBadge, { backgroundColor: zone.color }]}>
+                        <Text style={styles.zoneNowText}>NOW</Text>
+                      </View>
+                    )}
+                    {isPassed && (
+                      <Text style={[styles.zoneCheckmark, { color: zone.color }]}>✓</Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </View>
 
@@ -667,6 +731,115 @@ function makeStyles(colors: ColorScheme) {
     },
     bottomSpacer: {
       height: 16,
+    },
+    metabolicSection: {
+      marginBottom: 20,
+    },
+    metabolicHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      marginBottom: 10,
+    },
+    metabolicTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.text,
+      flex: 1,
+    },
+    liveBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+      backgroundColor: '#E8F8E820',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#4CAF50',
+    },
+    liveText: {
+      fontSize: 9,
+      fontWeight: '700' as const,
+      color: '#4CAF50',
+      letterSpacing: 0.8,
+    },
+    idleBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+    },
+    idleText: {
+      fontSize: 9,
+      fontWeight: '700' as const,
+      color: colors.textMuted,
+      letterSpacing: 0.8,
+    },
+    zonesContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    zoneRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      marginBottom: 2,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    zoneDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: 10,
+    },
+    zoneDotActive: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    zoneInfo: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+    },
+    zoneName: {
+      fontSize: 13,
+      fontWeight: '500' as const,
+      color: colors.text,
+    },
+    zoneRange: {
+      fontSize: 11,
+      color: colors.textMuted,
+      fontWeight: '500' as const,
+    },
+    zoneNowBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      marginLeft: 8,
+    },
+    zoneNowText: {
+      fontSize: 9,
+      fontWeight: '800' as const,
+      color: '#fff',
+      letterSpacing: 0.5,
+    },
+    zoneCheckmark: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      marginLeft: 8,
     },
   });
 }
