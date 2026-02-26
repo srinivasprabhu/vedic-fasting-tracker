@@ -59,7 +59,7 @@ export default function FastTimePickerModal({
   const [selectedHour, setSelectedHour] = useState<number>(max.getHours());
   const [selectedMinute, setSelectedMinute] = useState<number>(Math.floor(max.getMinutes() / 5) * 5);
   const backdropAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const slideAnim = useRef(new Animated.Value(600)).current;
 
   useEffect(() => {
     if (visible) {
@@ -78,7 +78,7 @@ export default function FastTimePickerModal({
   const closeModal = useCallback(() => {
     Animated.parallel([
       Animated.timing(backdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 300, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 600, duration: 200, useNativeDriver: true }),
     ]).start(() => onClose());
   }, [backdropAnim, slideAnim, onClose]);
 
@@ -394,6 +394,7 @@ function makeStyles(colors: ColorScheme) {
       borderTopRightRadius: 24,
       paddingHorizontal: 20,
       maxHeight: '92%' as any,
+      minHeight: 280,
     },
     scrollContent: {
       paddingBottom: 8,
