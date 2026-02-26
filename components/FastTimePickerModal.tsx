@@ -8,7 +8,9 @@ import {
   Animated,
   ScrollView,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { ColorScheme } from '@/constants/colors';
@@ -46,6 +48,7 @@ export default function FastTimePickerModal({
   maxDate,
 }: FastTimePickerModalProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const now = new Date();
@@ -292,7 +295,7 @@ export default function FastTimePickerModal({
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeModal} activeOpacity={1} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }], paddingBottom: Math.max(insets.bottom, Platform.OS === 'web' ? 24 : 20) + 16 }]}>
           <View style={styles.sheetHandle} />
 
           <View style={styles.sheetHeader}>
@@ -369,8 +372,7 @@ function makeStyles(colors: ColorScheme) {
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       paddingHorizontal: 20,
-      paddingBottom: Platform.OS === 'web' ? 24 : 36,
-      maxHeight: '85%' as any,
+      maxHeight: '90%' as any,
     },
     sheetHandle: {
       width: 36,
@@ -543,7 +545,7 @@ function makeStyles(colors: ColorScheme) {
     },
     timeScrollContent: {
       gap: 6,
-      paddingRight: 8,
+      paddingRight: 20,
     },
     timeChip: {
       paddingHorizontal: 14,
