@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "Vedic Intermittent Fasting",
-    "slug": "vedic-intermittent-fasting",
-    "version": "1.0.2",
+    "name": "Aayu - Vedic Intermittent Fasting",
+    "shortName": "Aayu",
+    "slug": "aayu",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rork-app",
@@ -11,7 +12,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5E8D2"
     },
     "ios": {
       "supportsTablet": false,
@@ -20,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F5E8D2"
       },
       "package": "com.vedicintermittentfasting.app"
     },
