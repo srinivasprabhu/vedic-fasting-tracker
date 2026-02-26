@@ -209,8 +209,7 @@ export default function HomeScreen() {
                   <Text style={styles.avatarSmallText}>{getInitial()}</Text>
                 </View>
                 <View>
-                  <Text style={styles.greeting}>🙏 {getGreeting()}</Text>
-                  <Text style={styles.title}>Vedic Intermittent Fasting</Text>
+                  <Text style={styles.greeting}>Welcome, {getGreeting()}</Text>
                 </View>
               </View>
               <TouchableOpacity

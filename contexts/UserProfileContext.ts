@@ -56,13 +56,7 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
   const hasProfile = profile !== null;
 
   const getGreeting = useCallback(() => {
-    const hour = new Date().getHours();
-    const name = profile?.name ?? '';
-    if (hour < 5) return `Shubh Ratri, ${name}`;
-    if (hour < 12) return `Shubh Prabhat, ${name}`;
-    if (hour < 17) return `Namaste, ${name}`;
-    if (hour < 21) return `Shubh Sandhya, ${name}`;
-    return `Shubh Ratri, ${name}`;
+    return profile?.name ?? '';
   }, [profile?.name]);
 
   const getInitial = useCallback(() => {
