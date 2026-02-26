@@ -297,9 +297,10 @@ export default function FastCompleteScreen() {
           </Animated.View>
 
           <Text style={styles.heroTitle}>
-            {fast.completed
-              ? (userName ? `${userName}, Fast Complete!` : 'Fast Complete!')
-              : 'Congratulations, Fast Completed'}
+            Congratulations!
+          </Text>
+          <Text style={styles.heroTitleSub}>
+            Fast Completed 🙏
           </Text>
           <Text style={styles.heroSubtitle}>
             {getMotivationalMessage(fast.completed, durationHours)}
@@ -519,6 +520,12 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       fontWeight: '800' as const,
       color: colors.text,
       letterSpacing: -0.5,
+      marginBottom: 4,
+    },
+    heroTitleSub: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
       marginBottom: 8,
     },
     heroSubtitle: {
