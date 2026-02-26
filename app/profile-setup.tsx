@@ -115,7 +115,7 @@ export default function ProfileSetupScreen() {
       createdAt: Date.now(),
     });
     console.log('Profile setup complete, navigating to tabs');
-    router.replace('/(tabs)');
+    router.replace('/(tabs)/(home)');
   }, [name, sex, age, updateProfile]);
 
   const canProceed = useMemo(() => {
@@ -311,7 +311,7 @@ export default function ProfileSetupScreen() {
                     age: 25,
                     createdAt: Date.now(),
                   });
-                  router.replace('/(tabs)');
+                  router.replace('/(tabs)/(home)');
                 }}
                 style={styles.skipLink}
                 activeOpacity={0.7}
