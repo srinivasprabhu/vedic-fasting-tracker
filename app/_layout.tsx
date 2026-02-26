@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FastingProvider } from '@/contexts/FastingContext';
@@ -9,6 +11,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 
 SplashScreen.preventAutoHideAsync();
+
+if (Platform.OS !== 'web') {
+  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+}
 
 const queryClient = new QueryClient();
 const ONBOARDING_KEY = 'vedic_onboarding_complete';
