@@ -8,6 +8,8 @@ import {
   Animated,
   ScrollView,
   Platform,
+  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -48,7 +50,9 @@ export default function FastTimePickerModal({
 }: FastTimePickerModalProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { width: screenWidth } = useWindowDimensions();
+  const dayCellSize = Math.min(Math.floor((screenWidth - 40 - 12) / 7), 44);
+  const styles = useMemo(() => makeStyles(colors, dayCellSize), [colors, dayCellSize]);
 
   const now = new Date();
   const max = maxDate ?? now;
@@ -340,16 +344,19 @@ export default function FastTimePickerModal({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 bounces={false}
+                style={styles.stepScroll}
               >
                 {renderCalendar()}
               </ScrollView>
-              <TouchableOpacity
-                style={[styles.confirmBtn, { marginBottom: Math.max(insets.bottom, 16) + 4 }]}
-                onPress={handleDateConfirm}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.confirmBtnText}>Select Time →</Text>
-              </TouchableOpacity>
+              <View style={[styles.bottomAction, { paddingBottom: Math.max(insets.bottom, 16) + 4 }]}>
+                <TouchableOpacity
+                  style={styles.confirmBtn}
+                  onPress={handleDateConfirm}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.confirmBtnText}>Select Time →</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -359,16 +366,19 @@ export default function FastTimePickerModal({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 bounces={false}
+                style={styles.stepScroll}
               >
                 {renderTimePicker()}
               </ScrollView>
-              <View style={[styles.timeActions, { marginBottom: Math.max(insets.bottom, 16) + 4 }]}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => setStep('date')} activeOpacity={0.7}>
-                  <Text style={styles.backBtnText}>← Back</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.confirmBtn} onPress={handleTimeConfirm} activeOpacity={0.7}>
-                  <Text style={styles.confirmBtnText}>Confirm</Text>
-                </TouchableOpacity>
+              <View style={[styles.bottomAction, { paddingBottom: Math.max(insets.bottom, 16) + 4 }]}>
+                <View style={styles.timeActions}>
+                  <TouchableOpacity style={styles.backBtn} onPress={() => setStep('date')} activeOpacity={0.7}>
+                    <Text style={styles.backBtnText}>← Back</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.confirmBtn} onPress={handleTimeConfirm} activeOpacity={0.7}>
+                    <Text style={styles.confirmBtnText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -378,7 +388,7 @@ export default function FastTimePickerModal({
   );
 }
 
-function makeStyles(colors: ColorScheme) {
+function makeStyles(colors: ColorScheme, dayCellSize: number) {
   return StyleSheet.create({
     modalContainer: {
       flex: 1,
@@ -393,8 +403,7 @@ function makeStyles(colors: ColorScheme) {
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       paddingHorizontal: 20,
-      maxHeight: '92%' as any,
-      minHeight: 280,
+      maxHeight: '85%' as any,
     },
     scrollContent: {
       paddingBottom: 8,
@@ -463,6 +472,14 @@ function makeStyles(colors: ColorScheme) {
     stepContainer: {
       flex: 1,
       flexShrink: 1,
+      minHeight: 100,
+    },
+    stepScroll: {
+      flexGrow: 0,
+      flexShrink: 1,
+    },
+    bottomAction: {
+      paddingTop: 8,
     },
     calendar: {
       marginBottom: 16,
@@ -505,10 +522,11 @@ function makeStyles(colors: ColorScheme) {
     },
     dayCell: {
       flex: 1,
-      aspectRatio: 1,
+      height: dayCellSize,
+      maxHeight: 44,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      borderRadius: 20,
+      borderRadius: dayCellSize / 2,
       margin: 1,
     },
     dayCellSelected: {
@@ -604,6 +622,8 @@ function makeStyles(colors: ColorScheme) {
       paddingVertical: 14,
       alignItems: 'center' as const,
       flex: 1,
+      minHeight: 48,
+      justifyContent: 'center' as const,
     },
     confirmBtnText: {
       fontSize: 15,
