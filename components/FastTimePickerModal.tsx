@@ -10,6 +10,8 @@ import {
   Platform,
   Dimensions,
   useWindowDimensions,
+  KeyboardAvoidingView,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -63,7 +65,31 @@ export default function FastTimePickerModal({
   const [selectedHour, setSelectedHour] = useState<number>(max.getHours());
   const [selectedMinute, setSelectedMinute] = useState<number>(Math.floor(max.getMinutes() / 5) * 5);
   const backdropAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(600)).current;
+  const slideAnim = useRef(new Animated.Value(1)).current;
+  const sheetHeight = useRef(0);
+  const [ready, setReady] = useState(false);
+
+  const onSheetLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && sheetHeight.current === 0) {
+      sheetHeight.current = h;
+      setReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (visible && ready) {
+      slideAnim.setValue(1);
+      backdropAnim.setValue(0);
+      Animated.parallel([
+        Animated.timing(backdropAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }),
+      ]).start();
+    } else if (visible && !ready) {
+      slideAnim.setValue(1);
+      backdropAnim.setValue(0);
+    }
+  }, [visible, ready, backdropAnim, slideAnim]);
 
   useEffect(() => {
     if (visible) {
@@ -73,20 +99,20 @@ export default function FastTimePickerModal({
       setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
       setSelectedHour(d.getHours());
       setSelectedMinute(Math.floor(d.getMinutes() / 5) * 5);
-      slideAnim.setValue(800);
-      backdropAnim.setValue(0);
-      Animated.parallel([
-        Animated.timing(backdropAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
-      ]).start();
+      sheetHeight.current = 0;
+      setReady(false);
     }
-  }, [visible, backdropAnim, slideAnim, maxDate]);
+  }, [visible, maxDate]);
 
   const closeModal = useCallback(() => {
     Animated.parallel([
       Animated.timing(backdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 800, duration: 200, useNativeDriver: true }),
-    ]).start(() => onClose());
+      Animated.timing(slideAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start(() => {
+      sheetHeight.current = 0;
+      setReady(false);
+      onClose();
+    });
   }, [backdropAnim, slideAnim, onClose]);
 
   const handleNow = useCallback(() => {
@@ -301,7 +327,20 @@ export default function FastTimePickerModal({
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeModal} activeOpacity={1} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View
+          onLayout={onSheetLayout}
+          style={[
+            styles.sheet,
+            {
+              transform: [{
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, Dimensions.get('window').height],
+                }),
+              }],
+            },
+          ]}
+        >
           <View style={styles.sheetHandle} />
 
           <View style={styles.sheetHeader}>
