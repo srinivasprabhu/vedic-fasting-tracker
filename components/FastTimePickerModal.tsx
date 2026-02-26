@@ -68,13 +68,16 @@ export default function FastTimePickerModal({
   useEffect(() => {
     if (visible) {
       const d = maxDate ?? new Date();
+      setStep('choice');
       setSelectedDate(new Date(d));
       setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
       setSelectedHour(d.getHours());
       setSelectedMinute(Math.floor(d.getMinutes() / 5) * 5);
+      slideAnim.setValue(800);
+      backdropAnim.setValue(0);
       Animated.parallel([
-        Animated.timing(backdropAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, friction: 9, tension: 50, useNativeDriver: true }),
+        Animated.timing(backdropAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
       ]).start();
     }
   }, [visible, backdropAnim, slideAnim, maxDate]);
@@ -82,7 +85,7 @@ export default function FastTimePickerModal({
   const closeModal = useCallback(() => {
     Animated.parallel([
       Animated.timing(backdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 600, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 800, duration: 200, useNativeDriver: true }),
     ]).start(() => onClose());
   }, [backdropAnim, slideAnim, onClose]);
 
