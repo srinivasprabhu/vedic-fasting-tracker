@@ -28,7 +28,7 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { UserSex } from '@/types/user';
-import { CURRENCIES } from '@/constants/currencies';
+
 import type { ColorScheme } from '@/constants/colors';
 
 const SEX_LABELS: Record<UserSex, string> = {
@@ -60,14 +60,14 @@ function getAgeLabel(age: number): string {
 
 export default function SettingsScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { profile, updateProfile, getInitial, currencyInfo } = useUserProfile();
+  const { profile, updateProfile, getInitial } = useUserProfile();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [editingProfile, setEditingProfile] = useState<boolean>(false);
   const [editName, setEditName] = useState<string>(profile?.name ?? '');
   const [editSex, setEditSex] = useState<UserSex>(profile?.sex ?? 'prefer_not_to_say');
   const [editAge, setEditAge] = useState<number>(profile?.age ?? 25);
-  const [editCurrency, setEditCurrency] = useState<string>(profile?.currency ?? currencyInfo.code);
+
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -85,9 +85,8 @@ export default function SettingsScreen() {
     setEditName(profile?.name ?? '');
     setEditSex(profile?.sex ?? 'prefer_not_to_say');
     setEditAge(profile?.age ?? 25);
-    setEditCurrency(profile?.currency ?? currencyInfo.code);
     setEditingProfile(true);
-  }, [profile, currencyInfo.code]);
+  }, [profile]);
 
   const handleSaveProfile = useCallback(() => {
     if (editName.trim().length === 0) {
@@ -99,12 +98,11 @@ export default function SettingsScreen() {
       name: editName.trim(),
       sex: editSex,
       age: editAge,
-      currency: editCurrency,
       createdAt: profile?.createdAt ?? Date.now(),
     });
     setEditingProfile(false);
     console.log('Profile updated from settings');
-  }, [editName, editSex, editAge, editCurrency, profile, updateProfile]);
+  }, [editName, editSex, editAge, profile, updateProfile]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingProfile(false);
@@ -238,33 +236,7 @@ export default function SettingsScreen() {
 
                 <View style={styles.editDivider} />
 
-                <View style={styles.editField}>
-                  <Text style={styles.editLabel}>Currency</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={[styles.editChips, { flexWrap: 'nowrap' as const }]}>
-                      {CURRENCIES.map((cur) => (
-                        <TouchableOpacity
-                          key={cur.code}
-                          style={[
-                            styles.editChip,
-                            editCurrency === cur.code && styles.editChipActive,
-                          ]}
-                          onPress={() => setEditCurrency(cur.code)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.editChipText,
-                              editCurrency === cur.code && styles.editChipTextActive,
-                            ]}
-                          >
-                            {cur.symbol} {cur.code}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
+
 
                 <View style={styles.editActions}>
                   <TouchableOpacity
@@ -320,18 +292,7 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
                 </View>
-                <View style={styles.divider} />
-                <View style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: colors.successLight }]}>
-                    <Text style={{ fontSize: 14 }}>💰</Text>
-                  </View>
-                  <View style={styles.rowContent}>
-                    <Text style={styles.rowLabel}>Currency</Text>
-                    <Text style={styles.rowValue}>
-                      {currencyInfo.symbol} {currencyInfo.name}
-                    </Text>
-                  </View>
-                </View>
+
                 <View style={styles.divider} />
                 <TouchableOpacity
                   style={styles.editRow}

@@ -33,7 +33,6 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
-import { useUserProfile } from '@/contexts/UserProfileContext';
 import { FAST_TYPE_COLORS } from '@/mocks/vedic-data';
 import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
 import MetricKnowledgeModal from '@/components/MetricKnowledgeModal';
@@ -65,7 +64,7 @@ export default function AnalyticsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, completedRecords, streak, totalHours, thisWeekRecords, thisMonthRecords } = useFasting();
-  const { currencyInfo } = useUserProfile();
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [selectedMetric, setSelectedMetric] = useState<MetricKnowledge | null>(null);
@@ -238,9 +237,8 @@ export default function AnalyticsScreen() {
       const durationHours = ((r.endTime ?? 0) - r.startTime) / 3600000;
       return sum + Math.floor(durationHours / 6);
     }, 0);
-    const moneySaved = mealsSkipped * currencyInfo.mealCost;
-    return { fatBurnedCalories, fatBurnedGrams: totalFatBurned, autophagyHours: totalAutophagyHours, mealsSkipped, moneySaved };
-  }, [totalFatBurned, totalAutophagyHours, completedRecords, currencyInfo.mealCost]);
+    return { fatBurnedCalories, fatBurnedGrams: totalFatBurned, autophagyHours: totalAutophagyHours, mealsSkipped };
+  }, [totalFatBurned, totalAutophagyHours, completedRecords]);
 
   const milestones: MilestoneData[] = useMemo(() => {
     const completedCount = completedRecords.filter(r => r.completed).length;
@@ -650,13 +648,7 @@ export default function AnalyticsScreen() {
                   <Text style={styles.savingsLabel}>Meals Skipped</Text>
                   <Info size={11} color={colors.textMuted} style={styles.savingsInfoIcon} />
                 </TouchableOpacity>
-                <View style={styles.savingsDivider} />
-                <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('moneySaved')} style={styles.savingsItem}>
-                  <Text style={styles.savingsEmoji}>💰</Text>
-                  <Text style={styles.savingsValue}>{currencyInfo.symbol}{formatNumber(impactMetrics.moneySaved)}</Text>
-                  <Text style={styles.savingsLabel}>Money Saved</Text>
-                  <Info size={11} color={colors.textMuted} style={styles.savingsInfoIcon} />
-                </TouchableOpacity>
+
               </View>
             </View>
           </View>
