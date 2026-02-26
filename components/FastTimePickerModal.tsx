@@ -8,7 +8,6 @@ import {
   Animated,
   ScrollView,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -295,7 +294,7 @@ export default function FastTimePickerModal({
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeModal} activeOpacity={1} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }], paddingBottom: Math.max(insets.bottom, Platform.OS === 'web' ? 24 : 20) + 16 }]}>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.sheetHandle} />
 
           <View style={styles.sheetHeader}>
@@ -306,33 +305,49 @@ export default function FastTimePickerModal({
           </View>
 
           {step === 'choice' && (
-            <View style={styles.choiceContainer}>
-              <TouchableOpacity style={styles.choiceCard} onPress={handleNow} activeOpacity={0.7}>
-                <View style={[styles.choiceIcon, { backgroundColor: colors.successLight }]}>
-                  <Clock size={22} color={colors.success} />
-                </View>
-                <View style={styles.choiceTextWrap}>
-                  <Text style={styles.choiceTitle}>Now</Text>
-                  <Text style={styles.choiceDesc}>Use the current time</Text>
-                </View>
-              </TouchableOpacity>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
+              bounces={false}
+            >
+              <View style={styles.choiceContainer}>
+                <TouchableOpacity style={styles.choiceCard} onPress={handleNow} activeOpacity={0.7}>
+                  <View style={[styles.choiceIcon, { backgroundColor: colors.successLight }]}>
+                    <Clock size={22} color={colors.success} />
+                  </View>
+                  <View style={styles.choiceTextWrap}>
+                    <Text style={styles.choiceTitle}>Now</Text>
+                    <Text style={styles.choiceDesc}>Use the current time</Text>
+                  </View>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.choiceCard} onPress={handleCustom} activeOpacity={0.7}>
-                <View style={[styles.choiceIcon, { backgroundColor: colors.primaryLight }]}>
-                  <CalendarDays size={22} color={colors.primary} />
-                </View>
-                <View style={styles.choiceTextWrap}>
-                  <Text style={styles.choiceTitle}>Custom Time</Text>
-                  <Text style={styles.choiceDesc}>Pick a date & time in the past</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.choiceCard} onPress={handleCustom} activeOpacity={0.7}>
+                  <View style={[styles.choiceIcon, { backgroundColor: colors.primaryLight }]}>
+                    <CalendarDays size={22} color={colors.primary} />
+                  </View>
+                  <View style={styles.choiceTextWrap}>
+                    <Text style={styles.choiceTitle}>Custom Time</Text>
+                    <Text style={styles.choiceDesc}>Pick a date & time in the past</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           )}
 
           {step === 'date' && (
             <View style={styles.stepContainer}>
-              {renderCalendar()}
-              <TouchableOpacity style={styles.confirmBtn} onPress={handleDateConfirm} activeOpacity={0.7}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                bounces={false}
+              >
+                {renderCalendar()}
+              </ScrollView>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { marginBottom: Math.max(insets.bottom, 16) + 4 }]}
+                onPress={handleDateConfirm}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.confirmBtnText}>Select Time →</Text>
               </TouchableOpacity>
             </View>
@@ -340,8 +355,14 @@ export default function FastTimePickerModal({
 
           {step === 'time' && (
             <View style={styles.stepContainer}>
-              {renderTimePicker()}
-              <View style={styles.timeActions}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                bounces={false}
+              >
+                {renderTimePicker()}
+              </ScrollView>
+              <View style={[styles.timeActions, { marginBottom: Math.max(insets.bottom, 16) + 4 }]}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => setStep('date')} activeOpacity={0.7}>
                   <Text style={styles.backBtnText}>← Back</Text>
                 </TouchableOpacity>
@@ -372,7 +393,10 @@ function makeStyles(colors: ColorScheme) {
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       paddingHorizontal: 20,
-      maxHeight: '90%' as any,
+      maxHeight: '92%' as any,
+    },
+    scrollContent: {
+      paddingBottom: 8,
     },
     sheetHandle: {
       width: 36,
@@ -436,7 +460,8 @@ function makeStyles(colors: ColorScheme) {
       color: colors.textSecondary,
     },
     stepContainer: {
-      paddingBottom: 8,
+      flex: 1,
+      flexShrink: 1,
     },
     calendar: {
       marginBottom: 16,
