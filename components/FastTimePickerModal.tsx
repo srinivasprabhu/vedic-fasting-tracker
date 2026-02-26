@@ -65,9 +65,12 @@ export default function FastTimePickerModal({
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
+  const maxDateRef = useRef(maxDate);
+  maxDateRef.current = maxDate;
+
   useEffect(() => {
     if (visible) {
-      const d = maxDate ?? new Date();
+      const d = maxDateRef.current ?? new Date();
       setStep('choice');
       setSelectedDate(new Date(d));
       setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
@@ -104,7 +107,7 @@ export default function FastTimePickerModal({
         }),
       ]).start();
     }
-  }, [visible, maxDate, slideAnim, backdropAnim]);
+  }, [visible, slideAnim, backdropAnim]);
 
   const closeModal = useCallback(() => {
     Animated.parallel([
