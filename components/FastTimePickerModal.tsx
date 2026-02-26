@@ -7,11 +7,8 @@ import {
   Modal,
   Animated,
   ScrollView,
-  Platform,
   Dimensions,
-  useWindowDimensions,
-  KeyboardAvoidingView,
-  LayoutChangeEvent,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -27,6 +24,7 @@ interface FastTimePickerModalProps {
   maxDate?: Date;
 }
 
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
@@ -52,8 +50,7 @@ export default function FastTimePickerModal({
 }: FastTimePickerModalProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
-  const dayCellSize = Math.min(Math.floor((screenWidth - 40 - 12) / 7), 44);
+  const dayCellSize = Math.min(Math.floor((SCREEN_WIDTH - 40 - 12) / 7), 44);
   const styles = useMemo(() => makeStyles(colors, dayCellSize), [colors, dayCellSize]);
 
   const now = new Date();
@@ -64,32 +61,9 @@ export default function FastTimePickerModal({
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(max.getFullYear(), max.getMonth(), 1));
   const [selectedHour, setSelectedHour] = useState<number>(max.getHours());
   const [selectedMinute, setSelectedMinute] = useState<number>(Math.floor(max.getMinutes() / 5) * 5);
+
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(1)).current;
-  const sheetHeight = useRef(0);
-  const [ready, setReady] = useState(false);
-
-  const onSheetLayout = useCallback((e: LayoutChangeEvent) => {
-    const h = e.nativeEvent.layout.height;
-    if (h > 0 && sheetHeight.current === 0) {
-      sheetHeight.current = h;
-      setReady(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (visible && ready) {
-      slideAnim.setValue(1);
-      backdropAnim.setValue(0);
-      Animated.parallel([
-        Animated.timing(backdropAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }),
-      ]).start();
-    } else if (visible && !ready) {
-      slideAnim.setValue(1);
-      backdropAnim.setValue(0);
-    }
-  }, [visible, ready, backdropAnim, slideAnim]);
 
   useEffect(() => {
     if (visible) {
@@ -99,21 +73,56 @@ export default function FastTimePickerModal({
       setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
       setSelectedHour(d.getHours());
       setSelectedMinute(Math.floor(d.getMinutes() / 5) * 5);
-      sheetHeight.current = 0;
-      setReady(false);
+
+      slideAnim.setValue(SCREEN_HEIGHT);
+      backdropAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 9,
+          tension: 65,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: SCREEN_HEIGHT,
+          duration: 250,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  }, [visible, maxDate]);
+  }, [visible, maxDate, slideAnim, backdropAnim]);
 
   const closeModal = useCallback(() => {
     Animated.parallel([
-      Animated.timing(backdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_HEIGHT,
+        duration: 250,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
     ]).start(() => {
-      sheetHeight.current = 0;
-      setReady(false);
       onClose();
     });
-  }, [backdropAnim, slideAnim, onClose]);
+  }, [slideAnim, backdropAnim, onClose]);
 
   const handleNow = useCallback(() => {
     closeModal();
@@ -321,24 +330,16 @@ export default function FastTimePickerModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={closeModal}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={closeModal} statusBarTranslucent>
       <View style={styles.modalContainer}>
         <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeModal} activeOpacity={1} />
         </Animated.View>
 
         <Animated.View
-          onLayout={onSheetLayout}
           style={[
             styles.sheet,
-            {
-              transform: [{
-                translateY: slideAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, Dimensions.get('window').height],
-                }),
-              }],
-            },
+            { transform: [{ translateY: slideAnim }] },
           ]}
         >
           <View style={styles.sheetHandle} />
@@ -351,33 +352,27 @@ export default function FastTimePickerModal({
           </View>
 
           {step === 'choice' && (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
-              bounces={false}
-            >
-              <View style={styles.choiceContainer}>
-                <TouchableOpacity style={styles.choiceCard} onPress={handleNow} activeOpacity={0.7}>
-                  <View style={[styles.choiceIcon, { backgroundColor: colors.successLight }]}>
-                    <Clock size={22} color={colors.success} />
-                  </View>
-                  <View style={styles.choiceTextWrap}>
-                    <Text style={styles.choiceTitle}>Now</Text>
-                    <Text style={styles.choiceDesc}>Use the current time</Text>
-                  </View>
-                </TouchableOpacity>
+            <View style={styles.choiceContainer}>
+              <TouchableOpacity style={styles.choiceCard} onPress={handleNow} activeOpacity={0.7}>
+                <View style={[styles.choiceIcon, { backgroundColor: colors.successLight }]}>
+                  <Clock size={22} color={colors.success} />
+                </View>
+                <View style={styles.choiceTextWrap}>
+                  <Text style={styles.choiceTitle}>Now</Text>
+                  <Text style={styles.choiceDesc}>Use the current time</Text>
+                </View>
+              </TouchableOpacity>
 
-                <TouchableOpacity style={styles.choiceCard} onPress={handleCustom} activeOpacity={0.7}>
-                  <View style={[styles.choiceIcon, { backgroundColor: colors.primaryLight }]}>
-                    <CalendarDays size={22} color={colors.primary} />
-                  </View>
-                  <View style={styles.choiceTextWrap}>
-                    <Text style={styles.choiceTitle}>Custom Time</Text>
-                    <Text style={styles.choiceDesc}>Pick a date & time in the past</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+              <TouchableOpacity style={styles.choiceCard} onPress={handleCustom} activeOpacity={0.7}>
+                <View style={[styles.choiceIcon, { backgroundColor: colors.primaryLight }]}>
+                  <CalendarDays size={22} color={colors.primary} />
+                </View>
+                <View style={styles.choiceTextWrap}>
+                  <Text style={styles.choiceTitle}>Custom Time</Text>
+                  <Text style={styles.choiceDesc}>Pick a date & time in the past</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           )}
 
           {step === 'date' && (
@@ -445,7 +440,8 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       paddingHorizontal: 20,
-      maxHeight: '85%' as any,
+      paddingTop: 10,
+      height: SCREEN_HEIGHT * 0.75,
     },
     scrollContent: {
       paddingBottom: 8,
@@ -456,7 +452,6 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       borderRadius: 2,
       backgroundColor: colors.borderLight,
       alignSelf: 'center' as const,
-      marginTop: 10,
       marginBottom: 8,
     },
     sheetHeader: {
@@ -513,12 +508,9 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
     },
     stepContainer: {
       flex: 1,
-      flexShrink: 1,
-      minHeight: 100,
     },
     stepScroll: {
-      flexGrow: 0,
-      flexShrink: 1,
+      flex: 1,
     },
     bottomAction: {
       paddingTop: 8,
