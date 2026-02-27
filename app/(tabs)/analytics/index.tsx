@@ -39,13 +39,11 @@ import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
 import MetricKnowledgeModal from '@/components/MetricKnowledgeModal';
 import {
   AnimatedBar,
-  MetabolicZoneCard,
   ScoreGauge,
   ImpactCard,
   MilestoneRow,
 } from '@/components/AnalyticsComponents';
 import {
-  METABOLIC_ZONES,
   WARRIOR_LEVELS,
   AUTOPHAGY_THRESHOLD_HOURS,
   AVG_MEAL_COST,
@@ -283,14 +281,6 @@ export default function AnalyticsScreen() {
     return (Date.now() - activeFast.startTime) / 3600000;
   }, [activeFast]);
 
-  const currentMetabolicZone = useMemo(() => {
-    const hours = currentFastHours;
-    for (let i = METABOLIC_ZONES.length - 1; i >= 0; i--) {
-      if (hours >= METABOLIC_ZONES[i].minHours) return METABOLIC_ZONES[i].id;
-    }
-    return 'anabolic';
-  }, [currentFastHours]);
-
   const insulinSensitivity = useMemo(() => {
     const durationScore = Math.min(35, (avgFastDuration / 16) * 35);
     const streakScore = Math.min(25, (streak / 30) * 25);
@@ -525,33 +515,7 @@ export default function AnalyticsScreen() {
         </View>
       </View>
 
-      {activeFast && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Activity size={16} color={colors.primary} />
-            <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('metabolicZone')} style={styles.sectionTitleTouchable}>
-              <Text style={styles.sectionTitleInline}>Metabolic Zone</Text>
-            </TouchableOpacity>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
-            </View>
-          </View>
-          <Text style={styles.sectionSubtext}>
-            Currently at {formatHours(currentFastHours)} into your fast
-          </Text>
-          <View style={styles.zonesCard}>
-            {METABOLIC_ZONES.map((zone, i) => (
-              <MetabolicZoneCard
-                key={zone.id}
-                zone={zone}
-                isActive={zone.id === currentMetabolicZone}
-                index={i}
-              />
-            ))}
-          </View>
-        </View>
-      )}
+
 
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
