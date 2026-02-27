@@ -21,6 +21,7 @@ import { FAST_TYPES, INTERMITTENT_FAST_TYPES, VEDIC_QUOTES } from '@/mocks/vedic
 import CircularTimer from '@/components/CircularTimer';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
 import MetabolicZoneRiver from '@/components/MetabolicZoneRiver';
+import { useFastTimer } from '@/hooks/useFastTimer';
 import { FastType, FastCategory } from '@/types/fasting';
 import type { ColorScheme } from '@/constants/colors';
 
@@ -45,7 +46,6 @@ export default function HomeScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, startFast, endFast, streak, totalHours, completedRecords } = useFasting();
   const { getGreeting, getInitial } = useUserProfile();
-  const [elapsed, setElapsed] = useState(0);
   const [showFastPicker, setShowFastPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState<FastCategory>('intermittent');
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -74,17 +74,16 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  useEffect(() => {
-    if (!activeFast) {
-      setElapsed(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setElapsed(Date.now() - activeFast.startTime);
-    }, 1000);
-    setElapsed(Date.now() - activeFast.startTime);
-    return () => clearInterval(interval);
-  }, [activeFast]);
+  const timer = useFastTimer(
+    activeFast
+      ? {
+          startTime: activeFast.startTime,
+          onZoneChange: (id, name) => {
+            console.log(`Zone changed: ${name} (${id})`);
+          },
+        }
+      : null
+  );
 
   const togglePicker = useCallback(() => {
     const toValue = showFastPicker ? 0 : 1;
@@ -131,7 +130,7 @@ export default function HomeScreen() {
 
   const handleEndNow = useCallback(() => {
     const targetMs = activeFast?.targetDuration ?? 0;
-    const completed = elapsed >= targetMs * 0.8;
+    const completed = timer.elapsedMs >= targetMs * 0.8;
     Haptics.notificationAsync(
       completed
         ? Haptics.NotificationFeedbackType.Success
@@ -140,7 +139,7 @@ export default function HomeScreen() {
     endFast(completed);
     console.log('Fast ended with current time');
     setTimeout(() => router.push('/fast-complete' as any), 300);
-  }, [activeFast, elapsed, endFast]);
+  }, [activeFast, timer.elapsedMs, endFast]);
 
   const handleEndCustom = useCallback((timestamp: number) => {
     if (!activeFast) return;
@@ -173,10 +172,8 @@ export default function HomeScreen() {
     }).start();
   }, [buttonScale]);
 
-  const progress = activeFast ? elapsed / activeFast.targetDuration : 0;
-  const remaining = activeFast ? Math.max(0, activeFast.targetDuration - elapsed) : 0;
-
-  const currentFastHours = activeFast ? elapsed / 3600000 : 0;
+  const progress = activeFast ? timer.elapsedMs / activeFast.targetDuration : 0;
+  const remaining = activeFast ? Math.max(0, activeFast.targetDuration - timer.elapsedMs) : 0;
 
   const pickerTranslate = pickerAnim.interpolate({
     inputRange: [0, 1],
@@ -220,7 +217,7 @@ export default function HomeScreen() {
           <View style={styles.timerSection}>
             <CircularTimer
               progress={progress}
-              elapsed={activeFast ? formatDuration(elapsed) : '00:00:00'}
+              elapsed={activeFast ? timer.formatted : '00:00:00'}
               remaining={formatShortDuration(remaining)}
               label={activeFast ? activeFast.label : 'Ready to fast'}
               isActive={!!activeFast}
@@ -332,7 +329,7 @@ export default function HomeScreen() {
           </View>
 
           <MetabolicZoneRiver
-            hoursElapsed={currentFastHours}
+            hoursElapsed={timer.hoursElapsed}
             isActive={!!activeFast}
             colors={colors}
           />
