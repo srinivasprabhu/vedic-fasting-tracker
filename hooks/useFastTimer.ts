@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 export interface FastTimerState {
   hoursElapsed: number;
@@ -153,8 +153,11 @@ export function useFastTimer(options: UseFastTimerOptions | null): FastTimerStat
     onComplete,
   } = options ?? {};
 
-  const startDate = startTime ? toDate(startTime) : null;
-  const endDate = endTime ? toDate(endTime) : null;
+  const startTimestamp = startTime ? toDate(startTime).getTime() : null;
+  const endTimestamp = endTime ? toDate(endTime).getTime() : null;
+
+  const startDate = useMemo(() => startTimestamp !== null ? new Date(startTimestamp) : null, [startTimestamp]);
+  const endDate = useMemo(() => endTimestamp !== null ? new Date(endTimestamp) : null, [endTimestamp]);
 
   const [state, setState] = useState<FastTimerState>(() =>
     startDate ? buildState(startDate, endDate, new Date()) : DEFAULT_STATE
