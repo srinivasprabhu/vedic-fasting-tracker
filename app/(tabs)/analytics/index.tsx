@@ -516,20 +516,6 @@ export default function AnalyticsScreen() {
         </View>
       </View>
 
-      <View style={styles.warriorCard}>
-        <View style={styles.warriorLeft}>
-          <Text style={styles.warriorEmoji}>{warriorLevel.icon}</Text>
-          <View>
-            <Text style={styles.warriorLevelLabel}>VEDIC WARRIOR LEVEL</Text>
-            <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
-          </View>
-        </View>
-        <View style={styles.warriorRight}>
-          <Text style={styles.warriorFastCount}>{completedRecords.filter(r => r.completed).length}</Text>
-          <Text style={styles.warriorFastLabel}>fasts</Text>
-        </View>
-      </View>
-
       <View style={styles.section}>
         <AayuInsightCard
           totalWeekFasts={thisWeekRecords.length}
@@ -538,6 +524,17 @@ export default function AnalyticsScreen() {
           totalHours={totalHours}
           streak={streak}
           autophagyCount={thisWeekAutophagyCount}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Star size={16} color="#D4A03C" />
+          <Text style={styles.sectionTitleInline}>Next Badge</Text>
+        </View>
+        <DedicatedSeekerCard
+          completedCount={completedRecords.filter(r => r.completed).length}
+          colors={colors}
         />
       </View>
 
@@ -553,63 +550,18 @@ export default function AnalyticsScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Progress So Far</Text>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>This week</Text>
-            <Text style={styles.summaryValue}>
-              {thisWeekRecords.length} fasts · {formatHours(
-                thisWeekRecords.reduce((s, r) => s + ((r.endTime ?? 0) - r.startTime) / 3600000, 0)
-              )}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>This month</Text>
-            <Text style={styles.summaryValue}>
-              {thisMonthRecords.length} fasts · {formatHours(
-                thisMonthRecords.reduce((s, r) => s + ((r.endTime ?? 0) - r.startTime) / 3600000, 0)
-              )}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Average duration</Text>
-            <Text style={styles.summaryValue}>{formatHours(avgFastDuration)}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total fasts</Text>
-            <Text style={styles.summaryValue}>{completedRecords.length}</Text>
+      <View style={styles.warriorCard}>
+        <View style={styles.warriorLeft}>
+          <Text style={styles.warriorEmoji}>{warriorLevel.icon}</Text>
+          <View>
+            <Text style={styles.warriorLevelLabel}>VEDIC WARRIOR LEVEL</Text>
+            <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
           </View>
         </View>
-      </View>
-
-      {fastTypeBreakdown.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fast Types</Text>
-          <View style={styles.typeList}>
-            {fastTypeBreakdown.map(([type, count]) => (
-              <View key={type} style={styles.typeRow}>
-                <View style={[styles.typeDot, { backgroundColor: FAST_TYPE_COLORS[type] || colors.primary }]} />
-                <Text style={styles.typeName}>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
-                <Text style={styles.typeCount}>{count}</Text>
-              </View>
-            ))}
-          </View>
+        <View style={styles.warriorRight}>
+          <Text style={styles.warriorFastCount}>{completedRecords.filter(r => r.completed).length}</Text>
+          <Text style={styles.warriorFastLabel}>fasts</Text>
         </View>
-      )}
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Star size={16} color="#D4A03C" />
-          <Text style={styles.sectionTitleInline}>Next Badge</Text>
-        </View>
-        <DedicatedSeekerCard
-          completedCount={completedRecords.filter(r => r.completed).length}
-          colors={colors}
-        />
       </View>
     </>
   );
