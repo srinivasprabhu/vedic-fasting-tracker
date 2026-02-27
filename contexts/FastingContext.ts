@@ -134,8 +134,13 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
   }, [completedRecords]);
 
   const thisWeekRecords = useMemo(() => {
-    const weekAgo = Date.now() - 7 * 86400000;
-    return completedRecords.filter(r => r.startTime >= weekAgo);
+    const now = new Date();
+    const day = now.getDay();
+    const daysFromMonday = day === 0 ? 6 : day - 1;
+    const startOfWeek = new Date(now);
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(now.getDate() - daysFromMonday);
+    return completedRecords.filter(r => r.startTime >= startOfWeek.getTime());
   }, [completedRecords]);
 
   const thisMonthRecords = useMemo(() => {

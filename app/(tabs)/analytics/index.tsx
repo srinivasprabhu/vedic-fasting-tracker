@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Animated,
+  Easing,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
@@ -59,6 +60,146 @@ import {
 import type { ColorScheme } from '@/constants/colors';
 
 type TabKey = 'overview' | 'body' | 'spirit';
+
+function DedicatedSeekerCard({ completedCount, colors }: { completedCount: number; colors: ColorScheme }) {
+  const BADGE_COLOR = '#D4A03C';
+  const isUnlocked = completedCount >= 10;
+  const progress = Math.min(completedCount, 10);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progress / 10,
+      duration: 1100,
+      delay: 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+    if (isUnlocked) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0.5, duration: 2000, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, [progress, isUnlocked, progressAnim, glowAnim]);
+
+  const barWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  return (
+    <View style={[dStyles.card, {
+      backgroundColor: isUnlocked ? BADGE_COLOR + '0C' : colors.card,
+      borderColor: isUnlocked ? BADGE_COLOR + '50' : colors.borderLight,
+    }]}>
+      <View style={dStyles.header}>
+        <Animated.View style={[dStyles.iconCircle, {
+          backgroundColor: BADGE_COLOR + '20',
+          opacity: isUnlocked ? glowAnim : 1,
+        }]}>
+          <Star size={20} color={BADGE_COLOR} fill={isUnlocked ? BADGE_COLOR : 'none'} />
+        </Animated.View>
+        <View style={dStyles.titleBlock}>
+          <View style={dStyles.titleRow}>
+            <Text style={[dStyles.title, { color: colors.text }]}>Dedicated Seeker</Text>
+            {isUnlocked && (
+              <View style={[dStyles.pill, { backgroundColor: BADGE_COLOR + '20' }]}>
+                <Text style={[dStyles.pillText, { color: BADGE_COLOR }]}>Unlocked ✦</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[dStyles.sub, { color: colors.textMuted }]}>
+            {isUnlocked
+              ? 'A true commitment to Tapas. Your discipline shines.'
+              : `${10 - progress} more fast${10 - progress === 1 ? '' : 's'} to unlock this badge`}
+          </Text>
+        </View>
+        <View style={dStyles.counter}>
+          <Text style={[dStyles.countNum, { color: isUnlocked ? BADGE_COLOR : colors.text }]}>{progress}</Text>
+          <Text style={[dStyles.countDen, { color: colors.textMuted }]}>/10</Text>
+        </View>
+      </View>
+      <View style={[dStyles.track, { backgroundColor: colors.surface }]}>
+        <Animated.View style={[dStyles.fill, { width: barWidth, backgroundColor: BADGE_COLOR }]} />
+      </View>
+    </View>
+  );
+}
+
+const dStyles = StyleSheet.create({
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  header: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: 14,
+    gap: 12,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  titleBlock: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    flexWrap: 'wrap' as const,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    letterSpacing: -0.2,
+  },
+  pill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  pillText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+  },
+  sub: {
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  counter: {
+    flexDirection: 'row' as const,
+    alignItems: 'baseline' as const,
+  },
+  countNum: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    letterSpacing: -1,
+  },
+  countDen: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    marginLeft: 1,
+  },
+  track: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden' as const,
+  },
+  fill: {
+    height: '100%' as any,
+    borderRadius: 3,
+  },
+});
 
 export default function AnalyticsScreen() {
   const { colors } = useTheme();
@@ -425,7 +566,7 @@ export default function AnalyticsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Summary</Text>
+        <Text style={styles.sectionTitle}>Progress So Far</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>This week</Text>
@@ -471,6 +612,17 @@ export default function AnalyticsScreen() {
           </View>
         </View>
       )}
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Star size={16} color="#D4A03C" />
+          <Text style={styles.sectionTitleInline}>Next Badge</Text>
+        </View>
+        <DedicatedSeekerCard
+          completedCount={completedRecords.filter(r => r.completed).length}
+          colors={colors}
+        />
+      </View>
     </>
   );
 
@@ -807,7 +959,7 @@ export default function AnalyticsScreen() {
               <Text style={styles.emptyIcon}>🧘</Text>
               <Text style={styles.emptyTitle}>No fasts recorded yet</Text>
               <Text style={styles.emptyText}>
-                Start your first fast from the home screen to see your analytics here.
+                Begin your first fast — every great journey starts with a single step.
               </Text>
             </View>
           )}
