@@ -55,6 +55,7 @@ import {
   MilestoneData,
   BarData,
 } from '@/utils/analytics-helpers';
+import AayuInsightCard from '@/components/AayuInsightCard';
 import type { ColorScheme } from '@/constants/colors';
 
 type TabKey = 'overview' | 'body' | 'spirit';
@@ -452,6 +453,20 @@ export default function AnalyticsScreen() {
 
   const unlockedCount = milestones.filter(m => m.unlocked).length;
 
+  const autophagyCount = useMemo(() => {
+    return completedRecords.filter(r => {
+      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      return hours > AUTOPHAGY_THRESHOLD_HOURS;
+    }).length;
+  }, [completedRecords]);
+
+  const thisWeekAutophagyCount = useMemo(() => {
+    return thisWeekRecords.filter(r => {
+      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      return hours > AUTOPHAGY_THRESHOLD_HOURS;
+    }).length;
+  }, [thisWeekRecords]);
+
   const handleTabPress = useCallback((tab: TabKey) => {
     setActiveTab(tab);
   }, []);
@@ -515,7 +530,16 @@ export default function AnalyticsScreen() {
         </View>
       </View>
 
-
+      <View style={styles.section}>
+        <AayuInsightCard
+          totalWeekFasts={thisWeekRecords.length}
+          avgFastHours={avgFastDuration}
+          longestFastHours={longestFast}
+          totalHours={totalHours}
+          streak={streak}
+          autophagyCount={thisWeekAutophagyCount}
+        />
+      </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
