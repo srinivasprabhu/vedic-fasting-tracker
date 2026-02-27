@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
@@ -38,6 +38,8 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
   const saveMutation = useMutation({
     mutationFn: saveProfile,
   });
+  const saveMutateRef = useRef(saveMutation.mutate);
+  saveMutateRef.current = saveMutation.mutate;
 
   useEffect(() => {
     if (profileQuery.data !== undefined) {
@@ -47,8 +49,8 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
 
   const updateProfile = useCallback((newProfile: UserProfile) => {
     setProfile(newProfile);
-    saveMutation.mutate(newProfile);
-  }, [saveMutation]);
+    saveMutateRef.current(newProfile);
+  }, []);
 
   const currencyCode = profile?.currency ?? detectCurrencyFromLocale();
   const currencyInfo = getCurrencyInfo(currencyCode);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
@@ -39,6 +39,14 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
   const saveMutation = useMutation({
     mutationFn: saveRecords,
   });
+  const saveMutateRef = useRef(saveMutation.mutate);
+  saveMutateRef.current = saveMutation.mutate;
+
+  const recordsRef = useRef(records);
+  recordsRef.current = records;
+
+  const activeFastRef = useRef(activeFast);
+  activeFastRef.current = activeFast;
 
   useEffect(() => {
     if (recordsQuery.data) {
@@ -62,28 +70,29 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
       completed: false,
       notes: '',
     };
-    const updated = [newFast, ...records];
+    const updated = [newFast, ...recordsRef.current];
     setRecords(updated);
     setActiveFast(newFast);
-    saveMutation.mutate(updated);
+    saveMutateRef.current(updated);
     console.log('Started fast:', newFast.label, 'at', new Date(startTime).toISOString());
-  }, [records, saveMutation]);
+  }, []);
 
   const endFast = useCallback((completed: boolean, customEndTime?: number) => {
-    if (!activeFast) return;
+    const currentActive = activeFastRef.current;
+    if (!currentActive) return;
     const endTime = customEndTime ?? Date.now();
-    const finishedFast: FastRecord = { ...activeFast, endTime, completed };
-    const updated = records.map(r =>
-      r.id === activeFast.id
+    const finishedFast: FastRecord = { ...currentActive, endTime, completed };
+    const updated = recordsRef.current.map(r =>
+      r.id === currentActive.id
         ? finishedFast
         : r
     );
     setRecords(updated);
     setActiveFast(null);
     setLastCompletedFast(finishedFast);
-    saveMutation.mutate(updated);
-    console.log('Ended fast:', activeFast.label, 'at', new Date(endTime).toISOString(), completed ? '(completed)' : '(cancelled)');
-  }, [activeFast, records, saveMutation]);
+    saveMutateRef.current(updated);
+    console.log('Ended fast:', currentActive.label, 'at', new Date(endTime).toISOString(), completed ? '(completed)' : '(cancelled)');
+  }, []);
 
   const clearLastCompleted = useCallback(() => {
     setLastCompletedFast(null);

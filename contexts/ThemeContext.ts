@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
@@ -27,6 +27,8 @@ export const [ThemeProvider, useTheme] = createContextHook(() => {
       return dark;
     },
   });
+  const saveMutateRef = useRef(saveMutation.mutate);
+  saveMutateRef.current = saveMutation.mutate;
 
   useEffect(() => {
     if (themeQuery.data !== undefined) {
@@ -35,11 +37,13 @@ export const [ThemeProvider, useTheme] = createContextHook(() => {
   }, [themeQuery.data]);
 
   const toggleTheme = useCallback(() => {
-    const next = !isDark;
-    setIsDark(next);
-    saveMutation.mutate(next);
-    console.log('Theme toggled to:', next ? 'dark' : 'light');
-  }, [isDark, saveMutation]);
+    setIsDark((prev) => {
+      const next = !prev;
+      saveMutateRef.current(next);
+      console.log('Theme toggled to:', next ? 'dark' : 'light');
+      return next;
+    });
+  }, []);
 
   const colors: ColorScheme = isDark ? darkColors : lightColors;
 
