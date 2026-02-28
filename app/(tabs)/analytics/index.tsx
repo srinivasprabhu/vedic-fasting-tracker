@@ -38,11 +38,11 @@ import { FAST_TYPE_COLORS } from '@/mocks/vedic-data';
 import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
 import MetricKnowledgeModal from '@/components/MetricKnowledgeModal';
 import {
-  AnimatedBar,
   ScoreGauge,
   ImpactCard,
   MilestoneRow,
 } from '@/components/AnalyticsComponents';
+import ThisWeekCard from '@/components/ThisWeekCard';
 import {
   WARRIOR_LEVELS,
   AUTOPHAGY_THRESHOLD_HOURS,
@@ -460,6 +460,48 @@ export default function AnalyticsScreen() {
     }).length;
   }, [completedRecords]);
 
+  const thisWeekHours = useMemo(() => {
+    return thisWeekRecords.reduce((sum, r) => {
+      return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+    }, 0);
+  }, [thisWeekRecords]);
+
+  const lastWeekHours = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const daysFromMonday = day === 0 ? 6 : day - 1;
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setHours(0, 0, 0, 0);
+    startOfThisWeek.setDate(now.getDate() - daysFromMonday);
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+    const lastWeekRecs = completedRecords.filter(
+      (r) =>
+        r.startTime >= startOfLastWeek.getTime() &&
+        r.startTime < startOfThisWeek.getTime()
+    );
+    return lastWeekRecs.reduce((sum, r) => {
+      return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+    }, 0);
+  }, [completedRecords]);
+
+  const vsLastWeekPct = useMemo(() => {
+    if (lastWeekHours === 0) return 0;
+    return Math.round(((thisWeekHours - lastWeekHours) / lastWeekHours) * 100);
+  }, [thisWeekHours, lastWeekHours]);
+
+  const thisWeekAvgDuration = useMemo(() => {
+    if (thisWeekRecords.length === 0) return 0;
+    return thisWeekHours / thisWeekRecords.length;
+  }, [thisWeekHours, thisWeekRecords]);
+
+  const thisWeekPersonalBest = useMemo(() => {
+    if (thisWeekRecords.length === 0) return 0;
+    return Math.max(
+      ...thisWeekRecords.map((r) => ((r.endTime ?? 0) - r.startTime) / 3600000)
+    );
+  }, [thisWeekRecords]);
+
   const thisWeekAutophagyCount = useMemo(() => {
     return thisWeekRecords.filter(r => {
       const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
@@ -539,15 +581,14 @@ export default function AnalyticsScreen() {
       </View>
 
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <BarChart3 size={16} color={colors.primary} />
-          <Text style={styles.sectionTitleInline}>This Week</Text>
-        </View>
-        <View style={styles.chartCard}>
-          {weeklyData.map((item, index) => (
-            <AnimatedBar key={item.label} item={item} index={index} />
-          ))}
-        </View>
+        <ThisWeekCard
+          weeklyData={weeklyData.map((d) => ({ label: d.label, value: d.value }))}
+          totalWeekHours={thisWeekHours}
+          fastCount={thisWeekRecords.length}
+          avgDuration={thisWeekAvgDuration}
+          vsLastWeekPct={vsLastWeekPct}
+          personalBestHours={thisWeekPersonalBest}
+        />
       </View>
 
       <View style={styles.warriorCard}>
