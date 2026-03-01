@@ -197,8 +197,7 @@ export default function AayuInsightCard({
     ).start();
   }, [fadeAnim, glowAnim]);
 
-  const isDark = colors.background === '#100805';
-  const cardBg = isDark ? '#1A0D06' : '#2C1810';
+  const cardBg = '#1A0D06';
   const quoteColor = '#D4A03C';
   const borderAccent = '#C97B2A';
 

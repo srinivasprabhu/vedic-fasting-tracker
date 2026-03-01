@@ -527,6 +527,17 @@ export default function AnalyticsScreen() {
 
   const renderOverviewTab = () => (
     <>
+      <View style={styles.section}>
+        <AayuInsightCard
+          totalWeekFasts={thisWeekRecords.length}
+          avgFastHours={avgFastDuration}
+          longestFastHours={longestFast}
+          totalHours={totalHours}
+          streak={streak}
+          autophagyCount={thisWeekAutophagyCount}
+        />
+      </View>
+
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <View style={[styles.statIconWrap, { backgroundColor: colors.warningLight }]}>
@@ -556,17 +567,6 @@ export default function AnalyticsScreen() {
           <Text style={styles.statValue}>{formatHours(longestFast)}</Text>
           <Text style={styles.statLabel}>Longest Fast</Text>
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <AayuInsightCard
-          totalWeekFasts={thisWeekRecords.length}
-          avgFastHours={avgFastDuration}
-          longestFastHours={longestFast}
-          totalHours={totalHours}
-          streak={streak}
-          autophagyCount={thisWeekAutophagyCount}
-        />
       </View>
 
       <View style={styles.section}>
