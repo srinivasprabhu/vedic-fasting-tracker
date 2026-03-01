@@ -1,514 +1,465 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
+  TouchableOpacity,
   StyleSheet,
   Animated,
-  TouchableOpacity,
-  ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Platform,
-  useWindowDimensions,
+  Easing,
+  Dimensions,
+  FlatList,
+  ViewStyle,
+  TextStyle,
+  StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Flame, Moon, Leaf, Sparkles, ArrowRight } from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { AayuMandala } from '@/components/onboarding/AayuMandala';
+import { OnboardingSlide } from '@/components/onboarding/OnboardingSlide';
+import { AuthButtons } from '@/components/onboarding/AuthButtons';
+import type { OnboardingSlideData } from '@/components/onboarding/types';
+import { COLORS } from '@/constants/theme';
 
 const ONBOARDING_KEY = 'vedic_onboarding_complete';
 
-interface OnboardingPage {
-  title: string;
-  subtitle: string;
-  description: string;
-  icon: React.ReactNode;
-  gradientColors: [string, string, string];
-  accentColor: string;
-}
+const { width: W, height: H } = Dimensions.get('window');
 
-const pages: OnboardingPage[] = [
+const SLIDES: OnboardingSlideData[] = [
   {
-    title: 'Vedic Intermittent\nFasting',
-    subtitle: 'Ancient wisdom, modern wellness',
-    description:
-      'Discover the sacred art of Upavasa — fasting rooted in thousands of years of Vedic tradition.',
-    icon: <Flame size={48} color="#FFF7ED" strokeWidth={1.5} />,
-    gradientColors: ['#1A0E08', '#3D1D0A', '#2C1206'],
-    accentColor: '#E8A04C',
+    id: 'brand',
+    tag: 'ANCIENT WISDOM · MODERN WELLNESS',
+    title: 'Welcome to',
+    titleAccent: 'Aayu',
+    body: 'The sacred practice of Upavasa — thousands of years of Vedic fasting wisdom, now in your pocket.',
+    icon: '✦',
+    bgColors: ['#1a0d04', '#0e0703', '#070402'],
+    accentColor: '#c8872a',
+    iconBg: 'rgba(200,135,42,0.12)',
   },
   {
-    title: 'Track Your\nJourney',
-    subtitle: 'Intermittent & Vedic fasts',
-    description:
-      'Log every fast — whether it\'s Ekadashi, Pradosh Vrat, or your own intermittent routine. Your body, your rhythm.',
-    icon: <Moon size={48} color="#F0E6D8" strokeWidth={1.5} />,
-    gradientColors: ['#0D1520', '#1A2A3D', '#0F1A28'],
-    accentColor: '#7EB8D4',
+    id: 'wisdom',
+    tag: 'ANCIENT WISDOM',
+    title: 'Vedic',
+    titleAccent: 'Intermittent Fasting',
+    body: 'Discover the art of Upavasa — fasting rooted in thousands of years of Vedic tradition. Ekadashi, Pradosh, OMAD and more.',
+    icon: '🔥',
+    bgColors: ['#1f0d02', '#130802', '#0a0501'],
+    accentColor: '#e07b30',
+    iconBg: 'rgba(224,123,48,0.12)',
   },
   {
-    title: 'See Your\nProgress',
-    subtitle: 'Analytics that inspire',
-    description:
-      'Watch your fasting patterns transform into insights — calories burned, streaks earned, and milestones unlocked.',
-    icon: <Leaf size={48} color="#E8F0E4" strokeWidth={1.5} />,
-    gradientColors: ['#0A1A0D', '#1A3320', '#0F2614'],
-    accentColor: '#7CB87A',
+    id: 'journey',
+    tag: 'INTERMITTENT & VEDIC FASTS',
+    title: 'Track Your',
+    titleAccent: 'Journey',
+    body: "Log every fast — whether it's Ekadashi, Pradosh Vrat, or your own intermittent routine. Your body, your rhythm.",
+    icon: '🌙',
+    bgColors: ['#050f18', '#030b12', '#02070d'],
+    accentColor: '#5b8dd9',
+    iconBg: 'rgba(91,141,217,0.12)',
   },
   {
-    title: 'Begin Your\nPath',
-    subtitle: 'Guided by tradition',
-    description:
-      'Explore the Vedic calendar, learn the significance of each Vrat, and let ancient knowledge guide your fasting practice.',
-    icon: <Sparkles size={48} color="#FFF5E6" strokeWidth={1.5} />,
-    gradientColors: ['#1A0F1E', '#2D1636', '#1F0E26'],
-    accentColor: '#C490D4',
+    id: 'progress',
+    tag: 'ANALYTICS THAT INSPIRE',
+    title: 'See Your',
+    titleAccent: 'Progress',
+    body: 'Watch your fasting patterns transform into Vedic insights — Agni strength, Sattvic score, streaks earned, milestones unlocked.',
+    icon: '🌿',
+    bgColors: ['#041208', '#020d05', '#010803'],
+    accentColor: '#3aaa6e',
+    iconBg: 'rgba(58,170,110,0.12)',
+  },
+  {
+    id: 'begin',
+    tag: 'GUIDED BY TRADITION',
+    title: 'Begin Your',
+    titleAccent: 'Path',
+    body: 'Explore the Vedic calendar, learn the significance of each Vrat, and let ancient knowledge guide your fasting practice.',
+    icon: '✨',
+    bgColors: ['#0e0905', '#0a0703', '#070502'],
+    accentColor: '#c8872a',
+    iconBg: 'rgba(200,135,42,0.1)',
   },
 ];
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [authLoading, setAuthLoading] = useState<'google' | 'apple' | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
-  const fadeAnims = useRef(pages.map(() => new Animated.Value(0))).current;
-  const slideAnims = useRef(pages.map(() => new Animated.Value(40))).current;
-  const iconScale = useRef(pages.map(() => new Animated.Value(0.5))).current;
-  const iconRotate = useRef(pages.map(() => new Animated.Value(0))).current;
-  const buttonOpacity = useRef(new Animated.Value(0)).current;
-  const buttonSlide = useRef(new Animated.Value(30)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentSlide = useRef(new Animated.Value(30)).current;
+  const iconScale = useRef(new Animated.Value(0.7)).current;
+  const iconOpacity = useRef(new Animated.Value(0)).current;
 
-  const animatePage = useCallback((index: number) => {
-    fadeAnims[index].setValue(0);
-    slideAnims[index].setValue(40);
-    iconScale[index].setValue(0.5);
-    iconRotate[index].setValue(0);
+  const isLastSlide = activeIndex === SLIDES.length - 1;
+  const isBrandSlide = activeIndex === 0;
+
+  const animateSlideIn = useCallback(() => {
+    contentOpacity.setValue(0);
+    contentSlide.setValue(24);
+    iconScale.setValue(0.75);
+    iconOpacity.setValue(0);
 
     Animated.parallel([
-      Animated.timing(iconScale[index], {
+      Animated.timing(iconOpacity, {
         toValue: 1,
-        duration: 700,
+        duration: 500,
+        delay: 80,
+        easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }),
-      Animated.timing(iconRotate[index], {
+      Animated.spring(iconScale, {
         toValue: 1,
-        duration: 800,
+        delay: 80,
+        speed: 12,
+        bounciness: 8,
         useNativeDriver: true,
       }),
-      Animated.sequence([
-        Animated.delay(200),
-        Animated.parallel([
-          Animated.timing(fadeAnims[index], {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnims[index], {
-            toValue: 0,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]),
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 550,
+        delay: 180,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentSlide, {
+        toValue: 0,
+        duration: 550,
+        delay: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start();
-
-    if (index === pages.length - 1) {
-      Animated.sequence([
-        Animated.delay(500),
-        Animated.parallel([
-          Animated.timing(buttonOpacity, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(buttonSlide, {
-            toValue: 0,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
-    } else {
-      buttonOpacity.setValue(0);
-      buttonSlide.setValue(30);
-    }
-  }, [fadeAnims, slideAnims, iconScale, iconRotate, buttonOpacity, buttonSlide]);
+  }, [contentOpacity, contentSlide, iconScale, iconOpacity]);
 
   useEffect(() => {
-    animatePage(0);
-  }, [animatePage]);
+    animateSlideIn();
+  }, [activeIndex, animateSlideIn]);
 
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = event.nativeEvent.contentOffset.x;
-      const page = Math.round(offsetX / width);
-      if (page !== currentPage && page >= 0 && page < pages.length) {
-        setCurrentPage(page);
-        animatePage(page);
-      }
-    },
-    [currentPage, animatePage]
-  );
-
-  const handleGetStarted = useCallback(async () => {
-    try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-      console.log('Onboarding completed, navigating to dashboard');
-    } catch (e) {
-      console.log('Failed to save onboarding state:', e);
+  const goToNext = useCallback(() => {
+    if (activeIndex < SLIDES.length - 1) {
+      const next = activeIndex + 1;
+      flatListRef.current?.scrollToIndex({ index: next, animated: true });
+      setActiveIndex(next);
     }
-    router.replace('/profile-setup' as any);
+  }, [activeIndex]);
+
+  const handleSkip = useCallback(() => {
+    const last = SLIDES.length - 1;
+    flatListRef.current?.scrollToIndex({ index: last, animated: true });
+    setActiveIndex(last);
   }, []);
 
-  const handleSkip = useCallback(async () => {
+  const completeOnboarding = useCallback(async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      router.replace('/profile-setup' as any);
     } catch (e) {
       console.log('Failed to save onboarding state:', e);
+      router.replace('/profile-setup' as any);
     }
-    router.replace('/profile-setup' as any);
   }, []);
 
-  const handleNext = useCallback(() => {
-    if (currentPage < pages.length - 1) {
-      scrollRef.current?.scrollTo({
-        x: (currentPage + 1) * width,
-        animated: true,
-      });
+  const handleGoogleSignIn = async () => {
+    setAuthLoading('google');
+    try {
+      await completeOnboarding();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAuthLoading(null);
     }
-  }, [currentPage]);
+  };
+
+  const handleAppleSignIn = async () => {
+    setAuthLoading('apple');
+    try {
+      await completeOnboarding();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAuthLoading(null);
+    }
+  };
+
+  const currentSlide = SLIDES[activeIndex];
 
   return (
-    <View style={styles.container}>
-      <Animated.ScrollView
-        ref={scrollRef}
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      <LinearGradient
+        colors={currentSlide.bgColors as [string, string, string]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      />
+
+      <Animated.View
+        style={[
+          styles.ambientGlow,
+          { backgroundColor: currentSlide.accentColor },
+        ]}
+      />
+
+      <View style={[styles.brandHeader, { paddingTop: insets.top + 12 }]}>
+        <AayuMandala
+          size={28}
+          color={currentSlide.accentColor}
+          animated={isBrandSlide}
+        />
+        <Text style={[styles.brandName, { color: currentSlide.accentColor }]}>
+          Aayu
+        </Text>
+      </View>
+
+      <FlatList
+        ref={flatListRef}
+        data={SLIDES}
+        keyExtractor={(s) => s.id}
         horizontal
         pagingEnabled
+        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: true, listener: handleScroll }
-        )}
-        scrollEventThrottle={16}
-        decelerationRate="fast"
-        testID="onboarding-scroll"
-      >
-        {pages.map((page, index) => {
-          const spin = iconRotate[index].interpolate({
-            inputRange: [0, 1],
-            outputRange: ['-30deg', '0deg'],
-          });
-
-          return (
-            <LinearGradient
-              key={index}
-              colors={page.gradientColors}
-              style={[styles.page, { width, height }]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={[styles.pageContent, { paddingTop: insets.top + 20 }]}>
-                <View style={styles.topSection}>
-                  <Animated.View
-                    style={[
-                      styles.iconContainer,
-                      {
-                        borderColor: page.accentColor + '30',
-                        transform: [
-                          { scale: iconScale[index] },
-                          { rotate: spin },
-                        ],
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.iconInner,
-                        { backgroundColor: page.accentColor + '15' },
-                      ]}
-                    >
-                      {page.icon}
-                    </View>
-                  </Animated.View>
-
-                  <View style={styles.decorLine}>
-                    <View
-                      style={[
-                        styles.decorDot,
-                        { backgroundColor: page.accentColor + '40' },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.decorBar,
-                        { backgroundColor: page.accentColor + '20' },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.decorDot,
-                        { backgroundColor: page.accentColor + '40' },
-                      ]}
-                    />
-                  </View>
-                </View>
-
-                <Animated.View
-                  style={[
-                    styles.textSection,
-                    {
-                      opacity: fadeAnims[index],
-                      transform: [{ translateY: slideAnims[index] }],
-                    },
-                  ]}
-                >
-                  <Text style={[styles.subtitle, { color: page.accentColor }]}>
-                    {page.subtitle}
-                  </Text>
-                  <Text style={styles.title}>{page.title}</Text>
-                  <Text style={styles.description}>{page.description}</Text>
-                </Animated.View>
-              </View>
-            </LinearGradient>
-          );
+        getItemLayout={(_, index) => ({
+          length: W,
+          offset: W * index,
+          index,
         })}
-      </Animated.ScrollView>
-
-      <View
-        style={[
-          styles.bottomBar,
-          { paddingBottom: Math.max(insets.bottom, 20) + 10 },
-        ]}
-      >
-        <View style={styles.pagination}>
-          {pages.map((_, index) => {
-            const dotScale = scrollX.interpolate({
-              inputRange: [
-                (index - 1) * width,
-                index * width,
-                (index + 1) * width,
-              ],
-              outputRange: [1, 28 / 6, 1],
-              extrapolate: 'clamp',
-            });
-            const dotOpacity = scrollX.interpolate({
-              inputRange: [
-                (index - 1) * width,
-                index * width,
-                (index + 1) * width,
-              ],
-              outputRange: [0.3, 1, 0.3],
-              extrapolate: 'clamp',
-            });
-
-            return (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.dot,
-                  {
-                    transform: [{ scaleX: dotScale }],
-                    opacity: dotOpacity,
-                    backgroundColor:
-                      currentPage === pages.length - 1
-                        ? pages[pages.length - 1].accentColor
-                        : pages[currentPage].accentColor,
-                  },
-                ]}
-              />
-            );
-          })}
-        </View>
-
-        {currentPage < pages.length - 1 ? (
-          <View style={styles.navRow}>
-            <TouchableOpacity
-              onPress={handleSkip}
-              style={styles.skipButton}
-              testID="onboarding-skip"
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.skipText,
-                  { color: pages[currentPage].accentColor + 'AA' },
-                ]}
-              >
-                Skip
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleNext}
-              style={[
-                styles.nextButton,
-                { backgroundColor: pages[currentPage].accentColor + '20' },
-              ]}
-              testID="onboarding-next"
-              activeOpacity={0.7}
-            >
-              <ArrowRight
-                size={22}
-                color={pages[currentPage].accentColor}
-                strokeWidth={2}
-              />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Animated.View
-            style={[
-              styles.ctaContainer,
-              {
-                opacity: buttonOpacity,
-                transform: [{ translateY: buttonSlide }],
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={handleGetStarted}
-              style={[
-                styles.ctaButton,
-                { backgroundColor: pages[pages.length - 1].accentColor },
-              ]}
-              testID="onboarding-get-started"
-              activeOpacity={0.85}
-            >
-              <Text style={styles.ctaText}>Get Started</Text>
-              <ArrowRight size={20} color="#FFF" strokeWidth={2.5} />
-            </TouchableOpacity>
-          </Animated.View>
+        renderItem={({ item, index }) => (
+          <OnboardingSlide
+            slide={item}
+            isActive={index === activeIndex}
+            isBrandSlide={index === 0}
+            iconOpacity={iconOpacity}
+            iconScale={iconScale}
+          />
         )}
+        style={styles.pager}
+      />
+
+      <Animated.View
+        style={[
+          styles.textBlock,
+          {
+            paddingBottom: insets.bottom + (isLastSlide ? 260 : 100),
+            opacity: contentOpacity,
+            transform: [{ translateY: contentSlide }],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Text style={[styles.tag, { color: currentSlide.accentColor }]}>
+          {currentSlide.tag}
+        </Text>
+
+        <Text style={styles.title}>
+          {currentSlide.title}{' '}
+          {currentSlide.titleAccent && (
+            <Text style={[styles.titleAccent, { color: currentSlide.accentColor }]}>
+              {currentSlide.titleAccent}
+            </Text>
+          )}
+        </Text>
+
+        <Text style={styles.body}>{currentSlide.body}</Text>
+      </Animated.View>
+
+      <View style={[styles.dotsRow, { bottom: insets.bottom + (isLastSlide ? 255 : 92) }]}>
+        {SLIDES.map((_, i) => (
+          <TouchableOpacity
+            key={i}
+            onPress={() => {
+              flatListRef.current?.scrollToIndex({ index: i, animated: true });
+              setActiveIndex(i);
+            }}
+          >
+            <Animated.View
+              style={[
+                styles.dot,
+                i === activeIndex
+                  ? [styles.dotActive, { backgroundColor: currentSlide.accentColor }]
+                  : styles.dotInactive,
+              ]}
+            />
+          </TouchableOpacity>
+        ))}
       </View>
+
+      {!isLastSlide ? (
+        <View style={[styles.navRow, { bottom: insets.bottom + 32 }]}>
+          <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={goToNext}
+            style={[styles.nextBtn, { backgroundColor: currentSlide.accentColor }]}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.nextArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={[styles.authWrap, { paddingBottom: insets.bottom + 24, marginTop: 20 }]}>
+          <AuthButtons
+            onGoogleSignIn={handleGoogleSignIn}
+            onAppleSignIn={handleAppleSignIn}
+            onContinueAsGuest={completeOnboarding}
+            googleLoading={authLoading === 'google'}
+            appleLoading={authLoading === 'apple'}
+            accentColor={currentSlide.accentColor}
+          />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
-  },
-  page: {
-    flex: 1,
-  },
-  pageContent: {
-    flex: 1,
-    paddingHorizontal: 32,
-    justifyContent: 'center',
-  },
-  topSection: {
-    alignItems: 'center',
-    marginBottom: 56,
-  },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconInner: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  decorLine: {
+    backgroundColor: COLORS.bg,
+  } as ViewStyle,
+
+  ambientGlow: {
+    position: 'absolute',
+    top: H * 0.1,
+    left: W * 0.1,
+    right: W * 0.1,
+    height: H * 0.4,
+    borderRadius: H * 0.2,
+    opacity: 0.06,
+  } as ViewStyle,
+
+  brandHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 32,
+    justifyContent: 'center',
     gap: 8,
-  },
-  decorDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  decorBar: {
-    width: 48,
-    height: 1,
-  },
-  textSection: {
-    alignItems: 'flex-start',
-  },
-  subtitle: {
-    fontSize: 13,
-    fontWeight: '600' as const,
+    paddingBottom: 8,
+  } as ViewStyle,
+
+  brandName: {
+    fontSize: 20,
     letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 44,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    lineHeight: 52,
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: 'rgba(255,255,255,0.55)',
-    maxWidth: 300,
-  },
-  bottomBar: {
+    fontWeight: '300',
+  } as TextStyle,
+
+  pager: {
+    flex: 1,
+  } as ViewStyle,
+
+  textBlock: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 32,
-    paddingTop: 16,
-  },
-  pagination: {
+    paddingHorizontal: 28,
+  } as ViewStyle,
+
+  tag: {
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.18,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  } as TextStyle,
+
+  title: {
+    fontSize: 46,
+    fontWeight: '300',
+    color: COLORS.cream,
+    lineHeight: 52,
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  } as TextStyle,
+
+  titleAccent: {
+    fontSize: 46,
+    fontWeight: '300',
+    lineHeight: 52,
+  } as TextStyle,
+
+  body: {
+    fontSize: 15,
+    color: 'rgba(240,224,192,0.65)',
+    lineHeight: 24,
+  } as TextStyle,
+
+  dotsRow: {
+    position: 'absolute',
+    left: 28,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 28,
-  },
+  } as ViewStyle,
+
   dot: {
-    height: 6,
-    borderRadius: 3,
-  },
+    height: 4,
+    borderRadius: 2,
+  } as ViewStyle,
+
+  dotActive: {
+    width: 24,
+  } as ViewStyle,
+
+  dotInactive: {
+    width: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  } as ViewStyle,
+
   navRow: {
+    position: 'absolute',
+    left: 28,
+    right: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  skipButton: {
+  } as ViewStyle,
+
+  skipBtn: {
     paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
+    paddingRight: 16,
+  } as ViewStyle,
+
   skipText: {
     fontSize: 15,
-    fontWeight: '500' as const,
-  },
-  nextButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    color: 'rgba(240,224,192,0.4)',
+  } as TextStyle,
+
+  nextBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  ctaContainer: {
-    width: '100%',
-  },
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 10,
-  },
-  ctaText: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-  },
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  } as ViewStyle,
+
+  nextArrow: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: '500',
+  } as TextStyle,
+
+  authWrap: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+  } as ViewStyle,
 });

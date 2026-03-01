@@ -7,16 +7,16 @@ import { lightColors, darkColors, ColorScheme } from '@/constants/colors';
 const THEME_KEY = 'vedic_theme_dark';
 
 export const [ThemeProvider, useTheme] = createContextHook(() => {
-  const [isDark, setIsDark] = useState<boolean>(false);
+  const [isDark, setIsDark] = useState<boolean>(true);
 
   const themeQuery = useQuery({
     queryKey: ['theme'],
     queryFn: async () => {
       try {
         const stored = await AsyncStorage.getItem(THEME_KEY);
-        return stored === 'true';
+        return stored !== 'false';
       } catch {
-        return false;
+        return true;
       }
     },
   });

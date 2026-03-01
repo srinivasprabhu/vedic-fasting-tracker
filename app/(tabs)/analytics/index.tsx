@@ -52,6 +52,7 @@ import {
   getAutophagyScore,
   getHGHMultiplier,
   calculateFatBurned,
+  toLocalDateString,
   MilestoneData,
   BarData,
 } from '@/utils/analytics-helpers';
@@ -236,16 +237,16 @@ export default function AnalyticsScreen() {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const now = new Date();
     const dayOfWeek = now.getDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
     const data = days.map((label, i) => {
-      const targetDay = (i + 1) % 7;
-      const diff = (targetDay - dayOfWeek + 7) % 7 - 6;
+      const diff = i - daysFromMonday;
       const date = new Date(now);
       date.setDate(date.getDate() + diff);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
 
       const dayRecords = completedRecords.filter(r => {
-        const rDate = new Date(r.endTime ?? r.startTime).toISOString().split('T')[0];
+        const rDate = toLocalDateString(r.endTime ?? r.startTime);
         return rDate === dateStr;
       });
 

@@ -75,6 +75,32 @@ function getMotivationalMessage(completed: boolean, durationHours: number): stri
   return 'Well done! Consistency is the key to transformation.';
 }
 
+function getCompletionMessage(
+  completed: boolean,
+  durationHours: number,
+  targetHours: number
+): { title: string; subtitle: string; detailMessage?: string } {
+  const metTarget = completed || durationHours >= targetHours * 0.8;
+
+  if (durationHours < 5) {
+    return {
+      title: 'Every Step Counts',
+      subtitle: 'Each fast builds discipline. Try extending a bit longer next time.',
+    };
+  }
+  if (durationHours < 12 && !metTarget) {
+    return {
+      title: 'Good Progress',
+      subtitle: 'You gave your body meaningful rest. Keep building.',
+    };
+  }
+  return {
+    title: 'Congratulations!',
+    subtitle: 'Fast Completed 🙏',
+    detailMessage: getMotivationalMessage(completed, durationHours),
+  };
+}
+
 export default function FastCompleteScreen() {
   const { colors, isDark } = useTheme();
   const { lastCompletedFast, clearLastCompleted, streak, completedRecords } = useFasting();
@@ -160,8 +186,10 @@ export default function FastCompleteScreen() {
   const durationMs = fast ? (fast.endTime ?? Date.now()) - fast.startTime : 0;
   const durationHours = durationMs / 3600000;
   const targetMs = fast?.targetDuration ?? 1;
+  const targetHours = targetMs / 3600000;
   const completionPct = Math.min(100, Math.round((durationMs / targetMs) * 100));
   const zone = getMetabolicZone(durationHours);
+  const completionMessage = getCompletionMessage(fast?.completed ?? false, durationHours, targetHours);
   const totalCompleted = completedRecords.filter(r => r.completed).length;
 
   const handleShareImage = useCallback(async () => {
@@ -297,14 +325,16 @@ export default function FastCompleteScreen() {
           </Animated.View>
 
           <Text style={styles.heroTitle}>
-            Congratulations!
+            {completionMessage.title}
           </Text>
           <Text style={styles.heroTitleSub}>
-            Fast Completed 🙏
+            {completionMessage.subtitle}
           </Text>
-          <Text style={styles.heroSubtitle}>
-            {getMotivationalMessage(fast.completed, durationHours)}
-          </Text>
+          {completionMessage.detailMessage ? (
+            <Text style={styles.heroSubtitle}>
+              {completionMessage.detailMessage}
+            </Text>
+          ) : null}
         </Animated.View>
 
         <Animated.View

@@ -35,6 +35,15 @@ export const WARRIOR_LEVELS = [
   { name: 'Maharishi', minFasts: 100, color: '#7B68AE', icon: '👑' },
 ];
 
+/** Returns YYYY-MM-DD in local timezone (not UTC). Use for day-based grouping. */
+export function toLocalDateString(d: Date | number): string {
+  const date = typeof d === 'number' ? new Date(d) : d;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function formatHours(hours: number): string {
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   return `${Math.round(hours * 10) / 10}h`;
