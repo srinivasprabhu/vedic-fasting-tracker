@@ -245,7 +245,7 @@ export default function AnalyticsScreen() {
       const dateStr = date.toISOString().split('T')[0];
 
       const dayRecords = completedRecords.filter(r => {
-        const rDate = new Date(r.startTime).toISOString().split('T')[0];
+        const rDate = new Date(r.endTime ?? r.startTime).toISOString().split('T')[0];
         return rDate === dateStr;
       });
 
