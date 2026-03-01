@@ -6,7 +6,6 @@ import {
   Animated,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { ColorScheme } from '@/constants/colors';
 
 interface InsightTag {
   label: string;
@@ -23,7 +22,10 @@ interface AayuInsightCardProps {
   autophagyCount: number;
 }
 
-function generateInsight(props: AayuInsightCardProps): {
+function generateInsight(
+  props: AayuInsightCardProps,
+  bodyTextColor: string,
+): {
   quote: string;
   body: React.ReactNode;
   tags: InsightTag[];
@@ -44,11 +46,13 @@ function generateInsight(props: AayuInsightCardProps): {
   const hasDeepFast = longestFastHours >= 24;
   const hasGoodStreak = streak >= 3;
 
+  const bodyBase = { fontSize: 14, lineHeight: 22, color: bodyTextColor };
+
   if (totalWeekFasts === 0 && totalHours === 0) {
     return {
       quote: '"Your journey begins with a single breath of intention."',
       body: (
-        <Text style={bodyBaseStyle}>
+        <Text style={bodyBase}>
           Start your first fast and let{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>Agni</Text>
           {' '}begin its renewal. The Vedas say — the one who masters{' '}
@@ -66,7 +70,7 @@ function generateInsight(props: AayuInsightCardProps): {
     return {
       quote: `"Your Agni rested ${gutRestHours}h this week — your digestive fire is strengthening."`,
       body: (
-        <Text style={bodyBaseStyle}>
+        <Text style={bodyBase}>
           You completed{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{totalWeekFasts} fasts</Text>
           {' '}averaging{' '}
@@ -88,7 +92,7 @@ function generateInsight(props: AayuInsightCardProps): {
     return {
       quote: `"In stillness, the body heals what the mind cannot see."`,
       body: (
-        <Text style={bodyBaseStyle}>
+        <Text style={bodyBase}>
           Your{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(longestFastHours)}h fast</Text>
           {' '}triggered a{' '}
@@ -114,7 +118,7 @@ function generateInsight(props: AayuInsightCardProps): {
     return {
       quote: `"Discipline practised daily becomes dharma."`,
       body: (
-        <Text style={bodyBaseStyle}>
+        <Text style={bodyBase}>
           A{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{streak}-fast streak</Text>
           {' '}— this is how transformation happens. Averaging{' '}
@@ -136,7 +140,7 @@ function generateInsight(props: AayuInsightCardProps): {
   return {
     quote: '"Every fast is a prayer your body offers to the universe."',
     body: (
-      <Text style={bodyBaseStyle}>
+      <Text style={bodyBase}>
         You have fasted{' '}
         <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(totalHours)}h</Text>
         {' '}in total, giving your{' '}
@@ -155,12 +159,6 @@ function generateInsight(props: AayuInsightCardProps): {
   };
 }
 
-const bodyBaseStyle = {
-  fontSize: 14,
-  lineHeight: 22,
-  color: '#C8B8A2',
-};
-
 export default function AayuInsightCard({
   totalWeekFasts,
   avgFastHours,
@@ -169,16 +167,21 @@ export default function AayuInsightCard({
   streak,
   autophagyCount,
 }: AayuInsightCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const glowAnim = useRef(new Animated.Value(0.4)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+  const bodyTextColor = isDark ? '#C8B8A2' : colors.textSecondary;
+
   const insight = useMemo(
-    () => generateInsight({ totalWeekFasts, avgFastHours, longestFastHours, totalHours, streak, autophagyCount }),
-    [totalWeekFasts, avgFastHours, longestFastHours, totalHours, streak, autophagyCount]
+    () => generateInsight(
+      { totalWeekFasts, avgFastHours, longestFastHours, totalHours, streak, autophagyCount },
+      bodyTextColor,
+    ),
+    [totalWeekFasts, avgFastHours, longestFastHours, totalHours, streak, autophagyCount, bodyTextColor]
   );
 
   useEffect(() => {
@@ -197,18 +200,23 @@ export default function AayuInsightCard({
     ).start();
   }, [fadeAnim, glowAnim]);
 
-  const cardBg = '#1A0D06';
+  const cardBg = isDark ? '#1A0D06' : colors.surfaceWarm;
+  const cardBorder = isDark ? '#3D2010' : colors.border;
   const quoteColor = '#D4A03C';
   const borderAccent = '#C97B2A';
+  const pillBg = isDark ? '#2A1508' : colors.surface;
+  const pillBorder = isDark ? '#3D2010' : colors.border;
+  const labelColor = isDark ? '#9E7A50' : colors.textSecondary;
+  const dateLabelColor = isDark ? '#6E5540' : colors.textMuted;
 
   return (
-    <Animated.View style={[styles.card, { backgroundColor: cardBg, opacity: fadeAnim }]}>
+    <Animated.View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, opacity: fadeAnim }]}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View style={[styles.headerLeft, { backgroundColor: pillBg, borderColor: pillBorder }]}>
           <Animated.View style={[styles.liveDot, { opacity: glowAnim, backgroundColor: quoteColor }]} />
-          <Text style={styles.headerLabel}>AAYU INSIGHT · TODAY</Text>
+          <Text style={[styles.headerLabel, { color: labelColor }]}>AAYU INSIGHT · TODAY</Text>
         </View>
-        <Text style={styles.dateLabel}>{dateLabel}</Text>
+        <Text style={[styles.dateLabel, { color: dateLabelColor }]}>{dateLabel}</Text>
       </View>
 
       <View style={[styles.quoteBlock, { borderLeftColor: borderAccent }]}>
@@ -237,25 +245,22 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#3D2010',
     marginBottom: 8,
   },
   header: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 14,
   },
   headerLeft: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#2A1508',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#3D2010',
   },
   liveDot: {
     width: 7,
@@ -264,14 +269,12 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#9E7A50',
+    fontWeight: '700',
     letterSpacing: 1,
   },
   dateLabel: {
     fontSize: 12,
-    color: '#6E5540',
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
   quoteBlock: {
     borderLeftWidth: 3,
@@ -280,8 +283,8 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     fontSize: 16,
-    fontStyle: 'italic' as const,
-    fontWeight: '600' as const,
+    fontStyle: 'italic',
+    fontWeight: '600',
     lineHeight: 24,
     letterSpacing: -0.1,
   },
@@ -289,8 +292,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tagsRow: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   tag: {
@@ -301,7 +304,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     letterSpacing: 0.1,
   },
 });
