@@ -1,14 +1,17 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Animated,
   Easing,
+  TouchableOpacity,
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { ColorScheme } from '@/constants/colors';
+import MetabolicZoneModal from './MetabolicZoneModal';
 
 interface MetabolicZone {
   id: string;
@@ -271,7 +274,8 @@ const ZoneNode: React.FC<{
   isLast: boolean;
   hoursElapsed: number;
   colors: ColorScheme;
-}> = ({ zone, state, isLast, hoursElapsed, colors }) => {
+  onPress?: () => void;
+}> = ({ zone, state, isLast, hoursElapsed, colors, onPress }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
 
@@ -291,13 +295,8 @@ const ZoneNode: React.FC<{
   const isActive = state === 'active';
   const isPast = state === 'past';
 
-  return (
-    <Animated.View
-      style={[
-        riverStyles.zoneRow,
-        { opacity: Animated.multiply(fadeAnim, cardOpacity) as unknown as number, transform: [{ translateY: slideAnim }] },
-      ]}
-    >
+  const content = (
+    <>
       <View style={riverStyles.zoneNodeCol}>
         <View
           style={[
@@ -382,11 +381,34 @@ const ZoneNode: React.FC<{
           </>
         )}
       </View>
-    </Animated.View>
+    </>
+  );
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => {
+        if (onPress) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }
+      }}
+      disabled={!onPress}
+    >
+      <Animated.View
+        style={[
+          riverStyles.zoneRow,
+          { opacity: Animated.multiply(fadeAnim, cardOpacity) as unknown as number, transform: [{ translateY: slideAnim }] },
+        ]}
+      >
+        {content}
+      </Animated.View>
+    </TouchableOpacity>
   );
 };
 
 const MetabolicZoneRiver: React.FC<MetabolicZoneRiverProps> = ({ hoursElapsed, isActive, colors }) => {
+  const [selectedZone, setSelectedZone] = useState<MetabolicZone | null>(null);
   const activeZone = useMemo(() =>
     ZONES.find((z) => hoursElapsed >= z.startHour && hoursElapsed < (z.endHour ?? Infinity)),
     [hoursElapsed]
@@ -449,9 +471,16 @@ const MetabolicZoneRiver: React.FC<MetabolicZoneRiverProps> = ({ hoursElapsed, i
             isLast={idx === ZONES.length - 1}
             hoursElapsed={hoursElapsed}
             colors={colors}
+            onPress={() => setSelectedZone(zone)}
           />
         ))}
       </View>
+
+      <MetabolicZoneModal
+        visible={selectedZone !== null}
+        zone={selectedZone}
+        onClose={() => setSelectedZone(null)}
+      />
     </View>
   );
 };

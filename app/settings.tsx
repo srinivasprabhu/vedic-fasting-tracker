@@ -360,7 +360,7 @@ export default function SettingsScreen() {
                   <Info size={16} color={colors.primary} />
                 </View>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowLabel}>Vedic Intermittent Fasting</Text>
+                  <Text style={styles.rowLabel}>Aayu - Vedic Intermittent Fasting</Text>
                   <Text style={styles.rowDesc}>Version 1.0.0</Text>
                 </View>
               </View>
