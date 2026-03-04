@@ -24,8 +24,11 @@ import {
   X,
   Check,
   Edit3,
+  LogOut,
+  LogIn,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { UserSex } from '@/types/user';
 
@@ -60,6 +63,7 @@ function getAgeLabel(age: number): string {
 
 export default function SettingsScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
+  const { user, isAuthenticated, signOut } = useAuth();
   const { profile, updateProfile, getInitial } = useUserProfile();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -131,6 +135,24 @@ export default function SettingsScreen() {
 
   const initial = getInitial();
 
+  const handleSignOut = useCallback(() => {
+    Alert.alert(
+      'Sign Out',
+      'Your data will remain on this device. Sign in again to sync across devices.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+        },
+      ]
+    );
+  }, [signOut]);
+
   return (
     <View style={styles.root}>
       <Stack.Screen
@@ -158,6 +180,53 @@ export default function SettingsScreen() {
                 ? new Date(profile.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
                 : 'recently'}
             </Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>ACCOUNT</Text>
+            <View style={styles.card}>
+              {isAuthenticated && user ? (
+                <>
+                  <View style={styles.row}>
+                    <View style={[styles.rowIcon, { backgroundColor: colors.primaryLight }]}>
+                      <User size={16} color={colors.primary} />
+                    </View>
+                    <View style={styles.rowContent}>
+                      <Text style={styles.rowLabel}>Signed in</Text>
+                      <Text style={styles.rowValue}>
+                        {user.email ?? user.app_metadata?.provider ?? 'Account'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.divider} />
+                  <TouchableOpacity
+                    style={styles.editRow}
+                    onPress={handleSignOut}
+                    activeOpacity={0.7}
+                  >
+                    <LogOut size={16} color={colors.error} />
+                    <Text style={[styles.editRowText, { color: colors.error }]}>
+                      Sign Out
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.row}
+                  onPress={() => router.push('/sign-in' as any)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.rowIcon, { backgroundColor: colors.primaryLight }]}>
+                    <LogIn size={16} color={colors.primary} />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>Sign in to sync</Text>
+                    <Text style={styles.rowDesc}>Save your data across devices</Text>
+                  </View>
+                  <ChevronRight size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <View style={styles.section}>

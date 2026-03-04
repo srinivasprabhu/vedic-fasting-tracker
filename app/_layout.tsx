@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { FastingProvider } from '@/contexts/FastingContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
@@ -106,6 +107,12 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="sign-in"
+        options={{
+          presentation: 'card',
+        }}
+      />
+      <Stack.Screen
         name="fast-complete"
         options={{
           headerShown: false,
@@ -122,11 +129,13 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView>
         <ThemeProvider>
-          <UserProfileProvider>
-            <FastingProvider>
-              <RootLayoutNav />
-            </FastingProvider>
-          </UserProfileProvider>
+          <AuthProvider>
+            <UserProfileProvider>
+              <FastingProvider>
+                <RootLayoutNav />
+              </FastingProvider>
+            </UserProfileProvider>
+          </AuthProvider>
         </ThemeProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>

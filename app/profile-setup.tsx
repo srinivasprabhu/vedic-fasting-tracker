@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { ArrowRight, ArrowLeft } from 'lucide-react-native';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { AayuMandala } from '@/components/onboarding/AayuMandala';
 import { Step1Name } from '@/components/profile-setup/Step1Name';
@@ -37,8 +38,16 @@ const STEP_LABELS: Record<Step, string> = {
 
 export default function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
-  const { updateProfile } = useUserProfile();
+  const { isAuthenticated } = useAuth();
+  const { profile, updateProfile, isLoading } = useUserProfile();
   const [step, setStep] = useState<Step>('name');
+
+  // If user is signed in and profile already exists (e.g. from Supabase sync), skip to main app
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && profile?.name?.trim()) {
+      router.replace('/(tabs)/(home)' as any);
+    }
+  }, [isAuthenticated, profile?.name, isLoading]);
   const [name, setName] = useState<string>('');
   const [sex, setSex] = useState<UserSex | null>(null);
   const [ageGroup, setAgeGroup] = useState<AgeGroup | null>(null);

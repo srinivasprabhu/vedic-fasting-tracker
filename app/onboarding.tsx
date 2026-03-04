@@ -14,8 +14,12 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { syncOnSignIn } from '@/lib/sync';
 import { AayuMandala } from '@/components/onboarding/AayuMandala';
 import { OnboardingSlide } from '@/components/onboarding/OnboardingSlide';
 import { AuthButtons } from '@/components/onboarding/AuthButtons';
@@ -23,6 +27,7 @@ import type { OnboardingSlideData } from '@/components/onboarding/types';
 import { COLORS } from '@/constants/theme';
 
 const ONBOARDING_KEY = 'vedic_onboarding_complete';
+const PROFILE_KEY = 'vedic_user_profile';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -86,6 +91,7 @@ const SLIDES: OnboardingSlideData[] = [
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { signInWithGoogle, signInWithApple } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const [authLoading, setAuthLoading] = useState<'google' | 'apple' | null>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -154,6 +160,31 @@ export default function OnboardingScreen() {
     setActiveIndex(last);
   }, []);
 
+  /** After sign-in: sync profile from Supabase, then go to tabs if profile exists, else profile-setup. */
+  const completeOnboardingAfterSignIn = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (userId) {
+        await syncOnSignIn(userId);
+        const stored = await AsyncStorage.getItem(PROFILE_KEY);
+        const profile = stored ? JSON.parse(stored) : null;
+        const hasProfile = profile?.name && String(profile.name).trim().length > 0;
+        await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+        if (hasProfile) {
+          router.replace('/(tabs)/(home)' as any);
+          return;
+        }
+      }
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      router.replace('/profile-setup' as any);
+    } catch (e) {
+      console.log('Failed to complete onboarding after sign-in:', e);
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      router.replace('/profile-setup' as any);
+    }
+  }, []);
+
   const completeOnboarding = useCallback(async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
@@ -167,9 +198,19 @@ export default function OnboardingScreen() {
   const handleGoogleSignIn = async () => {
     setAuthLoading('google');
     try {
-      await completeOnboarding();
+      const { error } = await signInWithGoogle();
+      if (error) {
+        Alert.alert(
+          'Sign In',
+          error.message || 'Could not sign in with Google. You can continue as guest.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      await completeOnboardingAfterSignIn();
     } catch (e) {
       console.error(e);
+      Alert.alert('Sign In', 'Something went wrong. You can continue as guest.');
     } finally {
       setAuthLoading(null);
     }
@@ -178,9 +219,19 @@ export default function OnboardingScreen() {
   const handleAppleSignIn = async () => {
     setAuthLoading('apple');
     try {
-      await completeOnboarding();
+      const { error } = await signInWithApple();
+      if (error) {
+        Alert.alert(
+          'Sign In',
+          error.message || 'Could not sign in with Apple. You can continue as guest.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      await completeOnboardingAfterSignIn();
     } catch (e) {
       console.error(e);
+      Alert.alert('Sign In', 'Something went wrong. You can continue as guest.');
     } finally {
       setAuthLoading(null);
     }

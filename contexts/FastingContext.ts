@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { FastRecord, FastType } from '@/types/fasting';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = 'vedic_fasting_records';
 
@@ -27,6 +29,7 @@ async function saveRecords(records: FastRecord[]): Promise<FastRecord[]> {
 
 export const [FastingProvider, useFasting] = createContextHook(() => {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
   const [records, setRecords] = useState<FastRecord[]>([]);
   const [activeFast, setActiveFast] = useState<FastRecord | null>(null);
   const [lastCompletedFast, setLastCompletedFast] = useState<FastRecord | null>(null);
@@ -74,8 +77,26 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
     setRecords(updated);
     setActiveFast(newFast);
     saveMutateRef.current(updated);
+    if (isAuthenticated && user?.id) {
+      supabase
+        .from('fasting_records')
+        .insert({
+          id: newFast.id,
+          user_id: user.id,
+          type: newFast.type,
+          label: newFast.label,
+          start_time: newFast.startTime,
+          end_time: null,
+          target_duration: newFast.targetDuration,
+          completed: false,
+          notes: newFast.notes || '',
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase insert fast failed:', error);
+        });
+    }
     console.log('Started fast:', newFast.label, 'at', new Date(startTime).toISOString());
-  }, []);
+  }, [isAuthenticated, user?.id]);
 
   const endFast = useCallback((completed: boolean, customEndTime?: number) => {
     const currentActive = activeFastRef.current;
@@ -91,8 +112,21 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
     setActiveFast(null);
     setLastCompletedFast(finishedFast);
     saveMutateRef.current(updated);
+    if (isAuthenticated && user?.id) {
+      supabase
+        .from('fasting_records')
+        .update({
+          end_time: endTime,
+          completed,
+        })
+        .eq('id', currentActive.id)
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) console.warn('Supabase update fast failed:', error);
+        });
+    }
     console.log('Ended fast:', currentActive.label, 'at', new Date(endTime).toISOString(), completed ? '(completed)' : '(cancelled)');
-  }, []);
+  }, [isAuthenticated, user?.id]);
 
   const clearLastCompleted = useCallback(() => {
     setLastCompletedFast(null);

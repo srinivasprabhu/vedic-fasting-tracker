@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { UserProfile } from '@/types/user';
 import { detectCurrencyFromLocale, getCurrencyInfo } from '@/constants/currencies';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const PROFILE_KEY = 'vedic_user_profile';
 
@@ -28,6 +30,7 @@ async function saveProfile(profile: UserProfile): Promise<UserProfile> {
 }
 
 export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
+  const { user, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const profileQuery = useQuery({
@@ -50,7 +53,24 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
   const updateProfile = useCallback((newProfile: UserProfile) => {
     setProfile(newProfile);
     saveMutateRef.current(newProfile);
-  }, []);
+    if (isAuthenticated && user?.id) {
+      supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: user.id,
+            name: newProfile.name,
+            sex: newProfile.sex,
+            age: newProfile.age,
+            currency: newProfile.currency ?? null,
+          },
+          { onConflict: 'id' }
+        )
+        .then(({ error }) => {
+          if (error) console.warn('Supabase profile upsert failed:', error);
+        });
+    }
+  }, [isAuthenticated, user?.id]);
 
   const currencyCode = profile?.currency ?? detectCurrencyFromLocale();
   const currencyInfo = getCurrencyInfo(currencyCode);
