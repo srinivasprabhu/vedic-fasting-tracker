@@ -42,7 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (__DEV__) console.log('[Auth] onAuthStateChange:', event, !!s);
       setSession(s);
     });
 
@@ -146,7 +147,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      if (__DEV__) console.log('[Auth] signOut called');
+      // Use 'local' scope so we only clear this device's session.
+      // More reliable on iOS than default 'global' (which calls server).
+      await supabase.auth.signOut({ scope: 'local' });
+      if (__DEV__) console.log('[Auth] signOut completed');
+    } catch (e) {
+      console.warn('[Auth] signOut error (clearing session anyway):', e);
+      // Force clear session even if signOut fails (e.g. network, stale session)
+      setSession(null);
+    }
   }, []);
 
   const value: AuthContextValue = {
