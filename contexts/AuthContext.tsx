@@ -76,17 +76,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-      const rawNonce = Crypto.randomUUID();
-
-      const { data } = await GoogleSignin.signIn({ nonce: rawNonce });
+      const { data } = await GoogleSignin.signIn();
       const idToken = data?.idToken;
       if (!idToken) {
         return { error: new Error('Google sign-in was cancelled') };
       }
+
+      // Google's iOS SDK may embed a nonce in the id_token automatically.
+      // Extract it and pass to Supabase so both sides match.
+      let nonce: string | undefined;
+      try {
+        const parts = idToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          if (payload.nonce) {
+            nonce = payload.nonce;
+          }
+        }
+      } catch {
+        // JWT decode failed — proceed without nonce
+      }
+
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
-        nonce: rawNonce,
+        nonce,
       });
       return { error: error ? new Error(error.message) : null };
     } catch (e) {
