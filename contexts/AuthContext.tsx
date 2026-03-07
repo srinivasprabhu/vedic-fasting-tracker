@@ -74,10 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { GoogleSignin } = await import(
         '@react-native-google-signin/google-signin'
       );
-      GoogleSignin.configure({
-        webClientId: GOOGLE_WEB_CLIENT_ID,
-        iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
-      });
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const { data } = await GoogleSignin.signIn();
       const idToken = data?.idToken;
       if (!idToken) {
@@ -89,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       return { error: error ? new Error(error.message) : null };
     } catch (e) {
+      if (__DEV__) console.log('[Auth] Google sign-in error:', e);
       return { error: e instanceof Error ? e : new Error(String(e)) };
     }
   }, []);

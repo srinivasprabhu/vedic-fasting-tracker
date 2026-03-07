@@ -53,10 +53,16 @@ export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(NOTIF_PREF_KEY, String(enabled));
 }
 
-async function isEnabled(): Promise<boolean> {
+/** Checks OS permission only — for fast milestones & post-fast tips that work for all users. */
+async function hasPermission(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
   const { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') return false;
+  return status === 'granted';
+}
+
+/** Checks OS permission AND user opt-in — for daily/weekly recurring reminders. */
+async function isOptedIn(): Promise<boolean> {
+  if (!(await hasPermission())) return false;
   return getNotificationsEnabled();
 }
 
@@ -129,7 +135,7 @@ export async function scheduleActiveFastMilestones(
   targetDurationMs: number,
   fastLabel: string,
 ): Promise<void> {
-  if (!(await isEnabled())) return;
+  if (!(await hasPermission())) return;
 
   await cancelActiveFastNotifications();
 
@@ -173,7 +179,7 @@ const REFUEL_DELAY_SECONDS = 2 * 3600; // 2 hours
 const STREAK_PROTECTION_SECONDS = 48 * 3600; // 48 hours
 
 export async function schedulePostFastNotifications(streak: number): Promise<void> {
-  if (!(await isEnabled())) return;
+  if (!(await hasPermission())) return;
 
   await cancelPostFastNotifications();
   const ids: string[] = [];

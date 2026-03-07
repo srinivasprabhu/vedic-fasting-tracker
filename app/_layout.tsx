@@ -17,11 +17,27 @@ import {
   scheduleDailyReminder,
   scheduleWeeklySummary,
 } from '@/utils/notifications';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 
 SplashScreen.preventAutoHideAsync();
 
 if (Platform.OS !== 'web') {
   ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+}
+
+// Configure Google Sign-In at module load (before any component renders)
+if (GOOGLE_WEB_CLIENT_ID) {
+  import('@react-native-google-signin/google-signin')
+    .then(({ GoogleSignin }) => {
+      GoogleSignin.configure({
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
+      });
+      if (__DEV__) console.log('[Auth] GoogleSignin configured');
+    })
+    .catch((e) => {
+      if (__DEV__) console.log('[Auth] GoogleSignin configure failed:', e);
+    });
 }
 
 const queryClient = new QueryClient();
