@@ -75,7 +75,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         '@react-native-google-signin/google-signin'
       );
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const { data } = await GoogleSignin.signIn();
+
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+
+      const { data } = await GoogleSignin.signIn({ nonce: hashedNonce });
       const idToken = data?.idToken;
       if (!idToken) {
         return { error: new Error('Google sign-in was cancelled') };
@@ -83,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
+        nonce: rawNonce,
       });
       return { error: error ? new Error(error.message) : null };
     } catch (e) {
