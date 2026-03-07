@@ -28,11 +28,11 @@ export const METABOLIC_ZONES: MetabolicZone[] = [
 
 export const WARRIOR_LEVELS = [
   { name: 'Beginner', minFasts: 0, color: '#B8A898', icon: '🌱' },
-  { name: 'Sadhak', minFasts: 5, color: '#5B8C5A', icon: '🧘' },
-  { name: 'Tapasvi', minFasts: 15, color: '#D4A03C', icon: '🔥' },
-  { name: 'Yogi', minFasts: 30, color: '#E8913A', icon: '🕉️' },
-  { name: 'Rishi', minFasts: 60, color: '#C97B2A', icon: '✨' },
-  { name: 'Maharishi', minFasts: 100, color: '#7B68AE', icon: '👑' },
+  { name: 'Starter', minFasts: 5, color: '#5B8C5A', icon: '⚡' },
+  { name: 'Disciplined', minFasts: 15, color: '#D4A03C', icon: '🔥' },
+  { name: 'Committed', minFasts: 30, color: '#E8913A', icon: '💪' },
+  { name: 'Master', minFasts: 60, color: '#C97B2A', icon: '✨' },
+  { name: 'Legend', minFasts: 100, color: '#7B68AE', icon: '👑' },
 ];
 
 /** Returns YYYY-MM-DD in local timezone (not UTC). Use for day-based grouping. */

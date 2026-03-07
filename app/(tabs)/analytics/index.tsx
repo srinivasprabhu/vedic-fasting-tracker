@@ -33,6 +33,7 @@ import {
   Info,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useFasting } from '@/contexts/FastingContext';
 import { FAST_TYPE_COLORS } from '@/mocks/vedic-data';
 import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
@@ -102,7 +103,7 @@ function DedicatedSeekerCard({ completedCount, colors }: { completedCount: numbe
         </Animated.View>
         <View style={dStyles.titleBlock}>
           <View style={dStyles.titleRow}>
-            <Text style={[dStyles.title, { color: colors.text }]}>Dedicated Seeker</Text>
+            <Text style={[dStyles.title, { color: colors.text }]}>Dedicated Faster</Text>
             {isUnlocked && (
               <View style={[dStyles.pill, { backgroundColor: BADGE_COLOR + '20' }]}>
                 <Text style={[dStyles.pillText, { color: BADGE_COLOR }]}>Unlocked ✦</Text>
@@ -111,7 +112,7 @@ function DedicatedSeekerCard({ completedCount, colors }: { completedCount: numbe
           </View>
           <Text style={[dStyles.sub, { color: colors.textMuted }]}>
             {isUnlocked
-              ? 'A true commitment to Tapas. Your discipline shines.'
+              ? 'A true commitment to fasting. Your discipline shines.'
               : `${10 - progress} more fast${10 - progress === 1 ? '' : 's'} to unlock this badge`}
           </Text>
         </View>
@@ -203,6 +204,8 @@ const dStyles = StyleSheet.create({
 
 export default function AnalyticsScreen() {
   const { colors } = useTheme();
+  const { profile } = useUserProfile();
+  const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, completedRecords, streak, totalHours, thisWeekRecords, thisMonthRecords } = useFasting();
 
@@ -210,6 +213,12 @@ export default function AnalyticsScreen() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [selectedMetric, setSelectedMetric] = useState<MetricKnowledge | null>(null);
   const [knowledgeModalVisible, setKnowledgeModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (!showVedic && activeTab === 'spirit') {
+      setActiveTab('overview');
+    }
+  }, [showVedic, activeTab]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -391,7 +400,7 @@ export default function AnalyticsScreen() {
       },
       {
         id: '10_fasts',
-        title: 'Dedicated Seeker',
+        title: 'Dedicated Faster',
         description: 'Complete 10 fasts',
         icon: <Star size={18} color={completedCount >= 10 ? '#D4A03C' : colors.textMuted} />,
         unlocked: completedCount >= 10,
@@ -401,7 +410,7 @@ export default function AnalyticsScreen() {
       },
       {
         id: '50_fasts',
-        title: 'Tapasya Master',
+        title: 'Endurance Master',
         description: 'Complete 50 fasts',
         icon: <Crown size={18} color={completedCount >= 50 ? '#C97B2A' : colors.textMuted} />,
         unlocked: completedCount >= 50,
@@ -411,7 +420,7 @@ export default function AnalyticsScreen() {
       },
       {
         id: '100_hours',
-        title: 'Century of Stillness',
+        title: 'Century Club',
         description: 'Fast for a total of 100 hours',
         icon: <Clock size={18} color={totalHours >= 100 ? '#5B8C5A' : colors.textMuted} />,
         unlocked: totalHours >= 100,
@@ -421,7 +430,7 @@ export default function AnalyticsScreen() {
       },
       {
         id: '24h_fast',
-        title: 'Nirjala Warrior',
+        title: 'Iron Will',
         description: 'Complete a 24-hour fast',
         icon: <Shield size={18} color={has24h ? '#B85C38' : colors.textMuted} />,
         unlocked: has24h,
@@ -530,12 +539,12 @@ export default function AnalyticsScreen() {
     <>
       <View style={styles.section}>
         <AayuInsightCard
-          totalWeekFasts={thisWeekRecords.length}
-          avgFastHours={avgFastDuration}
-          longestFastHours={longestFast}
-          totalHours={totalHours}
+          weekFasts={thisWeekRecords.length}
+          weekAvgHours={thisWeekAvgDuration}
+          weekLongestHours={thisWeekPersonalBest}
+          weekTotalHours={thisWeekHours}
           streak={streak}
-          autophagyCount={thisWeekAutophagyCount}
+          weekAutophagyCount={thisWeekAutophagyCount}
         />
       </View>
 
@@ -573,7 +582,7 @@ export default function AnalyticsScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Star size={16} color="#D4A03C" />
-          <Text style={styles.sectionTitleInline}>Next Badge</Text>
+          <Text style={styles.sectionTitleInline}>Next Achievement</Text>
         </View>
         <DedicatedSeekerCard
           completedCount={completedRecords.filter(r => r.completed).length}
@@ -596,7 +605,7 @@ export default function AnalyticsScreen() {
         <View style={styles.warriorLeft}>
           <Text style={styles.warriorEmoji}>{warriorLevel.icon}</Text>
           <View>
-            <Text style={styles.warriorLevelLabel}>VEDIC WARRIOR LEVEL</Text>
+            <Text style={styles.warriorLevelLabel}>FASTING LEVEL</Text>
             <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
           </View>
         </View>
@@ -916,7 +925,7 @@ export default function AnalyticsScreen() {
             {([
               { key: 'overview' as TabKey, label: 'Overview', icon: <BarChart3 size={14} color={activeTab === 'overview' ? colors.primary : colors.textMuted} /> },
               { key: 'body' as TabKey, label: 'Body', icon: <Activity size={14} color={activeTab === 'body' ? colors.primary : colors.textMuted} /> },
-              { key: 'spirit' as TabKey, label: 'Spirit', icon: <Star size={14} color={activeTab === 'spirit' ? colors.primary : colors.textMuted} /> },
+              ...(showVedic ? [{ key: 'spirit' as TabKey, label: 'Spirit', icon: <Star size={14} color={activeTab === 'spirit' ? colors.primary : colors.textMuted} /> }] : []),
             ]).map((tab) => (
               <TouchableOpacity
                 key={tab.key}
@@ -934,7 +943,7 @@ export default function AnalyticsScreen() {
 
           {activeTab === 'overview' && renderOverviewTab()}
           {activeTab === 'body' && renderBodyTab()}
-          {activeTab === 'spirit' && renderSpiritTab()}
+          {showVedic && activeTab === 'spirit' && renderSpiritTab()}
 
           {completedRecords.length === 0 && activeTab !== 'spirit' && (
             <View style={styles.emptyState}>

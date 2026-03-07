@@ -5,6 +5,12 @@ import createContextHook from '@nkzw/create-context-hook';
 import { FastRecord, FastType } from '@/types/fasting';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import {
+  scheduleActiveFastMilestones,
+  cancelActiveFastNotifications,
+  schedulePostFastNotifications,
+  cancelPostFastNotifications,
+} from '@/utils/notifications';
 
 const STORAGE_KEY = 'vedic_fasting_records';
 
@@ -95,6 +101,8 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
           if (error) console.warn('Supabase insert fast failed:', error);
         });
     }
+    cancelPostFastNotifications();
+    scheduleActiveFastMilestones(startTime, targetDuration, label);
     console.log('Started fast:', newFast.label, 'at', new Date(startTime).toISOString());
   }, [isAuthenticated, user?.id]);
 
@@ -124,6 +132,11 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
         .then(({ error }) => {
           if (error) console.warn('Supabase update fast failed:', error);
         });
+    }
+    cancelActiveFastNotifications();
+    if (completed) {
+      const completedCount = recordsRef.current.filter(r => r.endTime !== null && r.completed).length + 1;
+      schedulePostFastNotifications(completedCount);
     }
     console.log('Ended fast:', currentActive.label, 'at', new Date(endTime).toISOString(), completed ? '(completed)' : '(cancelled)');
   }, [isAuthenticated, user?.id]);

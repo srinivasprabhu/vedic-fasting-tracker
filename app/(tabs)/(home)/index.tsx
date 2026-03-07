@@ -22,6 +22,8 @@ import CircularTimer from '@/components/CircularTimer';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
 import MetabolicZoneRiver from '@/components/MetabolicZoneRiver';
 import { useFastTimer } from '@/hooks/useFastTimer';
+import { useReviewPrompt } from '@/hooks/useReviewPrompt';
+import ReviewPromptCard from '@/components/ReviewPromptCard';
 import { FastType, FastCategory } from '@/types/fasting';
 import type { ColorScheme } from '@/constants/colors';
 
@@ -45,7 +47,10 @@ export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, startFast, endFast, streak, totalHours, completedRecords } = useFasting();
-  const { getGreeting, getInitial } = useUserProfile();
+  const { profile, getGreeting, getInitial } = useUserProfile();
+  const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
+  const completedFastCount = completedRecords.filter(r => r.completed).length;
+  const { visible: showReview, handleReview, handleDismiss: dismissReview } = useReviewPrompt(completedFastCount, streak);
   const [showFastPicker, setShowFastPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState<FastCategory>('intermittent');
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -214,6 +219,10 @@ export default function HomeScreen() {
             <Text style={styles.quoteSource}>— {quote.source}</Text>
           </Animated.View>
 
+          {showReview && (
+            <ReviewPromptCard onReview={handleReview} onDismiss={dismissReview} />
+          )}
+
           <View style={styles.timerSection}>
             <CircularTimer
               progress={progress}
@@ -263,22 +272,24 @@ export default function HomeScreen() {
               ]}
             >
               <Text style={styles.pickerTitle}>Choose Your Fast</Text>
-              <View style={styles.tabRow}>
-                <TouchableOpacity
-                  style={[styles.tab, pickerTab === 'intermittent' && styles.tabActive]}
-                  onPress={() => setPickerTab('intermittent')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.tabText, pickerTab === 'intermittent' && styles.tabTextActive]}>Intermittent</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.tab, pickerTab === 'vedic' && styles.tabActive]}
-                  onPress={() => setPickerTab('vedic')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.tabText, pickerTab === 'vedic' && styles.tabTextActive]}>Vedic Vrat</Text>
-                </TouchableOpacity>
-              </View>
+              {showVedic && (
+                <View style={styles.tabRow}>
+                  <TouchableOpacity
+                    style={[styles.tab, pickerTab === 'intermittent' && styles.tabActive]}
+                    onPress={() => setPickerTab('intermittent')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.tabText, pickerTab === 'intermittent' && styles.tabTextActive]}>Intermittent</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tab, pickerTab === 'vedic' && styles.tabActive]}
+                    onPress={() => setPickerTab('vedic')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.tabText, pickerTab === 'vedic' && styles.tabTextActive]}>Vedic Vrat</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               {(pickerTab === 'intermittent' ? INTERMITTENT_FAST_TYPES : FAST_TYPES).map((fast) => (
                 <TouchableOpacity
                   key={fast.type}

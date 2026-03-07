@@ -11,7 +11,12 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { FastingProvider } from '@/contexts/FastingContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
-import { registerForPushNotifications } from '@/utils/notifications';
+import {
+  registerForPushNotifications,
+  getNotificationsEnabled,
+  scheduleDailyReminder,
+  scheduleWeeklySummary,
+} from '@/utils/notifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,12 +38,19 @@ function RootLayoutNav() {
   useEffect(() => {
     registerForPushNotifications();
 
+    getNotificationsEnabled().then((enabled) => {
+      if (enabled) {
+        scheduleDailyReminder();
+        scheduleWeeklySummary();
+      }
+    });
+
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
+      if (__DEV__) console.log('Notification received:', notification.request.content.title);
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification tapped:', response);
+      if (__DEV__) console.log('Notification tapped:', response.notification.request.content.title);
     });
 
     return () => {

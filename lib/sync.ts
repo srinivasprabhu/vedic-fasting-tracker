@@ -78,8 +78,9 @@ export async function uploadLocalProfile(userId: string): Promise<void> {
       {
         id: userId,
         name: profile.name,
-        sex: profile.sex,
-        age: profile.age,
+        age_group: profile.ageGroup ?? null,
+        fasting_level: profile.fastingLevel ?? null,
+        fasting_path: profile.fastingPath ?? 'if',
         currency: profile.currency ?? null,
       },
       { onConflict: 'id' }
@@ -132,7 +133,7 @@ export async function fetchCloudProfile(
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('name, sex, age, currency')
+      .select('name, age_group, fasting_level, fasting_path, currency')
       .eq('id', userId)
       .single();
 
@@ -145,8 +146,9 @@ export async function fetchCloudProfile(
 
     const profile: UserProfile = {
       name: data.name ?? '',
-      sex: (data.sex as UserProfile['sex']) ?? 'prefer_not_to_say',
-      age: data.age ?? 0,
+      ageGroup: (data.age_group as UserProfile['ageGroup']) ?? null,
+      fastingLevel: (data.fasting_level as UserProfile['fastingLevel']) ?? null,
+      fastingPath: (data.fasting_path as UserProfile['fastingPath']) ?? 'if',
       currency: data.currency ?? undefined,
       createdAt: Date.now(),
     };

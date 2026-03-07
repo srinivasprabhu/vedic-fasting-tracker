@@ -2,9 +2,12 @@ import { Tabs } from 'expo-router';
 import { Home, Calendar, BarChart3, BookOpen } from 'lucide-react-native';
 import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { profile } = useUserProfile();
+  const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
 
   return (
     <Tabs
@@ -35,6 +38,7 @@ export default function TabLayout() {
         options={{
           title: 'Calendar',
           tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+          href: showVedic ? undefined : null,
         }}
       />
       <Tabs.Screen

@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookOpen, X, ChevronRight, Zap, FlaskConical } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import {
   FAST_TYPES,
   INTERMITTENT_FAST_TYPES,
@@ -25,7 +26,7 @@ import type { AutophagyStage } from '@/mocks/vedic-data';
 
 type TabKey = 'vedic' | 'intermittent' | 'autophagy';
 
-const TABS: { key: TabKey; label: string; icon: string }[] = [
+const ALL_TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'vedic', label: 'Vedic', icon: '🕉️' },
   { key: 'intermittent', label: 'IF Methods', icon: '⏱️' },
   { key: 'autophagy', label: 'Autophagy', icon: '🧬' },
@@ -33,9 +34,22 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
 
 export default function KnowledgeScreen() {
   const { colors } = useTheme();
+  const { profile } = useUserProfile();
+  const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
+  const TABS = useMemo(
+    () => showVedic ? ALL_TABS : ALL_TABS.filter(t => t.key !== 'vedic'),
+    [showVedic]
+  );
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('vedic');
+  const [activeTab, setActiveTab] = useState<TabKey>(showVedic ? 'vedic' : 'intermittent');
+
+  useEffect(() => {
+    if (!showVedic && activeTab === 'vedic') {
+      setActiveTab('intermittent');
+    }
+  }, [showVedic, activeTab]);
+
   const [selectedFast, setSelectedFast] = useState<FastTypeInfo | null>(null);
   const [selectedStage, setSelectedStage] = useState<AutophagyStage | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -163,16 +177,18 @@ export default function KnowledgeScreen() {
         </View>
       </View>
 
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>Vedic + IF Synergy</Text>
-        <View style={styles.synergyCard}>
-          <Text style={styles.synergyEmoji}>🕉️ + ⏱️</Text>
-          <Text style={styles.synergyTitle}>Ancient Wisdom Meets Modern Science</Text>
-          <Text style={styles.synergyText}>
-            Vedic sages practiced time-restricted eating millennia before science validated it. Ekadashi fasts align with 24-hour protocols. Somvar Vrat mirrors 16:8 fasting. The spiritual discipline of Vedic fasting combined with the metabolic science of IF creates a holistic approach to health and self-mastery.
-          </Text>
+      {showVedic && (
+        <View style={styles.guideSection}>
+          <Text style={styles.sectionTitle}>Vedic + IF Synergy</Text>
+          <View style={styles.synergyCard}>
+            <Text style={styles.synergyEmoji}>🕉️ + ⏱️</Text>
+            <Text style={styles.synergyTitle}>Ancient Wisdom Meets Modern Science</Text>
+            <Text style={styles.synergyText}>
+              Vedic sages practiced time-restricted eating millennia before science validated it. Ekadashi fasts align with 24-hour protocols. Somvar Vrat mirrors 16:8 fasting. The spiritual discipline of Vedic fasting combined with the metabolic science of IF creates a holistic approach to health and self-mastery.
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
     </>
   );
 

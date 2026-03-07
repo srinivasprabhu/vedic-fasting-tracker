@@ -63,9 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error: Error | null;
   }> => {
     if (!GOOGLE_WEB_CLIENT_ID) {
+      if (__DEV__) console.log('[Auth] GOOGLE_WEB_CLIENT_ID is empty. Check .env or EAS env vars.');
       return {
         error: new Error(
-          'Google Web Client ID not configured. Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to .env'
+          'Google Sign-In is not configured. Please rebuild the app after setting environment variables.'
         ),
       };
     }

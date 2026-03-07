@@ -28,37 +28,51 @@ import {
   LogIn,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  getNotificationsEnabled,
+  enableNotifications,
+  disableNotifications,
+} from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-import { UserSex } from '@/types/user';
-
+import type { AgeGroup, FastingLevel, FastingPath } from '@/types/user';
 import type { ColorScheme } from '@/constants/colors';
 
-const SEX_LABELS: Record<UserSex, string> = {
-  male: 'Male',
-  female: 'Female',
-  prefer_not_to_say: 'Prefer not to say',
-};
-
-const SEX_OPTIONS: { value: UserSex; label: string }[] = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+const AGE_OPTIONS: { id: AgeGroup; label: string }[] = [
+  { id: 'under_18', label: 'Under 18' },
+  { id: '18_25',    label: '18–25' },
+  { id: '26_35',    label: '26–35' },
+  { id: '36_45',    label: '36–45' },
+  { id: '46_55',    label: '46–55' },
+  { id: '56_65',    label: '56–65' },
+  { id: '65_plus',  label: '65+' },
 ];
 
-const AGE_RANGES = [
-  { label: 'Under 18', value: 16 },
-  { label: '18–25', value: 22 },
-  { label: '26–35', value: 30 },
-  { label: '36–45', value: 40 },
-  { label: '46–55', value: 50 },
-  { label: '56–65', value: 60 },
-  { label: '65+', value: 70 },
+const LEVEL_OPTIONS: { id: FastingLevel; label: string }[] = [
+  { id: 'beginner',     label: '🌱 Beginner' },
+  { id: 'intermediate', label: '⚡ Intermediate' },
+  { id: 'experienced',  label: '🦅 Experienced' },
 ];
 
-function getAgeLabel(age: number): string {
-  const range = AGE_RANGES.find(r => r.value === age);
-  return range?.label ?? `${age}`;
+const PATH_OPTIONS: { id: FastingPath; label: string }[] = [
+  { id: 'if',    label: '⏱️ IF Only' },
+  { id: 'vedic', label: '🪔 Vedic' },
+  { id: 'both',  label: '✨ Both' },
+];
+
+function getAgeLabel(ageGroup: AgeGroup | null | undefined): string {
+  if (!ageGroup) return 'Not set';
+  return AGE_OPTIONS.find(o => o.id === ageGroup)?.label ?? 'Not set';
+}
+
+function getLevelLabel(level: FastingLevel | null | undefined): string {
+  if (!level) return 'Not set';
+  return LEVEL_OPTIONS.find(o => o.id === level)?.label ?? 'Not set';
+}
+
+function getPathLabel(path: FastingPath | undefined): string {
+  if (!path) return 'IF Only';
+  return PATH_OPTIONS.find(o => o.id === path)?.label ?? 'IF Only';
 }
 
 export default function SettingsScreen() {
@@ -69,12 +83,17 @@ export default function SettingsScreen() {
 
   const [editingProfile, setEditingProfile] = useState<boolean>(false);
   const [editName, setEditName] = useState<string>(profile?.name ?? '');
-  const [editSex, setEditSex] = useState<UserSex>(profile?.sex ?? 'prefer_not_to_say');
-  const [editAge, setEditAge] = useState<number>(profile?.age ?? 25);
+  const [editAgeGroup, setEditAgeGroup] = useState<AgeGroup | null>(profile?.ageGroup ?? null);
+  const [editLevel, setEditLevel] = useState<FastingLevel | null>(profile?.fastingLevel ?? null);
+  const [editPath, setEditPath] = useState<FastingPath>(profile?.fastingPath ?? 'if');
 
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    getNotificationsEnabled().then(setNotificationsEnabled);
+  }, []);
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -87,8 +106,9 @@ export default function SettingsScreen() {
   const handleEditProfile = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditName(profile?.name ?? '');
-    setEditSex(profile?.sex ?? 'prefer_not_to_say');
-    setEditAge(profile?.age ?? 25);
+    setEditAgeGroup(profile?.ageGroup ?? null);
+    setEditLevel(profile?.fastingLevel ?? null);
+    setEditPath(profile?.fastingPath ?? 'if');
     setEditingProfile(true);
   }, [profile]);
 
@@ -100,37 +120,35 @@ export default function SettingsScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     updateProfile({
       name: editName.trim(),
-      sex: editSex,
-      age: editAge,
+      ageGroup: editAgeGroup,
+      fastingLevel: editLevel,
+      fastingPath: editPath,
+      currency: profile?.currency,
       createdAt: profile?.createdAt ?? Date.now(),
     });
     setEditingProfile(false);
-    console.log('Profile updated from settings');
-  }, [editName, editSex, editAge, profile, updateProfile]);
+  }, [editName, editAgeGroup, editLevel, editPath, profile, updateProfile]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingProfile(false);
   }, []);
 
   const handleToggleNotifications = useCallback(async (value: boolean) => {
-    if (value && Platform.OS !== 'web') {
-      try {
-        const { default: Notifications } = await import('expo-notifications');
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Notifications Disabled',
-            'Please enable notifications in your device settings to receive fast reminders.'
-          );
-          return;
-        }
-      } catch (e) {
-        console.log('Notification permission error:', e);
+    if (value) {
+      const granted = await enableNotifications();
+      if (!granted) {
+        Alert.alert(
+          'Notifications Disabled',
+          'Please enable notifications in your device settings to receive fast reminders.'
+        );
+        return;
       }
+      setNotificationsEnabled(true);
+    } else {
+      await disableNotifications();
+      setNotificationsEnabled(false);
     }
-    setNotificationsEnabled(value);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('Notifications toggled:', value);
   }, []);
 
   const initial = getInitial();
@@ -250,22 +268,22 @@ export default function SettingsScreen() {
                 <View style={styles.editDivider} />
 
                 <View style={styles.editField}>
-                  <Text style={styles.editLabel}>Gender</Text>
+                  <Text style={styles.editLabel}>Age</Text>
                   <View style={styles.editChips}>
-                    {SEX_OPTIONS.map((opt) => (
+                    {AGE_OPTIONS.map((opt) => (
                       <TouchableOpacity
-                        key={opt.value}
+                        key={opt.id}
                         style={[
                           styles.editChip,
-                          editSex === opt.value && styles.editChipActive,
+                          editAgeGroup === opt.id && styles.editChipActive,
                         ]}
-                        onPress={() => setEditSex(opt.value)}
+                        onPress={() => setEditAgeGroup(opt.id)}
                         activeOpacity={0.7}
                       >
                         <Text
                           style={[
                             styles.editChipText,
-                            editSex === opt.value && styles.editChipTextActive,
+                            editAgeGroup === opt.id && styles.editChipTextActive,
                           ]}
                         >
                           {opt.label}
@@ -278,25 +296,25 @@ export default function SettingsScreen() {
                 <View style={styles.editDivider} />
 
                 <View style={styles.editField}>
-                  <Text style={styles.editLabel}>Age</Text>
+                  <Text style={styles.editLabel}>Fasting Level</Text>
                   <View style={styles.editChips}>
-                    {AGE_RANGES.map((range) => (
+                    {LEVEL_OPTIONS.map((opt) => (
                       <TouchableOpacity
-                        key={range.value}
+                        key={opt.id}
                         style={[
                           styles.editChip,
-                          editAge === range.value && styles.editChipActive,
+                          editLevel === opt.id && styles.editChipActive,
                         ]}
-                        onPress={() => setEditAge(range.value)}
+                        onPress={() => setEditLevel(opt.id)}
                         activeOpacity={0.7}
                       >
                         <Text
                           style={[
                             styles.editChipText,
-                            editAge === range.value && styles.editChipTextActive,
+                            editLevel === opt.id && styles.editChipTextActive,
                           ]}
                         >
-                          {range.label}
+                          {opt.label}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -305,7 +323,33 @@ export default function SettingsScreen() {
 
                 <View style={styles.editDivider} />
 
+                <View style={styles.editField}>
+                  <Text style={styles.editLabel}>Fasting Path</Text>
+                  <View style={styles.editChips}>
+                    {PATH_OPTIONS.map((opt) => (
+                      <TouchableOpacity
+                        key={opt.id}
+                        style={[
+                          styles.editChip,
+                          editPath === opt.id && styles.editChipActive,
+                        ]}
+                        onPress={() => setEditPath(opt.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.editChipText,
+                            editPath === opt.id && styles.editChipTextActive,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
+                <View style={styles.editDivider} />
 
                 <View style={styles.editActions}>
                   <TouchableOpacity
@@ -339,25 +383,37 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: colors.successLight }]}>
-                    <Text style={{ fontSize: 14 }}>👤</Text>
-                  </View>
-                  <View style={styles.rowContent}>
-                    <Text style={styles.rowLabel}>Gender</Text>
-                    <Text style={styles.rowValue}>
-                      {profile?.sex ? SEX_LABELS[profile.sex] : 'Not set'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.row}>
                   <View style={[styles.rowIcon, { backgroundColor: colors.warningLight }]}>
                     <Text style={{ fontSize: 14 }}>🎂</Text>
                   </View>
                   <View style={styles.rowContent}>
                     <Text style={styles.rowLabel}>Age</Text>
                     <Text style={styles.rowValue}>
-                      {profile?.age ? getAgeLabel(profile.age) : 'Not set'}
+                      {getAgeLabel(profile?.ageGroup)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.successLight }]}>
+                    <Text style={{ fontSize: 14 }}>🔥</Text>
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>Fasting Level</Text>
+                    <Text style={styles.rowValue}>
+                      {getLevelLabel(profile?.fastingLevel)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.accentLight }]}>
+                    <Text style={{ fontSize: 14 }}>🌿</Text>
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>Fasting Path</Text>
+                    <Text style={styles.rowValue}>
+                      {getPathLabel(profile?.fastingPath)}
                     </Text>
                   </View>
                 </View>
@@ -408,7 +464,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={styles.rowLabel}>Fast Reminders</Text>
-                  <Text style={styles.rowDesc}>Never miss your Ekadashi fast!</Text>
+                  <Text style={styles.rowDesc}>Never miss your fasting window!</Text>
                 </View>
                 <Switch
                   value={notificationsEnabled}
@@ -429,15 +485,14 @@ export default function SettingsScreen() {
                   <Info size={16} color={colors.primary} />
                 </View>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowLabel}>Aayu - Vedic Intermittent Fasting</Text>
+                  <Text style={styles.rowLabel}>Aayu - Fasting App</Text>
                   <Text style={styles.rowDesc}>Version 1.0.0</Text>
                 </View>
               </View>
               <View style={styles.divider} />
               <View style={styles.aboutText}>
                 <Text style={styles.aboutDesc}>
-                  Rooted in ancient Vedic wisdom, this app helps you track and maintain your fasting practice — 
-                  whether it's traditional Vrat or modern intermittent fasting.
+                Your personal fasting companion — track, learn, and transform your health with science-backed intermittent fasting..
                 </Text>
                 <Text style={styles.aboutTagline}>
                   🙏 May your practice bring peace and strength

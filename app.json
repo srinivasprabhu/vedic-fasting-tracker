@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Aayu - Vedic Intermittent Fasting",
-    "shortName": "Aayu",
+    "name": "Aayu Fasting",
+    "shortName": "Aayu Fasting",
     "slug": "vedic-intermittent-fasting",
     "version": "1.0.3",
     "orientation": "portrait",
@@ -18,7 +18,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.vedicintermittentfasting.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "Aayu Fasting",
+        "CFBundleName": "Aayu Fasting"
       }
     },
     "android": {
@@ -51,7 +53,7 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.000000000000-placeholder"
+          "iosUrlScheme": "com.googleusercontent.apps.174313447601-brnan6k03ufofi4oa6ask4g4k3tf0hl1.apps.googleusercontent.com"
         }
       ]
     ],

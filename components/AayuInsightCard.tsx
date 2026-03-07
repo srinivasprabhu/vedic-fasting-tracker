@@ -14,12 +14,12 @@ interface InsightTag {
 }
 
 interface AayuInsightCardProps {
-  totalWeekFasts: number;
-  avgFastHours: number;
-  longestFastHours: number;
-  totalHours: number;
+  weekFasts: number;
+  weekAvgHours: number;
+  weekLongestHours: number;
+  weekTotalHours: number;
   streak: number;
-  autophagyCount: number;
+  weekAutophagyCount: number;
 }
 
 function generateInsight(
@@ -31,79 +31,115 @@ function generateInsight(
   tags: InsightTag[];
 } {
   const {
-    totalWeekFasts,
-    avgFastHours,
-    longestFastHours,
-    totalHours,
+    weekFasts,
+    weekAvgHours,
+    weekLongestHours,
+    weekTotalHours,
     streak,
-    autophagyCount,
+    weekAutophagyCount,
   } = props;
 
-  const gutRestHours = Math.round(totalHours * 0.6);
-  const hghMultiplier = longestFastHours >= 72 ? 25 : longestFastHours >= 48 ? 15 : longestFastHours >= 24 ? 5 : longestFastHours >= 16 ? 2 : 1;
-  const avgRounded = Math.round(avgFastHours);
-  const hasAutophagy = autophagyCount >= 2;
-  const hasDeepFast = longestFastHours >= 24;
+  const gutRestHours = Math.round(weekTotalHours * 0.6);
+  const hghMultiplier = weekLongestHours >= 72 ? 25 : weekLongestHours >= 48 ? 15 : weekLongestHours >= 24 ? 5 : weekLongestHours >= 16 ? 2 : 1;
+  const avgRounded = Math.round(weekAvgHours);
+  const hasAutophagy = weekAutophagyCount >= 2;
+  const hasDeepFast = weekLongestHours >= 24;
   const hasGoodStreak = streak >= 3;
 
   const bodyBase = { fontSize: 14, lineHeight: 22, color: bodyTextColor };
 
-  if (totalWeekFasts === 0 && totalHours === 0) {
-    return {
-      quote: '"Your journey begins with a single breath of intention."',
-      body: (
-        <Text style={bodyBase}>
-          Start your first fast and let{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>Agni</Text>
-          {' '}begin its renewal. The Vedas say — the one who masters{' '}
-          <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>Tapas</Text>
-          {' '}masters life itself. Every great discipline starts today. 🌅
-        </Text>
-      ),
-      tags: [
-        { label: 'Begin your sadhana', emoji: '🕉️', color: '#7B68AE' },
-      ],
-    };
+  // No fasts this week — motivational nudge
+  if (weekFasts === 0) {
+    const motivations = [
+      {
+        quote: '"A new week is a blank page — write something powerful."',
+        body: (
+          <Text style={bodyBase}>
+            You haven't fasted yet this week. Even a short{' '}
+            <Text style={{ color: '#D4A03C', fontWeight: '700' }}>12-hour fast</Text>
+            {' '}can lower insulin, boost fat-burning, and give your gut a{' '}
+            <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>much-needed break</Text>
+            . Start today and make this week count. 💪
+          </Text>
+        ),
+        tags: [
+          { label: 'Fresh start', emoji: '🌅', color: '#D4A03C' },
+          ...(hasGoodStreak ? [{ label: `${streak} streak to protect`, emoji: '🔥', color: '#C25450' }] : []),
+        ],
+      },
+      {
+        quote: '"The best time to start was yesterday. The next best time is now."',
+        body: (
+          <Text style={bodyBase}>
+            Your body is ready for its next fast. Research shows{' '}
+            <Text style={{ color: '#2E86AB', fontWeight: '700' }}>autophagy</Text>
+            {' '}— your body's cellular cleanup — kicks in after just{' '}
+            <Text style={{ color: '#D4A03C', fontWeight: '700' }}>16 hours</Text>
+            . One fast can set the tone for the entire week. 🚀
+          </Text>
+        ),
+        tags: [
+          { label: 'Week awaits', emoji: '⚡', color: '#7B68AE' },
+        ],
+      },
+      {
+        quote: '"Consistency beats perfection — show up this week."',
+        body: (
+          <Text style={bodyBase}>
+            No fasts logged yet, but the week is young. Even{' '}
+            <Text style={{ color: '#D4A03C', fontWeight: '700' }}>one fast</Text>
+            {' '}this week keeps the momentum going. Your{' '}
+            <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>metabolism</Text>
+            {' '}responds best to regular fasting windows. Make it happen. 🎯
+          </Text>
+        ),
+        tags: [
+          { label: 'Stay consistent', emoji: '🎯', color: '#5B8C5A' },
+        ],
+      },
+    ];
+    const idx = new Date().getDay() % motivations.length;
+    return motivations[idx];
   }
 
-  if (totalWeekFasts >= 3 && hasAutophagy) {
+  // Strong week: 3+ fasts with autophagy hits
+  if (weekFasts >= 3 && hasAutophagy) {
     return {
-      quote: `"Your Agni rested ${gutRestHours}h this week — your digestive fire is strengthening."`,
+      quote: `"Your gut rested ${gutRestHours}h this week — your metabolism is adapting."`,
       body: (
         <Text style={bodyBase}>
           You completed{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{totalWeekFasts} fasts</Text>
+          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{weekFasts} fasts</Text>
           {' '}averaging{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{avgRounded}h</Text>
           , reaching{' '}
           <Text style={{ color: '#2E86AB', fontWeight: '700' }}>Deep Autophagy</Text>
-          {' '}{autophagyCount > 1 ? `${autophagyCount} times` : 'once'}.{longestFastHours >= 48 ? ` Your longest fast (${Math.round(longestFastHours)}h) triggered ${hghMultiplier}×` : ''}{longestFastHours >= 48 ? <Text style={{ color: '#D4A03C', fontWeight: '700' }}> HGH boost</Text> : ''}{longestFastHours >= 48 ? ` — a rare cellular renewal the Vedas call ` : ' Consistency is your superpower. '}{longestFastHours >= 48 ? <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>Tapas</Text> : ''}{longestFastHours >= 48 ? '. 🔥' : '🔥'}
+          {' '}{weekAutophagyCount > 1 ? `${weekAutophagyCount} times` : 'once'}.{weekLongestHours >= 48 ? ` Your longest fast (${Math.round(weekLongestHours)}h) triggered ${hghMultiplier}×` : ''}{weekLongestHours >= 48 ? <Text style={{ color: '#D4A03C', fontWeight: '700' }}> HGH boost</Text> : ''}{weekLongestHours >= 48 ? ' — a powerful cellular renewal event.' : ' Consistency is your superpower. '} 🔥
         </Text>
       ),
       tags: [
-        { label: 'Agni strengthening', emoji: '↑', color: '#5B8C5A' },
-        { label: 'Tapas achieved', emoji: '🌙', color: '#D4A03C' },
-        ...(hasAutophagy ? [{ label: `Autophagy ${autophagyCount}×`, emoji: '✦', color: '#7B68AE' }] : []),
+        { label: 'Metabolism adapting', emoji: '↑', color: '#5B8C5A' },
+        { label: 'Deep rest achieved', emoji: '🌙', color: '#D4A03C' },
+        { label: `Autophagy ${weekAutophagyCount}×`, emoji: '✦', color: '#7B68AE' },
       ],
     };
   }
 
+  // Deep fast this week with significant HGH boost
   if (hasDeepFast && hghMultiplier >= 5) {
     return {
       quote: `"In stillness, the body heals what the mind cannot see."`,
       body: (
         <Text style={bodyBase}>
-          Your{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(longestFastHours)}h fast</Text>
+          This week your{' '}
+          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(weekLongestHours)}h fast</Text>
           {' '}triggered a{' '}
           <Text style={{ color: '#E8913A', fontWeight: '700' }}>{hghMultiplier}× HGH boost</Text>
-          {' '}— activating cellular renewal the Vedas call{' '}
-          <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>Tapas</Text>
-          . Total{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(totalHours)}h fasted</Text>
-          {' '}across your journey. Your{' '}
-          <Text style={{ color: '#2E86AB', fontWeight: '700' }}>Agni</Text>
-          {' '}is blazing. 🔥
+          {' '}— activating deep{' '}
+          <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>cellular renewal</Text>
+          . You've fasted{' '}
+          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(weekTotalHours)}h</Text>
+          {' '}so far this week. Your body is thanking you. 🔥
         </Text>
       ),
       tags: [
@@ -114,74 +150,81 @@ function generateInsight(
     };
   }
 
+  // Good streak going
   if (hasGoodStreak) {
     return {
-      quote: `"Discipline practised daily becomes dharma."`,
+      quote: `"Discipline practised daily becomes identity."`,
       body: (
         <Text style={bodyBase}>
           A{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{streak}-fast streak</Text>
-          {' '}— this is how transformation happens. Averaging{' '}
+          {' '}and{' '}
+          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{weekFasts} fast{weekFasts > 1 ? 's' : ''}</Text>
+          {' '}this week — this is how transformation happens. Averaging{' '}
           <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{avgRounded}h per fast</Text>
           , your{' '}
-          <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>Agni</Text>
-          {' '}grows stronger each cycle. The Vedas honour this consistency as{' '}
-          <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>Niyama</Text>
-          {' '}— sacred discipline. 🙏
+          <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>metabolism</Text>
+          {' '}grows more efficient each cycle. 💪
         </Text>
       ),
       tags: [
         { label: `${streak} fast streak`, emoji: '🔥', color: '#C25450' },
-        { label: 'Niyama practice', emoji: '🕉️', color: '#7B68AE' },
+        { label: `${weekFasts} this week`, emoji: '📊', color: '#5B8C5A' },
       ],
     };
   }
 
+  // Default: some fasting activity this week
   return {
-    quote: '"Every fast is a prayer your body offers to the universe."',
+    quote: '"Every fast is a gift your body gives itself."',
     body: (
       <Text style={bodyBase}>
-        You have fasted{' '}
-        <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(totalHours)}h</Text>
-        {' '}in total, giving your{' '}
-        <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>Agni</Text>
-        {' '}precious rest. Each fast strengthens{' '}
+        You've fasted{' '}
+        <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(weekTotalHours)}h</Text>
+        {' '}across{' '}
+        <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{weekFasts} fast{weekFasts > 1 ? 's' : ''}</Text>
+        {' '}this week, giving your{' '}
+        <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>digestive system</Text>
+        {' '}rest. Each fast strengthens{' '}
         <Text style={{ color: '#2E86AB', fontWeight: '700' }}>insulin sensitivity</Text>
-        {' '}and deepens cellular renewal. Keep going — your{' '}
-        <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>Tapas</Text>
-        {' '}is building. ✨
+        {' '}and deepens cellular renewal. Keep going! ✨
       </Text>
     ),
     tags: [
-      { label: 'Agni resting', emoji: '🌿', color: '#5B8C5A' },
-      { label: 'Journey ongoing', emoji: '✨', color: '#D4A03C' },
+      { label: `${Math.round(weekTotalHours)}h this week`, emoji: '⏱️', color: '#5B8C5A' },
+      { label: 'Building momentum', emoji: '✨', color: '#D4A03C' },
     ],
   };
 }
 
 export default function AayuInsightCard({
-  totalWeekFasts,
-  avgFastHours,
-  longestFastHours,
-  totalHours,
+  weekFasts,
+  weekAvgHours,
+  weekLongestHours,
+  weekTotalHours,
   streak,
-  autophagyCount,
+  weekAutophagyCount,
 }: AayuInsightCardProps) {
   const { colors, isDark } = useTheme();
   const glowAnim = useRef(new Animated.Value(0.4)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const now = new Date();
-  const dateLabel = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dateLabel = `${fmt(weekStart)} – ${fmt(weekEnd)}`;
 
   const bodyTextColor = isDark ? '#C8B8A2' : colors.textSecondary;
 
   const insight = useMemo(
     () => generateInsight(
-      { totalWeekFasts, avgFastHours, longestFastHours, totalHours, streak, autophagyCount },
+      { weekFasts, weekAvgHours, weekLongestHours, weekTotalHours, streak, weekAutophagyCount },
       bodyTextColor,
     ),
-    [totalWeekFasts, avgFastHours, longestFastHours, totalHours, streak, autophagyCount, bodyTextColor]
+    [weekFasts, weekAvgHours, weekLongestHours, weekTotalHours, streak, weekAutophagyCount, bodyTextColor]
   );
 
   useEffect(() => {
@@ -214,7 +257,7 @@ export default function AayuInsightCard({
       <View style={styles.header}>
         <View style={[styles.headerLeft, { backgroundColor: pillBg, borderColor: pillBorder }]}>
           <Animated.View style={[styles.liveDot, { opacity: glowAnim, backgroundColor: quoteColor }]} />
-          <Text style={[styles.headerLabel, { color: labelColor }]}>AAYU INSIGHT · TODAY</Text>
+          <Text style={[styles.headerLabel, { color: labelColor }]}>INSIGHT · WEEK</Text>
         </View>
         <Text style={[styles.dateLabel, { color: dateLabelColor }]}>{dateLabel}</Text>
       </View>

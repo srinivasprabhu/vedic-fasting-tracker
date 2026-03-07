@@ -60,8 +60,9 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
           {
             id: user.id,
             name: newProfile.name,
-            sex: newProfile.sex,
-            age: newProfile.age,
+            age_group: newProfile.ageGroup ?? null,
+            fasting_level: newProfile.fastingLevel ?? null,
+            fasting_path: newProfile.fastingPath ?? 'if',
             currency: newProfile.currency ?? null,
           },
           { onConflict: 'id' }

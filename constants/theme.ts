@@ -16,14 +16,17 @@ export const COLORS = {
 
 export const FONTS = {
   displayLight: undefined as string | undefined,
+  displayItalic: undefined as string | undefined,
   bodyMedium: undefined as string | undefined,
   bodyRegular: undefined as string | undefined,
 };
 
 export const RADIUS = {
+  xl: 20,
   lg: 16,
   md: 12,
   sm: 8,
+  pill: 100,
 };
 
 export const SPACING = {

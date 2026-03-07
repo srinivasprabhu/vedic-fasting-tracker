@@ -1,338 +1,316 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Easing,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, StyleSheet, Animated, Easing,
+  TouchableOpacity, KeyboardAvoidingView,
+  Platform, StatusBar, ViewStyle, TextStyle,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ArrowRight, ArrowLeft } from 'lucide-react-native';
-import { useAuth } from '@/contexts/AuthContext';
+
+import { Step1Name }   from '@/components/profile-setup/Step1Name';
+import { Step2Age }    from '@/components/profile-setup/Step2Age';
+import { Step3Level }  from '@/components/profile-setup/Step3Level';
+import { Step4Path }   from '@/components/profile-setup/Step4Path';
+import { SetupHeader } from '@/components/profile-setup/SetupHeader';
+import { useTheme }    from '@/contexts/ThemeContext';
+import { useAuth }     from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-import { AayuMandala } from '@/components/onboarding/AayuMandala';
-import { Step1Name } from '@/components/profile-setup/Step1Name';
-import { Step2Gender } from '@/components/profile-setup/Step2Gender';
-import {
-  Step3Age,
-  AgeGroup,
-  AGE_GROUP_TO_NUMBER,
-} from '@/components/profile-setup/Step3Age';
-import { COLORS } from '@/constants/theme';
-import type { UserSex } from '@/types/user';
+import { FONTS, SPACING } from '@/constants/theme';
+import type { AgeGroup, FastingLevel, FastingPath } from '@/types/user';
 
-type Step = 'name' | 'sex' | 'age';
-
-const STEP_LABELS: Record<Step, string> = {
-  name: 'STEP 1 NAME',
-  sex: 'STEP 2 GENDER',
-  age: 'STEP 3 AGE',
-};
+const TOTAL_STEPS = 4;
 
 export default function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
+  const { isDark, colors } = useTheme();
   const { isAuthenticated } = useAuth();
   const { profile, updateProfile, isLoading } = useUserProfile();
-  const [step, setStep] = useState<Step>('name');
 
-  // If user is signed in and profile already exists (e.g. from Supabase sync), skip to main app
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState('');
+  const [ageGroup, setAgeGroup] = useState<AgeGroup | null>(null);
+  const [fastingLevel, setFastingLevel] = useState<FastingLevel | null>(null);
+  const [fastingPath, setFastingPath] = useState<FastingPath>('if');
+
   useEffect(() => {
     if (!isLoading && isAuthenticated && profile?.name?.trim()) {
       router.replace('/(tabs)/(home)' as any);
     }
   }, [isAuthenticated, profile?.name, isLoading]);
-  const [name, setName] = useState<string>('');
-  const [sex, setSex] = useState<UserSex | null>(null);
-  const [ageGroup, setAgeGroup] = useState<AgeGroup | null>(null);
 
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim   = useRef(new Animated.Value(1 / TOTAL_STEPS)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentSlide   = useRef(new Animated.Value(18)).current;
 
-  const animateTransition = useCallback((forward: boolean, callback: () => void) => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
-      slideAnim.setValue(forward ? 40 : -40);
-      callback();
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  }, [fadeAnim, slideAnim]);
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: step / TOTAL_STEPS,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [step]);
+
+  const animateIn = useCallback(() => {
+    contentOpacity.setValue(0);
+    contentSlide.setValue(18);
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 1, duration: 480, delay: 60,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentSlide, {
+        toValue: 0, duration: 480, delay: 60,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [contentOpacity, contentSlide]);
+
+  useEffect(() => { animateIn(); }, [step]);
+  useEffect(() => { animateIn(); }, []);
+
+  const handleBack = useCallback(() => {
+    if (step > 1) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setStep((s) => s - 1);
+    }
+  }, [step]);
 
   const handleNext = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (step === 'name' && name.trim().length > 0) {
-      animateTransition(true, () => setStep('sex'));
-    } else if (step === 'sex' && sex !== null) {
-      animateTransition(true, () => setStep('age'));
-    } else if (step === 'age' && ageGroup !== null) {
+    if (step < TOTAL_STEPS) {
+      setStep((s) => s + 1);
+    } else {
       handleComplete();
     }
-  }, [step, name, sex, ageGroup, animateTransition]);
-
-  const handleBack = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (step === 'sex') {
-      animateTransition(false, () => setStep('name'));
-    } else if (step === 'age') {
-      animateTransition(false, () => setStep('sex'));
-    }
-  }, [step, animateTransition]);
+  }, [step, name, ageGroup, fastingLevel, fastingPath]);
 
   const handleComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const age = ageGroup ? AGE_GROUP_TO_NUMBER[ageGroup] : 25;
     updateProfile({
-      name: name.trim(),
-      sex: sex ?? 'prefer_not_to_say',
-      age,
+      name: name.trim() || 'Friend',
+      ageGroup,
+      fastingLevel,
+      fastingPath,
       createdAt: Date.now(),
     });
-    router.replace('/(tabs)/(home)');
-  }, [name, sex, ageGroup, updateProfile]);
+    router.replace('/(tabs)/(home)' as any);
+  }, [name, ageGroup, fastingLevel, fastingPath, updateProfile]);
+
+  const handleSkip = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    updateProfile({
+      name: 'Friend',
+      ageGroup: null,
+      fastingLevel: null,
+      fastingPath: 'if',
+      createdAt: Date.now(),
+    });
+    router.replace('/(tabs)/(home)' as any);
+  }, [updateProfile]);
 
   const canProceed = (() => {
-    if (step === 'name') return name.trim().length > 0;
-    if (step === 'sex') return sex !== null;
-    if (step === 'age') return ageGroup !== null;
-    return false;
+    switch (step) {
+      case 1: return name.trim().length > 0;
+      case 2: return ageGroup !== null;
+      case 3: return fastingLevel !== null;
+      case 4: return true;
+      default: return false;
+    }
   })();
 
-  const stepNumber = step === 'name' ? 1 : step === 'sex' ? 2 : 3;
+  const ctaLabel = step === TOTAL_STEPS ? 'Complete Setup' : 'Continue';
+
+  const bgColors = isDark
+    ? ['#1a0d04', '#0e0703', '#070402'] as const
+    : ['#fdf3e3', '#faf0e4', '#f8edd8'] as const;
+
+  const goldColor = isDark ? '#c8872a' : '#a06820';
+  const goldLight = isDark ? '#e8a84c' : '#b07020';
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <Step1Name
+            value={name}
+            onChange={setName}
+            onSubmit={canProceed ? handleNext : undefined}
+          />
+        );
+      case 2:
+        return (
+          <Step2Age
+            value={ageGroup}
+            onChange={setAgeGroup}
+          />
+        );
+      case 3:
+        return (
+          <Step3Level
+            value={fastingLevel}
+            onChange={setFastingLevel}
+          />
+        );
+      case 4:
+        return (
+          <Step4Path
+            value={fastingPath}
+            onChange={setFastingPath}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <LinearGradient
-      colors={['#1A0E08', '#2C1810', '#1A0F06']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <View style={styles.headerLeft}>
-            {step !== 'name' ? (
-              <TouchableOpacity
-                onPress={handleBack}
-                style={styles.backButton}
-                activeOpacity={0.7}
-                testID="profile-back"
-              >
-                <ArrowLeft size={20} color={COLORS.gold} />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.backButton} />
-            )}
-            <View style={styles.brandRow}>
-              <AayuMandala size={24} color={COLORS.gold} animated={false} />
-              <Text style={styles.brandName}>Aayu</Text>
-            </View>
-          </View>
-          <View style={styles.stepIndicator}>
-            <Text style={styles.stepText}>{stepNumber} of 3</Text>
-          </View>
-        </View>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
+      />
 
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: insets.bottom + 120 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Animated.View
-            style={[
-              styles.content,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            {step === 'name' && (
-              <Step1Name
-                value={name}
-                onChange={setName}
-                onSubmit={canProceed ? handleNext : undefined}
-              />
-            )}
-            {step === 'sex' && (
-              <Step2Gender value={sex} onChange={setSex} />
-            )}
-            {step === 'age' && (
-              <Step3Age value={ageGroup} onChange={setAgeGroup} />
-            )}
-          </Animated.View>
-        </ScrollView>
+      <LinearGradient
+        colors={bgColors}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      />
 
-        <View
+      <View style={[
+        styles.ambientGlow,
+        { backgroundColor: goldColor, opacity: isDark ? 0.04 : 0.035 },
+      ]} />
+
+      <View style={[styles.progressTrack, { top: insets.top }]}>
+        <Animated.View
           style={[
-            styles.footer,
+            styles.progressFill,
             {
-              paddingBottom: insets.bottom + 24,
+              width: progressAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%'],
+              }),
+              backgroundColor: goldLight,
+              shadowColor: goldLight,
+            },
+          ]}
+        />
+      </View>
+
+      <SetupHeader
+        step={step}
+        total={TOTAL_STEPS}
+        onBack={step > 1 ? handleBack : undefined}
+        style={{ paddingTop: insets.top + 12 }}
+      />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 120 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View
+          style={[
+            styles.stepWrap,
+            {
+              opacity: contentOpacity,
+              transform: [{ translateY: contentSlide }],
             },
           ]}
         >
+          {renderStep()}
+        </Animated.View>
+      </ScrollView>
+
+      <View style={[styles.bottomWrap, { paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity
+          activeOpacity={canProceed ? 0.85 : 1}
+          onPress={canProceed ? handleNext : undefined}
+          style={[
+            styles.ctaBtn,
+            {
+              backgroundColor: canProceed
+                ? isDark ? goldColor : '#b07020'
+                : 'rgba(200,135,42,0.18)',
+              shadowColor: goldColor,
+              shadowOpacity: canProceed ? (isDark ? 0.35 : 0.25) : 0,
+            },
+          ]}
+        >
+          <Text style={[
+            styles.ctaText,
+            {
+              color: canProceed
+                ? isDark ? '#1a0d04' : '#fff8ed'
+                : 'rgba(200,135,42,0.4)',
+            },
+          ]}>
+            {ctaLabel} →
+          </Text>
+        </TouchableOpacity>
+
+        {step === 1 && (
           <TouchableOpacity
-            style={[
-              styles.continueButton,
-              !canProceed && styles.continueButtonDisabled,
-            ]}
-            onPress={handleNext}
-            disabled={!canProceed}
-            activeOpacity={0.85}
-            testID="profile-continue"
+            onPress={handleSkip}
+            style={styles.skipBtn}
           >
-            <Text style={styles.continueText}>
-              {step === 'age' ? 'Complete Setup' : 'Continue'}
+            <Text style={[
+              styles.skipText,
+              { color: isDark ? 'rgba(240,224,192,0.28)' : 'rgba(60,35,10,0.28)' },
+            ]}>
+              Skip for now
             </Text>
-            <ArrowRight size={20} color="#FFF" strokeWidth={2.5} />
           </TouchableOpacity>
-
-          {step === 'name' && (
-            <TouchableOpacity
-              onPress={() => {
-                updateProfile({
-                  name: 'Friend',
-                  sex: 'prefer_not_to_say',
-                  age: 25,
-                  createdAt: Date.now(),
-                });
-                router.replace('/(tabs)/(home)');
-              }}
-              style={styles.skipLink}
-              activeOpacity={0.7}
-              testID="profile-skip"
-            >
-              <Text style={styles.skipText}>Skip for now</Text>
-            </TouchableOpacity>
-          )}
-
-          <Text style={styles.footerLabel}>{STEP_LABELS[step]}</Text>
-        </View>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(200,135,42,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  brandName: {
-    fontSize: 18,
-    fontWeight: '300',
-    color: COLORS.gold,
-    letterSpacing: 2,
-  },
-  stepIndicator: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: 'rgba(200,135,42,0.1)',
-  },
-  stepText: {
-    fontSize: 13,
-    color: COLORS.gold,
-    fontWeight: '500',
-  },
+  root:          { flex: 1 }                                    as ViewStyle,
+  ambientGlow:   {
+    position: 'absolute', top: '10%', left: '5%', right: '5%',
+    height: '40%', borderRadius: 300,
+  }                                                             as ViewStyle,
+  progressTrack: {
+    position: 'absolute', left: 0, right: 0, height: 3,
+    backgroundColor: 'rgba(200,135,42,0.12)', zIndex: 10,
+  }                                                             as ViewStyle,
+  progressFill:  {
+    height: '100%', borderRadius: 2,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6, shadowRadius: 4,
+  }                                                             as ViewStyle,
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 28,
-  },
-  content: {
-    flex: 1,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 28,
-    paddingTop: 16,
-    alignItems: 'center',
-    gap: 12,
-  },
-  continueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.gold,
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 10,
-    width: '100%',
-  },
-  continueButtonDisabled: {
-    opacity: 0.4,
-  },
-  continueText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  skipLink: {
-    paddingVertical: 8,
-  },
-  skipText: {
-    fontSize: 14,
-    color: 'rgba(240,224,192,0.5)',
-    fontWeight: '500',
-  },
-  footerLabel: {
-    fontSize: 10,
-    color: 'rgba(240,224,192,0.25)',
-    letterSpacing: 0.5,
-  },
+  }                                                             as ViewStyle,
+  stepWrap:      {
+    flex: 1, paddingHorizontal: 24, paddingTop: 12,
+  }                                                             as ViewStyle,
+  bottomWrap:    { paddingHorizontal: 24, paddingTop: 12 }      as ViewStyle,
+  ctaBtn:        {
+    borderRadius: 16, paddingVertical: 17, alignItems: 'center',
+    shadowOffset: { width: 0, height: 6 }, shadowRadius: 14, elevation: 8,
+  }                                                             as ViewStyle,
+  ctaText:       {
+    fontFamily: FONTS.bodyMedium, fontSize: 16,
+    fontWeight: '600', letterSpacing: 0.2,
+  }                                                             as TextStyle,
+  skipBtn:       { alignItems: 'center', paddingVertical: 14 }  as ViewStyle,
+  skipText:      { fontFamily: FONTS.bodyRegular, fontSize: 13 } as TextStyle,
 });
