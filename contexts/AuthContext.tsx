@@ -77,12 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
       const rawNonce = Crypto.randomUUID();
-      const hashedNonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        rawNonce,
-      );
 
-      const { data } = await GoogleSignin.signIn({ nonce: hashedNonce });
+      const { data } = await GoogleSignin.signIn({ nonce: rawNonce });
       const idToken = data?.idToken;
       if (!idToken) {
         return { error: new Error('Google sign-in was cancelled') };
