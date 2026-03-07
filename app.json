@@ -28,7 +28,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F5E8D2"
       },
-      "package": "com.vedicintermittentfasting.app"
+      "package": "com.vedicintermittentfasting.app",
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
