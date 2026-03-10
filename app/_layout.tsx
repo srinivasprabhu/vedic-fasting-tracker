@@ -89,12 +89,15 @@ function RootLayoutNav() {
         console.log('Onboarding status:', completed, 'Profile:', !!profileData);
         if (completed !== 'true') {
           setShowOnboarding(true);
+          router.replace('/onboarding' as any);
         } else if (!profileData) {
           setNeedsProfile(true);
+          router.replace('/profile-setup' as any);
         }
       } catch (e) {
         console.log('Error checking onboarding:', e);
         setShowOnboarding(true);
+        router.replace('/onboarding' as any);
       } finally {
         setIsReady(true);
         await SplashScreen.hideAsync();
@@ -102,14 +105,6 @@ function RootLayoutNav() {
     }
     checkOnboarding();
   }, []);
-
-  useEffect(() => {
-    if (isReady && showOnboarding) {
-      router.replace('/onboarding' as any);
-    } else if (isReady && needsProfile) {
-      router.replace('/profile-setup' as any);
-    }
-  }, [isReady, showOnboarding, needsProfile]);
 
   if (!isReady) return null;
 
