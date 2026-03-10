@@ -11,6 +11,7 @@ import {
   ViewStyle,
   TextStyle,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -497,7 +498,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: Platform.OS === 'android' ? 4 : 8,
   } as ViewStyle,
 
   nextArrow: {

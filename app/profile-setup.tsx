@@ -169,9 +169,11 @@ export default function ProfileSetupScreen() {
     }
   };
 
+  const rootBg = isDark ? '#0a0604' : '#fdf3e3';
+
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: rootBg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar
@@ -305,7 +307,8 @@ const styles = StyleSheet.create({
   bottomWrap:    { paddingHorizontal: 24, paddingTop: 12 }      as ViewStyle,
   ctaBtn:        {
     borderRadius: 16, paddingVertical: 17, alignItems: 'center',
-    shadowOffset: { width: 0, height: 6 }, shadowRadius: 14, elevation: 8,
+    shadowOffset: { width: 0, height: 6 }, shadowRadius: 14,
+    elevation: Platform.OS === 'android' ? 4 : 8,
   }                                                             as ViewStyle,
   ctaText:       {
     fontFamily: FONTS.bodyMedium, fontSize: 16,

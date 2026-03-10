@@ -121,6 +121,7 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           animation: 'fade',
+          contentStyle: { backgroundColor: '#0a0604' },
         }}
       />
       <Stack.Screen
@@ -128,6 +129,7 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           animation: 'fade',
+          contentStyle: { backgroundColor: '#0a0604' },
         }}
       />
       <Stack.Screen

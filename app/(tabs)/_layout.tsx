@@ -34,14 +34,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendar',
-          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
-          href: showVedic ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
         name="analytics"
         options={{
           title: 'Analytics',
@@ -53,6 +45,14 @@ export default function TabLayout() {
         options={{
           title: 'Knowledge',
           tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+          href: showVedic ? undefined : null,
         }}
       />
     </Tabs>

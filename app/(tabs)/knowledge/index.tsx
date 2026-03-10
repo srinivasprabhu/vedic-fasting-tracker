@@ -27,10 +27,10 @@ import type { AutophagyStage } from '@/mocks/vedic-data';
 type TabKey = 'vedic' | 'intermittent' | 'autophagy' | 'fasting';
 
 const ALL_TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'vedic', label: 'Vedic', icon: '🕉️' },
-  { key: 'intermittent', label: 'IF Methods', icon: '⏱️' },
   { key: 'autophagy', label: 'Autophagy', icon: '🧬' },
+  { key: 'intermittent', label: 'IF Methods', icon: '⏱️' },
   { key: 'fasting', label: 'Food', icon: '🍃' },
+  { key: 'vedic', label: 'Vedic', icon: '🕉️' },
 ];
 
 export default function KnowledgeScreen() {
@@ -43,11 +43,11 @@ export default function KnowledgeScreen() {
   );
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>(showVedic ? 'vedic' : 'intermittent');
+  const [activeTab, setActiveTab] = useState<TabKey>('autophagy');
 
   useEffect(() => {
     if (!showVedic && activeTab === 'vedic') {
-      setActiveTab('intermittent');
+      setActiveTab('autophagy');
     }
   }, [showVedic, activeTab]);
 
