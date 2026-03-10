@@ -239,7 +239,7 @@ export async function scheduleDailyReminder(): Promise<void> {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: 8,
+        hour: 18,
         minute: 0,
       },
     });

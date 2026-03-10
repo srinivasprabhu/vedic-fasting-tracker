@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import type { Session, User } from '@supabase/supabase-js';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
@@ -62,6 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async (): Promise<{
     error: Error | null;
   }> => {
+    if (Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient') {
+      return {
+        error: new Error(
+          'Google Sign-In is not available in Expo Go. Build the app with EAS to test.'
+        ),
+      };
+    }
     if (!GOOGLE_WEB_CLIENT_ID) {
       if (__DEV__) console.log('[Auth] GOOGLE_WEB_CLIENT_ID is empty. Check .env or EAS env vars.');
       return {

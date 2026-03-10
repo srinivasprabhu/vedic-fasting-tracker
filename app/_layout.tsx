@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
@@ -25,8 +26,9 @@ if (Platform.OS !== 'web') {
   ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
 }
 
-// Configure Google Sign-In at module load (before any component renders)
-if (GOOGLE_WEB_CLIENT_ID) {
+// Configure Google Sign-In only in standalone builds (not Expo Go — native module not available)
+const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
+if (GOOGLE_WEB_CLIENT_ID && !isExpoGo && Platform.OS !== 'web') {
   import('@react-native-google-signin/google-signin')
     .then(({ GoogleSignin }) => {
       GoogleSignin.configure({

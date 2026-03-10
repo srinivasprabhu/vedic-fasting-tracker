@@ -10,7 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, X, ChevronRight, Zap, FlaskConical } from 'lucide-react-native';
+import { BookOpen, X, ChevronRight, Zap, FlaskConical, Leaf } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import {
@@ -24,12 +24,13 @@ import {
 import { FastTypeInfo } from '@/types/fasting';
 import type { AutophagyStage } from '@/mocks/vedic-data';
 
-type TabKey = 'vedic' | 'intermittent' | 'autophagy';
+type TabKey = 'vedic' | 'intermittent' | 'autophagy' | 'fasting';
 
 const ALL_TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'vedic', label: 'Vedic', icon: '🕉️' },
   { key: 'intermittent', label: 'IF Methods', icon: '⏱️' },
   { key: 'autophagy', label: 'Autophagy', icon: '🧬' },
+  { key: 'fasting', label: 'Food', icon: '🍃' },
 ];
 
 export default function KnowledgeScreen() {
@@ -37,7 +38,7 @@ export default function KnowledgeScreen() {
   const { profile } = useUserProfile();
   const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
   const TABS = useMemo(
-    () => showVedic ? ALL_TABS : ALL_TABS.filter(t => t.key !== 'vedic'),
+    () => (showVedic ? ALL_TABS : ALL_TABS.filter(t => t.key !== 'vedic')),
     [showVedic]
   );
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -59,7 +60,7 @@ export default function KnowledgeScreen() {
   const tabIndicator = useRef(new Animated.Value(0)).current;
   const contentFade = useRef(new Animated.Value(1)).current;
 
-  const tabWidth = tabBarWidth > 0 ? (tabBarWidth - 8) / TABS.length : 0;
+  const tabWidth = tabBarWidth > 0 ? (tabBarWidth - 12) / TABS.length : 0;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -289,6 +290,105 @@ export default function KnowledgeScreen() {
     </>
   );
 
+  const FASTING_FRIENDLY_ITEMS = [
+    {
+      emoji: '💧',
+      title: 'Water',
+      desc: 'Plain still or sparkling water. Zero calories, no insulin response. Essential for hydration and electrolyte balance.',
+      science: 'No metabolic impact.',
+    },
+    {
+      emoji: '☕',
+      title: 'Black Coffee',
+      desc: 'No sugar, cream, or milk. Coffee alone has ~2–5 calories per cup and does not trigger insulin or break autophagy.',
+      science: 'Studies show caffeine may enhance fat oxidation and ketone production during fasting.',
+    },
+    {
+      emoji: '🍵',
+      title: 'Plain Tea',
+      desc: 'Green, black, white, or herbal tea — no milk, honey, or sugar. Zero calories.',
+      science: 'Green tea catechins may support autophagy; polyphenols have no metabolic impact.',
+    },
+    {
+      emoji: '🧂',
+      title: 'Salt',
+      desc: 'A pinch of salt in water helps maintain electrolytes. Especially useful during longer fasts.',
+      science: 'Sodium has no calories; prevents hyponatremia.',
+    },
+    {
+      emoji: '🫧',
+      title: 'Sparkling Water',
+      desc: 'Unflavored or naturally flavored (no sweeteners). Same as still water.',
+      science: 'No calories; no insulin response.',
+    },
+    {
+      emoji: '⚡',
+      title: 'Electrolytes (No Sugar)',
+      desc: 'Sodium, potassium, magnesium in water — without sweeteners or calories.',
+      science: 'Replenishes minerals lost during fasting; no metabolic impact.',
+    },
+  ];
+
+  const BREAKS_FAST_ITEMS = [
+    { emoji: '🥛', label: 'Milk, cream, butter' },
+    { emoji: '🍯', label: 'Honey, sugar, syrup' },
+    { emoji: '🥤', label: 'Juice, soda, sweetened drinks' },
+    { emoji: '🍲', label: 'Bone broth, soup' },
+    { emoji: '🥜', label: 'Nuts, seeds, coconut oil' },
+    { emoji: '🍋', label: 'Lemon juice (if > 1 tbsp)' },
+  ];
+
+  const renderFastingFriendlyTab = () => (
+    <>
+      <View style={[styles.introCard, { borderColor: '#1B7A6E30' }]}>
+        <Leaf size={20} color="#1B7A6E" />
+        <Text style={styles.introText}>
+          During a fast, anything with calories triggers a metabolic response. The items below are scientifically accepted as not breaking a fast — they have negligible or zero calories and do not trigger insulin.
+        </Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>Safe During Fast</Text>
+      <Text style={styles.sectionSubtitle}>Zero or negligible calories</Text>
+
+      {FASTING_FRIENDLY_ITEMS.map((item, i) => (
+        <View key={i} style={[styles.guideCard, { marginBottom: 10 }]}>
+          <View style={styles.guideItem}>
+            <Text style={styles.guideEmoji}>{item.emoji}</Text>
+            <View style={styles.guideText}>
+              <Text style={styles.guideTitle}>{item.title}</Text>
+              <Text style={styles.guideDesc}>{item.desc}</Text>
+              <View style={[styles.scienceBadge, { backgroundColor: '#1B7A6E15' }]}>
+                <Text style={[styles.scienceBadgeText, { color: '#1B7A6E' }]}>{item.science}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ))}
+
+      <View style={styles.guideSection}>
+        <Text style={styles.sectionTitle}>What Breaks a Fast</Text>
+        <Text style={styles.sectionSubtitle}>Avoid these during your fasting window</Text>
+        <View style={styles.breaksCard}>
+          {BREAKS_FAST_ITEMS.map((item, i) => (
+            <View key={i} style={styles.breakItem}>
+              <Text style={styles.breakEmoji}>{item.emoji}</Text>
+              <Text style={styles.breakLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.guideSection}>
+        <Text style={styles.sectionTitle}>Gray Area</Text>
+        <View style={styles.grayCard}>
+          <Text style={styles.grayText}>
+            Some debate exists around artificial sweeteners (e.g. stevia, aspartame) and small amounts of lemon or ACV. Research is mixed — some studies show minimal insulin response; others suggest caution. For strict autophagy, stick to water, black coffee, and plain tea.
+          </Text>
+        </View>
+      </View>
+    </>
+  );
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -320,10 +420,13 @@ export default function KnowledgeScreen() {
                 testID={`knowledge-tab-${tab.key}`}
               >
                 <Text style={styles.tabIcon}>{tab.icon}</Text>
-                <Text style={[
-                  styles.tabLabel,
-                  activeTab === tab.key && styles.tabLabelActive,
-                ]}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    activeTab === tab.key && styles.tabLabelActive,
+                  ]}
+                  numberOfLines={1}
+                >
                   {tab.label}
                 </Text>
               </TouchableOpacity>
@@ -339,6 +442,7 @@ export default function KnowledgeScreen() {
           {activeTab === 'vedic' && renderVedicTab()}
           {activeTab === 'intermittent' && renderIntermittentTab()}
           {activeTab === 'autophagy' && renderAutophagyTab()}
+          {activeTab === 'fasting' && renderFastingFriendlyTab()}
           <View style={{ height: 32 }} />
         </Animated.ScrollView>
 
@@ -608,16 +712,16 @@ function makeStyles(colors: ColorScheme) {
       flexDirection: 'row' as const,
       backgroundColor: colors.surface,
       borderRadius: 14,
-      padding: 4,
+      padding: 6,
       marginBottom: 18,
       position: 'relative' as const,
     },
     tabIndicator: {
       position: 'absolute' as const,
-      top: 4,
-      left: 4,
+      top: 6,
+      left: 6,
       height: 40,
-      borderRadius: 11,
+      borderRadius: 10,
       backgroundColor: colors.card,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
@@ -631,14 +735,15 @@ function makeStyles(colors: ColorScheme) {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      gap: 5,
+      gap: 4,
+      paddingHorizontal: 4,
       zIndex: 1,
     },
     tabIcon: {
-      fontSize: 14,
+      fontSize: 12,
     },
     tabLabel: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '500' as const,
       color: colors.textMuted,
     },
@@ -918,6 +1023,55 @@ function makeStyles(colors: ColorScheme) {
       height: 1,
       backgroundColor: colors.borderLight,
       marginVertical: 12,
+    },
+    scienceBadge: {
+      marginTop: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      alignSelf: 'flex-start' as const,
+    },
+    scienceBadgeText: {
+      fontSize: 11,
+      fontWeight: '600' as const,
+    },
+    breaksCard: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      marginTop: 8,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    breakItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      minWidth: '45%' as any,
+    },
+    breakEmoji: {
+      fontSize: 18,
+    },
+    breakLabel: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      flex: 1,
+    },
+    grayCard: {
+      backgroundColor: colors.surfaceWarm,
+      borderRadius: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      marginTop: 8,
+    },
+    grayText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 20,
     },
     modalOverlay: {
       flex: 1,
