@@ -169,20 +169,21 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const rootBg = isDark ? '#0a0604' : '#fdf3e3';
+  const rootBg = isDark ? '#070402' : '#fdf3e3';
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: rootBg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        translucent
-        backgroundColor="transparent"
-      />
+    <View style={{ flex: 1, backgroundColor: rootBg }}>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          translucent
+          backgroundColor="transparent"
+        />
 
-      <LinearGradient
+        <LinearGradient
         colors={bgColors}
         style={StyleSheet.absoluteFillObject}
         start={{ x: 0.3, y: 0 }}
@@ -224,6 +225,7 @@ export default function ProfileSetupScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={Platform.OS === 'android'}
       >
         <Animated.View
           style={[
@@ -247,9 +249,10 @@ export default function ProfileSetupScreen() {
             {
               backgroundColor: canProceed
                 ? isDark ? goldColor : '#b07020'
-                : 'rgba(200,135,42,0.18)',
+                : 'rgba(200,135,42,0.2)',
               shadowColor: goldColor,
               shadowOpacity: canProceed ? (isDark ? 0.35 : 0.25) : 0,
+              elevation: canProceed ? 8 : 0,
             },
           ]}
         >
@@ -280,6 +283,7 @@ export default function ProfileSetupScreen() {
         )}
       </View>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -308,7 +312,8 @@ const styles = StyleSheet.create({
   ctaBtn:        {
     borderRadius: 16, paddingVertical: 17, alignItems: 'center',
     shadowOffset: { width: 0, height: 6 }, shadowRadius: 14,
-    elevation: Platform.OS === 'android' ? 4 : 8,
+    shadowOpacity: 0.35,
+    elevation: 8,
   }                                                             as ViewStyle,
   ctaText:       {
     fontFamily: FONTS.bodyMedium, fontSize: 16,

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
 import type { FastingPath } from '@/types/user';
@@ -243,7 +243,15 @@ export const Step4Path: React.FC<Step4PathProps> = ({ value, onChange }) => {
   }, []);
 
   return (
-    <View style={styles.wrap}>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{
+        paddingTop: SPACING.lg,
+        paddingBottom: 24,
+      }}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
       <Animated.View style={[
         styles.headerIcon,
         {
@@ -278,12 +286,11 @@ export const Step4Path: React.FC<Step4PathProps> = ({ value, onChange }) => {
           />
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  wrap:        { flex: 1, paddingTop: SPACING.lg }               as ViewStyle,
   headerIcon:  {
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.lg,

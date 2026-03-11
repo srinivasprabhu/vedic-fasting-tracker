@@ -30,7 +30,8 @@
         "backgroundColor": "#F5E8D2"
       },
       "package": "com.vedicintermittentfasting.app",
-      "permissions": []
+      "permissions": [],
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
