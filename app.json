@@ -1,13 +1,13 @@
 {
   "expo": {
     "backgroundColor": "#0a0604",
-    "name": "Aayu Fasting",
-    "shortName": "Aayu Fasting",
+    "name": "Aayu - Fasting",
+    "shortName": "Aayu - Fasting",
     "slug": "vedic-intermittent-fasting",
     "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
+    "scheme": "aayu-fasting",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -44,12 +44,7 @@
           "sounds": []
         }
       ],
-      [
-        "expo-router",
-        {
-          "origin": "https://rork.com/"
-        }
-      ],
+      "expo-router",
       "expo-font",
       "expo-web-browser",
       "expo-apple-authentication",
@@ -64,9 +59,6 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {
-        "origin": "https://rork.com/"
-      },
       "eas": {
         "projectId": "d3434280-b838-48ad-b763-529ba87b2693"
       }
