@@ -448,7 +448,7 @@ function makeStyles(colors: ColorScheme) {
       textAlign: 'center' as const,
     },
     impactSublabel: {
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
       marginTop: 2,
       textAlign: 'center' as const,
@@ -489,7 +489,7 @@ function makeStyles(colors: ColorScheme) {
       color: colors.textMuted,
     },
     milestoneDesc: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       marginTop: 1,
       marginBottom: 6,
@@ -505,7 +505,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 2,
     },
     milestoneProgressText: {
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
       marginTop: 3,
       textAlign: 'right' as const,
@@ -516,7 +516,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 8,
     },
     unlockedText: {
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: '600' as const,
     },
   });

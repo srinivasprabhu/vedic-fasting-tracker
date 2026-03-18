@@ -393,7 +393,7 @@ export default function KnowledgeScreen() {
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <Animated.View style={[styles.headerArea, { opacity: fadeAnim }]}>
-          <Text style={styles.screenTitle}>Knowledge</Text>
+          <Text style={styles.screenTitle}>Learn</Text>
           <Text style={styles.screenSubtitle}>Wisdom for body, mind & spirit</Text>
 
           <View
@@ -1032,7 +1032,7 @@ function makeStyles(colors: ColorScheme) {
       alignSelf: 'flex-start' as const,
     },
     scienceBadgeText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600' as const,
     },
     breaksCard: {

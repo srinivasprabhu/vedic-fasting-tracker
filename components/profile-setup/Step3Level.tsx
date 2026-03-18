@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   }                                                              as TextStyle,
   headingAccent: { fontFamily: FONTS.displayItalic, fontSize: 38 } as TextStyle,
   subheading:  {
-    fontFamily: FONTS.bodyRegular, fontSize: 13,
+    fontFamily: FONTS.bodyRegular, fontSize: 14,
     lineHeight: 21, marginBottom: SPACING.xl,
   }                                                              as TextStyle,
   cards:       { gap: SPACING.sm + 2 }                           as ViewStyle,
@@ -238,18 +238,18 @@ const styles = StyleSheet.create({
   cardIcon:    { fontSize: 22, flexShrink: 0 }                   as TextStyle,
   cardBody:    { flex: 1 }                                        as ViewStyle,
   cardName:    {
-    fontFamily: FONTS.bodyMedium, fontSize: 13,
+    fontFamily: FONTS.bodyMedium, fontSize: 14,
     fontWeight: '500', marginBottom: 3,
   }                                                              as TextStyle,
   cardDesc:    {
-    fontFamily: FONTS.bodyRegular, fontSize: 11, lineHeight: 17,
+    fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 19,
   }                                                              as TextStyle,
   check:       {
     width: 22, height: 22, borderRadius: 11, flexShrink: 0,
     alignItems: 'center', justifyContent: 'center',
   }                                                              as ViewStyle,
   checkText:   {
-    fontFamily: FONTS.bodyMedium, fontSize: 10,
+    fontFamily: FONTS.bodyMedium, fontSize: 12,
     fontWeight: '700', color: '#fff8ed',
   }                                                              as TextStyle,
 });

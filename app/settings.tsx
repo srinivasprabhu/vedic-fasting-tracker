@@ -78,7 +78,7 @@ function getPathLabel(path: FastingPath | undefined): string {
 export default function SettingsScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
   const { user, isAuthenticated, signOut } = useAuth();
-  const { profile, updateProfile, getInitial } = useUserProfile();
+  const { profile, updateProfile, getInitial, isProUser, toggleProUser } = useUserProfile();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [editingProfile, setEditingProfile] = useState<boolean>(false);
@@ -472,6 +472,32 @@ export default function SettingsScreen() {
                   trackColor={{ false: colors.border, true: colors.primary }}
                   thumbColor="#FFFFFF"
                   testID="settings-notifications"
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Dev / Testing section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>DEVELOPER</Text>
+            <View style={styles.card}>
+              <View style={styles.row}>
+                <View style={[styles.rowIcon, { backgroundColor: 'rgba(232,168,76,0.15)' }]}>
+                  <Text style={{ fontSize: 14 }}>✦</Text>
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowLabel}>Aayu Pro</Text>
+                  <Text style={styles.rowDesc}>{isProUser ? 'Pro features unlocked' : 'Free tier — toggle to test Pro'}</Text>
+                </View>
+                <Switch
+                  value={isProUser}
+                  onValueChange={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    toggleProUser();
+                  }}
+                  trackColor={{ false: colors.border, true: '#e8a84c' }}
+                  thumbColor="#FFFFFF"
+                  testID="settings-pro-toggle"
                 />
               </View>
             </View>

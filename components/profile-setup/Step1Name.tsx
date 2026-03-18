@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     lineHeight: 46, letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                             as TextStyle,
   subheading: {
-    fontFamily: FONTS.bodyRegular, fontSize: 13,
+    fontFamily: FONTS.bodyRegular, fontSize: 14,
     lineHeight: 21, marginBottom: SPACING.xl + 4,
   }                                                             as TextStyle,
   inputCard:  {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   }                                                             as ViewStyle,
   inputLabel: {
-    fontFamily: FONTS.bodyMedium, fontSize: 8,
+    fontFamily: FONTS.bodyMedium, fontSize: 10,
     letterSpacing: 0.15, fontWeight: '500', marginBottom: 6,
   }                                                             as TextStyle,
   inputRow:   { flexDirection: 'row', alignItems: 'center' }   as ViewStyle,
@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
     height: 1.5, borderRadius: 1, marginTop: SPACING.sm,
   }                                                             as ViewStyle,
   hint:       {
-    fontFamily: FONTS.bodyRegular, fontSize: 11, marginTop: SPACING.sm,
+    fontFamily: FONTS.bodyRegular, fontSize: 13, marginTop: SPACING.sm,
   }                                                             as TextStyle,
 });

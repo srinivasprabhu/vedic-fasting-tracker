@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
 
   stepText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '500',
   } as TextStyle,
 });

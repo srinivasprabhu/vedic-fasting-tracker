@@ -37,3 +37,15 @@ export const SPACING = {
   xl: 32,
   xxl: 40,
 };
+
+/**
+ * Global font scale factor.
+ * Change this single value to scale ALL font sizes across the app.
+ * 1.0 = default, 1.2 = 20% larger, 1.5 = 50% larger
+ */
+export const FONT_SCALE = 1.2;
+
+/** Apply font scale to a size value. Use this for all fontSize values. */
+export function fs(size: number): number {
+  return Math.round(size * FONT_SCALE);
+}

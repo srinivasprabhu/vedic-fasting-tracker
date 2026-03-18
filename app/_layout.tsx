@@ -2,10 +2,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import * as Constants from 'expo-constants';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text, TextInput } from 'react-native';
+import { FONT_SCALE } from '@/constants/theme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -22,12 +23,57 @@ import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 
 SplashScreen.preventAutoHideAsync();
 
+// ─── Global font scale ─────────────────────────────────────────────────────────
+// Override default Text and TextInput to apply FONT_SCALE from theme.ts
+// This scales ALL text in the app by the configured factor (1.2 = 20% larger)
+const originalTextRender = (Text as any).render;
+if (originalTextRender) {
+  (Text as any).render = function(props: any, ref: any) {
+    const style = props.style;
+    let fontSize = undefined;
+    if (style) {
+      // Extract fontSize from style (could be array or object)
+      const flatStyle = Array.isArray(style)
+        ? Object.assign({}, ...style.filter(Boolean).map(s => typeof s === 'object' ? s : {}))
+        : (typeof style === 'object' ? style : {});
+      if (flatStyle.fontSize) {
+        fontSize = Math.round(flatStyle.fontSize * FONT_SCALE);
+      }
+    }
+    const newProps = fontSize
+      ? { ...props, style: [style, { fontSize }] }
+      : props;
+    return originalTextRender.call(this, newProps, ref);
+  };
+}
+
+// Same for TextInput
+const originalTextInputRender = (TextInput as any).render;
+if (originalTextInputRender) {
+  (TextInput as any).render = function(props: any, ref: any) {
+    const style = props.style;
+    let fontSize = undefined;
+    if (style) {
+      const flatStyle = Array.isArray(style)
+        ? Object.assign({}, ...style.filter(Boolean).map(s => typeof s === 'object' ? s : {}))
+        : (typeof style === 'object' ? style : {});
+      if (flatStyle.fontSize) {
+        fontSize = Math.round(flatStyle.fontSize * FONT_SCALE);
+      }
+    }
+    const newProps = fontSize
+      ? { ...props, style: [style, { fontSize }] }
+      : props;
+    return originalTextInputRender.call(this, newProps, ref);
+  };
+}
+
 if (Platform.OS !== 'web') {
   ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
 }
 
 // Configure Google Sign-In only in standalone builds (not Expo Go — native module not available)
-const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
 if (GOOGLE_WEB_CLIENT_ID && !isExpoGo && Platform.OS !== 'web') {
   import('@react-native-google-signin/google-signin')
     .then(({ GoogleSignin }) => {

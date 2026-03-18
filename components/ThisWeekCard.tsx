@@ -360,7 +360,7 @@ function makeStyles(colors: ColorScheme) {
       letterSpacing: -1,
     },
     centerSub: {
-      fontSize: 9,
+      fontSize: 10,
       fontWeight: '700' as const,
       color: colors.textMuted,
       letterSpacing: 1.5,
@@ -378,7 +378,7 @@ function makeStyles(colors: ColorScheme) {
     },
     dayLabel: {
       width: 28,
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
@@ -406,7 +406,7 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'flex-end' as const,
     },
     barValue: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textSecondary,
       fontWeight: '500' as const,
       textAlign: 'right' as const,
@@ -440,7 +440,7 @@ function makeStyles(colors: ColorScheme) {
       letterSpacing: -0.5,
     },
     footerLabel: {
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
       marginTop: 2,
       fontWeight: '500' as const,

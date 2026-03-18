@@ -660,7 +660,7 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   nowBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     color: '#FFFFFF',
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -674,17 +674,17 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   nextBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.3,
   } as TextStyle,
 
   zoneTimeText: {
-    fontSize: 10,
+    fontSize: 11,
   } as TextStyle,
 
   zoneSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     marginBottom: 2,
   } as TextStyle,
 
@@ -711,7 +711,7 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   progressLabel: {
-    fontSize: 9,
+    fontSize: 10,
   } as TextStyle,
 
   benefitBox: {

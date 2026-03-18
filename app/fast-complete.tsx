@@ -736,7 +736,7 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       color: colors.text,
     },
     miniStatLabel: {
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.8,
@@ -771,7 +771,7 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       fontWeight: '700' as const,
     },
     insightLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.8,

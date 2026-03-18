@@ -1,0 +1,483 @@
+// components/FastPlanPickerModal.tsx
+// Bottom sheet modal for changing fasting plan — with Pro tier upsell.
+
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  Modal, Animated, Easing, ViewStyle, TextStyle, Dimensions,
+} from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { X, Lock, Check } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { ColorScheme } from '@/constants/colors';
+
+// ─── Plan data ────────────────────────────────────────────────────────────────
+
+export interface FastPlanOption {
+  id:          string;
+  label:       string;        // "16:8"
+  fastHours:   number;
+  eatHours:    number;
+  desc:        string;
+  isPro:       boolean;
+  color:       string;        // card accent
+}
+
+export interface FastPlanCategory {
+  title:    string;
+  subtitle: string;
+  plans:    FastPlanOption[];
+}
+
+const C_GREEN  = '#3aaa6e';
+const C_GOLD   = '#D4A03C';
+const C_ORANGE = '#E8913A';
+const C_BLUE   = '#5b8dd9';
+const C_PURPLE = '#7B68AE';
+
+export const PLAN_CATEGORIES: FastPlanCategory[] = [
+  {
+    title: 'Beginner',
+    subtitle: 'Best for: Getting started',
+    plans: [
+      { id: 'if_12_12', label: '12:12', fastHours: 12, eatHours: 12, desc: '12 hour fast with 12 hour eating window.', isPro: false, color: C_GREEN },
+      { id: 'if_13_11', label: '13:11', fastHours: 13, eatHours: 11, desc: '13 hour fast with 11 hour eating window.', isPro: false, color: C_GREEN },
+      { id: 'if_14_10', label: '14:10', fastHours: 14, eatHours: 10, desc: '14 hour fast with 10 hour eating window.', isPro: false, color: C_GREEN },
+    ],
+  },
+  {
+    title: 'Regular',
+    subtitle: 'Best for: Full health benefits',
+    plans: [
+      { id: 'if_16_8',  label: '16:8',  fastHours: 16, eatHours: 8,  desc: '16 hour fast with 8 hour eating window.', isPro: false, color: C_GOLD },
+      { id: 'if_17_7',  label: '17:7',  fastHours: 17, eatHours: 7,  desc: '17 hour fast with 7 hour eating window.', isPro: false, color: C_GOLD },
+      { id: 'if_18_6',  label: '18:6',  fastHours: 18, eatHours: 6,  desc: '18 hour fast with 6 hour eating window.', isPro: false, color: C_GOLD },
+    ],
+  },
+  {
+    title: 'Advanced',
+    subtitle: 'Best for: Deep autophagy',
+    plans: [
+      { id: 'if_20_4',  label: '20:4',  fastHours: 20, eatHours: 4,  desc: '20 hour fast with 4 hour eating window.',  isPro: true, color: C_ORANGE },
+      { id: 'if_21_3',  label: '21:3',  fastHours: 21, eatHours: 3,  desc: '21 hour fast with 3 hour eating window.',  isPro: true, color: C_ORANGE },
+      { id: 'if_22_2',  label: '22:2',  fastHours: 22, eatHours: 2,  desc: '22 hour fast with 2 hour eating window.',  isPro: true, color: C_ORANGE },
+    ],
+  },
+  {
+    title: 'Weekly Schedules',
+    subtitle: 'Best for: Flexibility through the week',
+    plans: [
+      { id: 'if_5_2',   label: '5:2',     fastHours: 24, eatHours: 0,  desc: '5 days eating, 2 days fasting per week.', isPro: true, color: C_BLUE },
+      { id: 'if_4_3',   label: '4:3',     fastHours: 24, eatHours: 0,  desc: '4 days eating, 3 days fasting per week.', isPro: true, color: C_BLUE },
+    ],
+  },
+  {
+    title: 'Long Fasts',
+    subtitle: 'Best for: Challenging yourself',
+    plans: [
+      { id: 'if_omad',  label: 'OMAD',   fastHours: 23, eatHours: 1, desc: 'One meal a day. 23 hour fast.', isPro: true, color: C_PURPLE },
+      { id: 'if_36',    label: '36h',     fastHours: 36, eatHours: 0, desc: 'A one time fast, longer than 24 hours.', isPro: true, color: C_PURPLE },
+    ],
+  },
+];
+
+// ─── Plan card ────────────────────────────────────────────────────────────────
+
+const PlanCard: React.FC<{
+  plan:       FastPlanOption;
+  selected:   boolean;
+  isProUser:  boolean;
+  onSelect:   () => void;
+  colors:     ColorScheme;
+  isDark:     boolean;
+}> = ({ plan, selected, isProUser, onSelect, colors, isDark }) => {
+  const locked = plan.isPro && !isProUser;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const pressIn  = () => Animated.spring(scaleAnim, { toValue: 0.96, speed: 30, bounciness: 3, useNativeDriver: true }).start();
+  const pressOut = () => Animated.spring(scaleAnim, { toValue: 1, speed: 22, bounciness: 4, useNativeDriver: true }).start();
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], flex: 1, minWidth: '46%' }}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onSelect();
+        }}
+        style={[
+          s.planCard,
+          {
+            backgroundColor: locked
+              ? (isDark ? 'rgba(200,135,42,.06)' : 'rgba(200,135,42,.04)')
+              : `${plan.color}${isDark ? '18' : '12'}`,
+            borderColor: selected
+              ? plan.color
+              : locked
+                ? (isDark ? 'rgba(200,135,42,.12)' : 'rgba(200,135,42,.15)')
+                : `${plan.color}40`,
+            opacity: locked ? 0.65 : 1,
+          },
+        ]}
+      >
+        {/* Selected check */}
+        {selected && (
+          <View style={[s.checkBadge, { backgroundColor: plan.color }]}>
+            <Check size={12} color="#fff" strokeWidth={3} />
+          </View>
+        )}
+
+        {/* Pro badge */}
+        {plan.isPro && (
+          <View style={[s.proBadge, { backgroundColor: isDark ? 'rgba(232,168,76,.9)' : '#E8913A' }]}>
+            <Text style={s.proBadgeText}>PRO</Text>
+          </View>
+        )}
+
+        {/* Plan label */}
+        <Text style={[
+          s.planLabel,
+          { color: locked ? colors.textMuted : (isDark ? '#fff' : '#1a0d04') },
+        ]}>
+          {plan.label}
+        </Text>
+
+        {/* Description */}
+        <Text style={[
+          s.planDesc,
+          { color: locked ? colors.textMuted : (isDark ? 'rgba(255,255,255,.65)' : 'rgba(26,13,4,.55)') },
+        ]}>
+          {plan.desc}
+        </Text>
+
+        {/* Lock icon */}
+        {locked && (
+          <View style={s.lockWrap}>
+            <Lock size={14} color={colors.textMuted} />
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// ─── Pro upsell banner ────────────────────────────────────────────────────────
+
+const ProUpsellBanner: React.FC<{ colors: ColorScheme; isDark: boolean; onPress: () => void }> = ({ colors, isDark, onPress }) => (
+  <TouchableOpacity
+    activeOpacity={0.8}
+    onPress={onPress}
+    style={[s.upsellBanner, {
+      backgroundColor: isDark ? 'rgba(232,168,76,.1)' : 'rgba(232,168,76,.08)',
+      borderColor: isDark ? 'rgba(232,168,76,.3)' : 'rgba(232,168,76,.25)',
+    }]}
+  >
+    <Text style={s.upsellEmoji}>✦</Text>
+    <View style={{ flex: 1 }}>
+      <Text style={[s.upsellTitle, { color: isDark ? '#e8a84c' : '#a06820' }]}>Unlock Aayu Pro</Text>
+      <Text style={[s.upsellDesc, { color: colors.textMuted }]}>
+        Access advanced plans, weekly schedules, and extended fasts
+      </Text>
+    </View>
+    <Text style={[s.upsellArrow, { color: isDark ? '#e8a84c' : '#a06820' }]}>→</Text>
+  </TouchableOpacity>
+);
+
+// ─── Main modal ───────────────────────────────────────────────────────────────
+
+interface FastPlanPickerModalProps {
+  visible:     boolean;
+  currentPlan: string | null; // current plan label, e.g. "16:8"
+  isProUser:   boolean;
+  onSelect:    (plan: FastPlanOption) => void;
+  onClose:     () => void;
+  onUpgrade:   () => void;
+}
+
+export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
+  visible, currentPlan, isProUser, onSelect, onClose, onUpgrade,
+}) => {
+  const { colors, isDark } = useTheme();
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(0);
+      Animated.spring(slideAnim, { toValue: 1, tension: 65, friction: 11, useNativeDriver: true }).start();
+    }
+  }, [visible]);
+
+  const handleClose = useCallback(() => {
+    Animated.timing(slideAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => onClose());
+  }, [onClose, slideAnim]);
+
+  const handleSelect = useCallback((plan: FastPlanOption) => {
+    if (plan.isPro && !isProUser) {
+      onUpgrade();
+      return;
+    }
+    onSelect(plan);
+    handleClose();
+  }, [isProUser, onSelect, onUpgrade, handleClose]);
+
+  // Find selected plan id from label
+  const selectedId = useMemo(() => {
+    if (!currentPlan) return null;
+    for (const cat of PLAN_CATEGORIES) {
+      const found = cat.plans.find(p => p.label === currentPlan || p.id === currentPlan);
+      if (found) return found.id;
+    }
+    // Try matching by fastHours from the label (e.g. "16:8" → 16)
+    const match = currentPlan.match(/^(\d+):(\d+)$/);
+    if (match) {
+      const fast = parseInt(match[1], 10);
+      const eat  = parseInt(match[2], 10);
+      for (const cat of PLAN_CATEGORIES) {
+        const found = cat.plans.find(p => p.fastHours === fast && p.eatHours === eat);
+        if (found) return found.id;
+      }
+    }
+    return null;
+  }, [currentPlan]);
+
+  const screenH = Dimensions.get('window').height;
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [screenH, 0],
+  });
+
+  if (!visible) return null;
+
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent>
+      <View style={s.overlay}>
+        <TouchableOpacity style={s.overlayBg} activeOpacity={1} onPress={handleClose} />
+
+        <Animated.View style={[
+          s.sheet,
+          {
+            transform: [{ translateY }],
+            backgroundColor: colors.background,
+          },
+        ]}>
+          {/* Handle */}
+          <View style={[s.handle, { backgroundColor: colors.border }]} />
+
+          {/* Header */}
+          <View style={s.header}>
+            <View>
+              <Text style={[s.title, { color: colors.text }]}>Fasting plans</Text>
+              <Text style={[s.subtitle, { color: colors.textSecondary }]}>Choose your preferred fasting schedule</Text>
+            </View>
+            <TouchableOpacity onPress={handleClose} style={[s.closeBtn, { backgroundColor: colors.surface }]}>
+              <X size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Plans */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={s.scrollContent}
+            bounces={false}
+          >
+            {PLAN_CATEGORIES.map((cat, ci) => (
+              <View key={cat.title} style={ci > 0 ? s.catGap : undefined}>
+                <Text style={[s.catTitle, { color: colors.text }]}>{cat.title}</Text>
+                <Text style={[s.catSubtitle, { color: colors.textMuted }]}>{cat.subtitle}</Text>
+
+                <View style={s.planRow}>
+                  {cat.plans.map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      selected={selectedId === plan.id}
+                      isProUser={isProUser}
+                      onSelect={() => handleSelect(plan)}
+                      colors={colors}
+                      isDark={isDark}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
+
+            {/* Pro upsell */}
+            {!isProUser && (
+              <ProUpsellBanner colors={colors} isDark={isDark} onPress={onUpgrade} />
+            )}
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  } as ViewStyle,
+
+  overlayBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,.55)',
+  } as ViewStyle,
+
+  sheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 10,
+  } as ViewStyle,
+
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 14,
+  } as ViewStyle,
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 18,
+  } as ViewStyle,
+
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  } as TextStyle,
+
+  subtitle: {
+    fontSize: 14,
+    marginTop: 3,
+  } as TextStyle,
+
+  closeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
+
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  } as ViewStyle,
+
+  catGap: {
+    marginTop: 22,
+  } as ViewStyle,
+
+  catTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 3,
+  } as TextStyle,
+
+  catSubtitle: {
+    fontSize: 13,
+    marginBottom: 10,
+  } as TextStyle,
+
+  planRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  } as ViewStyle,
+
+  planCard: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 14,
+    minHeight: 100,
+    position: 'relative',
+  } as ViewStyle,
+
+  planLabel: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -1,
+    marginBottom: 6,
+  } as TextStyle,
+
+  planDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  } as TextStyle,
+
+  checkBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
+
+  proBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  } as ViewStyle,
+
+  proBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  } as TextStyle,
+
+  lockWrap: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    opacity: 0.5,
+  } as ViewStyle,
+
+  upsellBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 24,
+  } as ViewStyle,
+
+  upsellEmoji: {
+    fontSize: 22,
+  } as TextStyle,
+
+  upsellTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  } as TextStyle,
+
+  upsellDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+  } as TextStyle,
+
+  upsellArrow: {
+    fontSize: 20,
+    fontWeight: '300',
+  } as TextStyle,
+});

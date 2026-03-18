@@ -21,7 +21,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "Aayu Fasting",
-        "CFBundleName": "Aayu Fasting"
+        "CFBundleName": "Aayu Fasting",
+        "NSMotionUsageDescription": "Aayu uses motion data to automatically count your steps and help you reach your daily activity target."
       }
     },
     "android": {
@@ -30,7 +31,9 @@
         "backgroundColor": "#F5E8D2"
       },
       "package": "com.vedicintermittentfasting.app",
-      "permissions": [],
+      "permissions": [
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {

@@ -43,7 +43,10 @@ import {
   ImpactCard,
   MilestoneRow,
 } from '@/components/AnalyticsComponents';
-import ThisWeekCard from '@/components/ThisWeekCard';
+import { TrendChartCard } from '@/components/TrendChartCard';
+import { useTrendData, TimeRange } from '@/hooks/useTrendData';
+import { usePedometer as __usePedometer } from '@/hooks/usePedometer';
+
 import {
   WARRIOR_LEVELS,
   AUTOPHAGY_THRESHOLD_HOURS,
@@ -60,7 +63,7 @@ import {
 import AayuInsightCard from '@/components/AayuInsightCard';
 import type { ColorScheme } from '@/constants/colors';
 
-type TabKey = 'overview' | 'body' | 'spirit';
+type TabKey = 'overview' | 'spirit';
 
 function DedicatedSeekerCard({ completedCount, colors }: { completedCount: number; colors: ColorScheme }) {
   const BADGE_COLOR = '#D4A03C';
@@ -209,10 +212,23 @@ export default function AnalyticsScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, completedRecords, streak, totalHours, thisWeekRecords, thisMonthRecords } = useFasting();
 
+  // Live pedometer for today's steps in trend chart
+  const pedometer = __usePedometer();
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [selectedMetric, setSelectedMetric] = useState<MetricKnowledge | null>(null);
   const [knowledgeModalVisible, setKnowledgeModalVisible] = useState(false);
+
+  // Trend chart ranges
+  const [fastingRange, setFastingRange] = useState<TimeRange>('week');
+  const [weightRange, setWeightRange]   = useState<TimeRange>('week');
+  const [waterRange, setWaterRange]     = useState<TimeRange>('week');
+  const [stepsRange, setStepsRange]     = useState<TimeRange>('week');
+  const fastingTrend = useTrendData(fastingRange);
+  const weightTrend  = useTrendData(weightRange);
+  const waterTrend   = useTrendData(waterRange);
+  const stepsTrend   = useTrendData(stepsRange, pedometer.steps);
 
   useEffect(() => {
     if (!showVedic && activeTab === 'spirit') {
@@ -590,14 +606,59 @@ export default function AnalyticsScreen() {
         />
       </View>
 
+      {/* Trend charts */}
       <View style={styles.section}>
-        <ThisWeekCard
-          weeklyData={weeklyData.map((d) => ({ label: d.label, value: d.value }))}
-          totalWeekHours={thisWeekHours}
-          fastCount={thisWeekRecords.length}
-          avgDuration={thisWeekAvgDuration}
-          vsLastWeekPct={vsLastWeekPct}
-          personalBestHours={thisWeekPersonalBest}
+        <TrendChartCard
+          title="Fasting"
+          icon="⏱️"
+          color={colors.primary}
+          data={fastingTrend.fastingData}
+          unit="h"
+          chartType="bar"
+          range={fastingRange}
+          onRangeChange={setFastingRange}
+          formatValue={(v) => v >= 1 ? `${Math.round(v * 10) / 10}h` : `${Math.round(v * 60)}m`}
+          formatYLabel={(v) => `${Math.round(v)}h`}
+        />
+        <TrendChartCard
+          title="Weight"
+          icon="⚖️"
+          color={colors.warning}
+          data={weightTrend.weightData}
+          unit="kg"
+          chartType="line"
+          range={weightRange}
+          onRangeChange={setWeightRange}
+          goalValue={weightTrend.goalWeightKg ?? undefined}
+          startingValue={weightTrend.startingWeightKg ?? undefined}
+          formatValue={(v) => `${v.toFixed(1)}kg`}
+          formatYLabel={(v) => `${Math.round(v * 10) / 10}`}
+        />
+        <TrendChartCard
+          title="Steps"
+          icon="👟"
+          color={colors.success}
+          data={stepsTrend.stepsData}
+          unit="steps"
+          chartType="bar"
+          range={stepsRange}
+          onRangeChange={setStepsRange}
+          targetValue={stepsTrend.stepsTarget}
+          formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`}
+          formatYLabel={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`}
+        />
+        <TrendChartCard
+          title="Water"
+          icon="💧"
+          color="#5b8dd9"
+          data={waterTrend.waterData}
+          unit="ml"
+          chartType="bar"
+          range={waterRange}
+          onRangeChange={setWaterRange}
+          targetValue={waterTrend.waterTarget}
+          formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
+          formatYLabel={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
         />
       </View>
 
@@ -918,31 +979,32 @@ export default function AnalyticsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.screenTitle}>Analytics</Text>
+          <Text style={styles.screenTitle}>Journey</Text>
           <Text style={styles.screenSubtitle}>Your fasting journey insights</Text>
 
-          <View style={styles.tabBar}>
-            {([
-              { key: 'overview' as TabKey, label: 'Overview', icon: <BarChart3 size={14} color={activeTab === 'overview' ? colors.primary : colors.textMuted} /> },
-              { key: 'body' as TabKey, label: 'Body', icon: <Activity size={14} color={activeTab === 'body' ? colors.primary : colors.textMuted} /> },
-              ...(showVedic ? [{ key: 'spirit' as TabKey, label: 'Spirit', icon: <Star size={14} color={activeTab === 'spirit' ? colors.primary : colors.textMuted} /> }] : []),
-            ]).map((tab) => (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
-                onPress={() => handleTabPress(tab.key)}
-                activeOpacity={0.7}
-              >
-                {tab.icon}
-                <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Sub-tabs: Overview + Spirit (if Vedic) */}
+          {showVedic && (
+            <View style={styles.tabBar}>
+              {([
+                { key: 'overview' as TabKey, label: 'Overview', icon: <BarChart3 size={14} color={activeTab === 'overview' ? colors.primary : colors.textMuted} /> },
+                { key: 'spirit' as TabKey, label: 'Spirit', icon: <Star size={14} color={activeTab === 'spirit' ? colors.primary : colors.textMuted} /> },
+              ]).map((tab) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
+                  onPress={() => handleTabPress(tab.key)}
+                  activeOpacity={0.7}
+                >
+                  {tab.icon}
+                  <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {activeTab === 'overview' && renderOverviewTab()}
-          {activeTab === 'body' && renderBodyTab()}
           {showVedic && activeTab === 'spirit' && renderSpiritTab()}
 
           {completedRecords.length === 0 && activeTab !== 'spirit' && (
@@ -1059,7 +1121,7 @@ function makeStyles(colors: ColorScheme) {
       color: colors.text,
     },
     statLabel: {
-      fontSize: 12,
+      fontSize: 13,
       color: colors.textMuted,
       marginTop: 2,
     },
@@ -1083,7 +1145,7 @@ function makeStyles(colors: ColorScheme) {
       fontSize: 32,
     },
     warriorLevelLabel: {
-      fontSize: 9,
+      fontSize: 10,
       fontWeight: '700' as const,
       color: colors.textMuted,
       letterSpacing: 1.2,
@@ -1103,7 +1165,7 @@ function makeStyles(colors: ColorScheme) {
       color: colors.text,
     },
     warriorFastLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
     },
     section: {
@@ -1242,7 +1304,7 @@ function makeStyles(colors: ColorScheme) {
       textAlign: 'center' as const,
     },
     advancedSub: {
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
       marginTop: 2,
       textAlign: 'center' as const,
@@ -1272,7 +1334,7 @@ function makeStyles(colors: ColorScheme) {
       color: colors.text,
     },
     savingsLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       marginTop: 2,
     },
@@ -1344,7 +1406,7 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'center' as const,
     },
     sattvicBreakdownLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       marginBottom: 2,
     },
@@ -1383,7 +1445,7 @@ function makeStyles(colors: ColorScheme) {
       color: colors.text,
     },
     pranaLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       marginTop: 2,
     },
@@ -1402,7 +1464,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 10,
     },
     milestoneBadgeText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600' as const,
       color: colors.primary,
     },
@@ -1513,7 +1575,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 8,
     },
     tapHintText: {
-      fontSize: 10,
+      fontSize: 11,
       color: colors.textMuted,
       fontWeight: '500' as const,
     },

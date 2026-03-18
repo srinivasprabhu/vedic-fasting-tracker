@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async (): Promise<{
     error: Error | null;
   }> => {
-    if (Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient') {
+    if (Constants.executionEnvironment === 'storeClient') {
       return {
         error: new Error(
           'Google Sign-In is not available in Expo Go. Build the app with EAS to test.'
@@ -90,8 +90,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: new Error('Google sign-in was cancelled') };
       }
 
-      // Nonce checks skipped on Supabase side for Google provider
-      // (the native iOS SDK manages its own nonce internally)
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
@@ -160,13 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       if (__DEV__) console.log('[Auth] signOut called');
-      // Use 'local' scope so we only clear this device's session.
-      // More reliable on iOS than default 'global' (which calls server).
       await supabase.auth.signOut({ scope: 'local' });
       if (__DEV__) console.log('[Auth] signOut completed');
     } catch (e) {
       console.warn('[Auth] signOut error (clearing session anyway):', e);
-      // Force clear session even if signOut fails (e.g. network, stale session)
       setSession(null);
     }
   }, []);
