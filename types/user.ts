@@ -66,6 +66,14 @@ export interface CurrencyInfo {
 
 // ─── Generated plan (stored on profile after setup) ───────────────────────────
 
+/** IF plan template from the plan picker (e.g. if_5_2). Used for weekly schedules + notifications. */
+export type PlanTemplateId =
+  | 'if_12_12' | 'if_13_11' | 'if_14_10'
+  | 'if_16_8' | 'if_17_7' | 'if_18_6'
+  | 'if_20_4' | 'if_21_3' | 'if_22_2'
+  | 'if_5_2' | 'if_4_3'
+  | 'if_omad' | 'if_36';
+
 export interface UserPlan {
   fastHours:      number;
   eatHours:       number;
@@ -80,6 +88,10 @@ export interface UserPlan {
   bmiCategory:    BmiCategory | null;
   weeksToGoal:    number | null;
   generatedAt:    number;
+  /** Set for 5:2 / 4:3 — which weekdays are fasting days (JS: 0=Sun … 6=Sat). */
+  weeklyFastDays?: number[];
+  /** Picker id; used to detect weekly templates. */
+  planTemplateId?: PlanTemplateId;
 }
 
 // ─── User profile ─────────────────────────────────────────────────────────────

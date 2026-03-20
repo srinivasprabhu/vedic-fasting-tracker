@@ -11,7 +11,7 @@ import {
   Animated,
   Switch,
 } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
@@ -28,11 +28,7 @@ import {
   LogIn,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import {
-  getNotificationsEnabled,
-  enableNotifications,
-  disableNotifications,
-} from '@/utils/notifications';
+import { getNotificationsEnabled } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { AgeGroup, FastingLevel, FastingPath } from '@/types/user';
@@ -133,23 +129,11 @@ export default function SettingsScreen() {
     setEditingProfile(false);
   }, []);
 
-  const handleToggleNotifications = useCallback(async (value: boolean) => {
-    if (value) {
-      const granted = await enableNotifications();
-      if (!granted) {
-        Alert.alert(
-          'Notifications Disabled',
-          'Please enable notifications in your device settings to receive fast reminders.'
-        );
-        return;
-      }
-      setNotificationsEnabled(true);
-    } else {
-      await disableNotifications();
-      setNotificationsEnabled(false);
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getNotificationsEnabled().then(setNotificationsEnabled);
+    }, []),
+  );
 
   const initial = getInitial();
 
@@ -458,22 +442,26 @@ export default function SettingsScreen() {
                 />
               </View>
               <View style={styles.divider} />
-              <View style={styles.row}>
+              <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.7}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/notification-settings' as any);
+                }}
+                testID="settings-notifications"
+              >
                 <View style={[styles.rowIcon, { backgroundColor: colors.accentLight }]}>
                   <Bell size={16} color={colors.accent} />
                 </View>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowLabel}>Fast Reminders</Text>
-                  <Text style={styles.rowDesc}>Never miss your fasting window!</Text>
+                  <Text style={styles.rowLabel}>Notifications</Text>
+                  <Text style={styles.rowDesc}>
+                    {notificationsEnabled ? 'Plan-based fasting & water reminders' : 'Off — tap to enable'}
+                  </Text>
                 </View>
-                <Switch
-                  value={notificationsEnabled}
-                  onValueChange={handleToggleNotifications}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor="#FFFFFF"
-                  testID="settings-notifications"
-                />
-              </View>
+                <ChevronRight size={18} color={colors.textMuted} />
+              </TouchableOpacity>
             </View>
           </View>
 

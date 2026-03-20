@@ -54,6 +54,9 @@ eas submit --platform android
 │   ├── settings.tsx        # Settings
 │   └── _layout.tsx         # Root layout
 ├── components/             # Reusable components
+├── db/                     # Database schema (Supabase)
+│   ├── schema.sql          # Table definitions
+│   └── README.md           # Schema docs & column mapping
 ├── contexts/               # React contexts (Auth, Theme, Fasting, etc.)
 ├── constants/              # Theme, colors, config
 ├── hooks/                  # Custom hooks

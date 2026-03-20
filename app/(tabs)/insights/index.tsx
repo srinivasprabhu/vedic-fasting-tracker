@@ -509,22 +509,23 @@ export default function InsightsScreen() {
           </View>
 
           {/* ─── Unlock Banner ──────────────────────────────────────────── */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.proBanner, {
-              backgroundColor: isDark ? 'rgba(232,168,76,0.08)' : 'rgba(200,135,42,0.06)',
-              borderColor: isDark ? 'rgba(232,168,76,0.25)' : 'rgba(200,135,42,0.2)',
-            }]}
-          >
-            <View style={styles.proBannerLeft}>
-              <Text style={{ fontSize: 20, color: '#e8a84c' }}>✦</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.proBannerTitle, { color: colors.text }]}>Unlock Aayu Pro</Text>
-                <Text style={[styles.proBannerSub, { color: colors.textSecondary }]}>Advanced metrics, AI coaching, weight forecast</Text>
+          {!isProUser && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.proBanner, {
+                backgroundColor: isDark ? 'rgba(232,168,76,0.08)' : 'rgba(200,135,42,0.06)',
+                borderColor: isDark ? 'rgba(232,168,76,0.25)' : 'rgba(200,135,42,0.2)',
+              }]}
+            >
+              <View style={styles.proBannerLeft}>
+                <Text style={{ fontSize: 20, color: '#e8a84c' }}>✦</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.proBannerTitle, { color: colors.text }]}>Unlock Aayu Pro</Text>
+                  <Text style={[styles.proBannerSub, { color: colors.textSecondary }]}>Advanced metrics, AI coaching, weight forecast</Text>
+                </View>
               </View>
-            </View>
-            <ChevronRight size={18} color={colors.primary} />
-          </TouchableOpacity>
+              <ChevronRight size={18} color={colors.primary} />
+            </TouchableOpacity>
           )}
 
           {/* Empty state */}

@@ -2,7 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { UserProfile, UserSex, FastingPurpose, WeightUnit, hasBodyMetrics } from '@/types/user';
+import {
+  UserProfile,
+  UserSex,
+  FastingPurpose,
+  WeightUnit,
+  hasBodyMetrics,
+  type PlanTemplateId,
+} from '@/types/user';
 import { calculatePlan } from '@/utils/calculatePlan';
 import { detectCurrencyFromLocale, getCurrencyInfo } from '@/constants/currencies';
 import { useAuth } from '@/contexts/AuthContext';
@@ -154,18 +161,69 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
 
   // ── updateFastPlan — change fasting protocol from plan picker ──────────────
 
-  const updateFastPlan = useCallback((fastHours: number, eatHours: number, planLabel: string) => {
-    setProfile((prev) => {
-      if (!prev) return prev;
-      const updatedPlan = prev.plan
-        ? { ...prev.plan, fastHours, eatHours, fastLabel: planLabel }
-        : { fastHours, eatHours, fastLabel: planLabel, dailySteps: 8000, dailyWaterMl: 2500, dailyCalories: 1800, dailyDeficit: 0, bmr: 0, tdee: 0, bmi: null, bmiCategory: null, weeksToGoal: null, generatedAt: Date.now() };
-      const updated: UserProfile = { ...prev, plan: updatedPlan };
-      saveMutateRef.current(updated);
-      syncToSupabase(updated);
-      return updated;
-    });
-  }, [syncToSupabase]);
+  const updateFastPlan = useCallback(
+    (
+      fastHours: number,
+      eatHours: number,
+      planLabel: string,
+      opts?: { planId?: string; weeklyFastDays?: number[] },
+    ) => {
+      setProfile((prev) => {
+        if (!prev) return prev;
+        const isWeekly = opts?.planId === 'if_5_2' || opts?.planId === 'if_4_3';
+        const templateId = isWeekly ? (opts!.planId as PlanTemplateId) : undefined;
+        const weeklyDays = isWeekly ? (opts?.weeklyFastDays ?? prev.plan?.weeklyFastDays) : undefined;
+
+        const updatedPlan = prev.plan
+          ? {
+              ...prev.plan,
+              fastHours,
+              eatHours,
+              fastLabel: planLabel,
+              ...(isWeekly
+                ? { planTemplateId: templateId, weeklyFastDays: weeklyDays }
+                : { planTemplateId: undefined, weeklyFastDays: undefined }),
+            }
+          : {
+              fastHours,
+              eatHours,
+              fastLabel: planLabel,
+              dailySteps: 8000,
+              dailyWaterMl: 2500,
+              dailyCalories: 1800,
+              dailyDeficit: 0,
+              bmr: 0,
+              tdee: 0,
+              bmi: null,
+              bmiCategory: null,
+              weeksToGoal: null,
+              generatedAt: Date.now(),
+              ...(isWeekly ? { planTemplateId: templateId, weeklyFastDays: weeklyDays } : {}),
+            };
+        const updated: UserProfile = { ...prev, plan: updatedPlan };
+        saveMutateRef.current(updated);
+        syncToSupabase(updated);
+        return updated;
+      });
+    },
+    [syncToSupabase],
+  );
+
+  const updateWeeklyFastDays = useCallback(
+    (days: number[]) => {
+      setProfile((prev) => {
+        if (!prev?.plan?.planTemplateId) return prev;
+        const tid = prev.plan.planTemplateId;
+        if (tid !== 'if_5_2' && tid !== 'if_4_3') return prev;
+        const updatedPlan = { ...prev.plan, weeklyFastDays: days };
+        const updated: UserProfile = { ...prev, plan: updatedPlan };
+        saveMutateRef.current(updated);
+        syncToSupabase(updated);
+        return updated;
+      });
+    },
+    [syncToSupabase],
+  );
 
   // ── updateDailyTarget — change steps or water target from detail pages ──
 
@@ -221,6 +279,7 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
     updateBodyMetrics,
     refreshPlan,
     updateFastPlan,
+    updateWeeklyFastDays,
     updateDailyTarget,
     // Pro testing
     isProUser,

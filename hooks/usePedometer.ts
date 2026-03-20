@@ -1,35 +1,18 @@
 // hooks/usePedometer.ts
 // Wraps expo-sensors Pedometer with graceful fallback.
 //
-// Returns:
-//   steps          — today's auto-counted steps (0 if unavailable)
-//   available      — true if the device hardware supports it
-//   permitted      — true once permission granted
-//   isLive         — true when actively receiving live updates
-//   addManual      — call this to layer manual steps on top
-//   resetManual    — wipe any manually-added steps for today
-//
-// Design:
-//   Auto steps (pedometer)  + manual top-up  = total steps shown in UI
-//   If pedometer unavailable → manual-only mode, no difference to UX
-//   Steps are cached in AsyncStorage so they survive app restarts
+// Daily total (auto + manual) is persisted under aayu_steps_day_* (see stepsDayStorage).
+// On first open of a new calendar day, prior days are sealed via OS history + manual.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pedometer } from 'expo-sensors';
-
-// ─── Storage keys ─────────────────────────────────────────────────────────────
-
-const manualKey = () => {
-  const d = new Date();
-  return `aayu_steps_manual_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
-};
-
-// We store the last known pedometer baseline so we can detect day rollovers
-const PEDOMETER_BASELINE_KEY = 'aayu_pedometer_baseline';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import {
+  manualStepsKey,
+  saveDayTotal,
+  finalizePastStepDaysSinceLastOpen,
+} from '@/utils/stepsDayStorage';
 
 /** Midnight of today (local time) */
 function startOfToday(): Date {
@@ -40,57 +23,61 @@ function startOfToday(): Date {
 
 async function loadManualSteps(): Promise<number> {
   try {
-    const raw = await AsyncStorage.getItem(manualKey());
+    const raw = await AsyncStorage.getItem(manualStepsKey(new Date()));
     return raw ? parseInt(raw, 10) : 0;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 async function saveManualSteps(n: number): Promise<void> {
-  try { await AsyncStorage.setItem(manualKey(), String(n)); } catch {}
+  try {
+    await AsyncStorage.setItem(manualStepsKey(new Date()), String(n));
+  } catch {}
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export interface UsePedometerResult {
-  /** Total steps to display (auto + manual) */
-  steps:       number;
-  /** Raw pedometer count for today (0 if unavailable) */
-  autoSteps:   number;
-  /** Manually added steps for today */
+  steps: number;
+  autoSteps: number;
   manualSteps: number;
-  /** Whether the device hardware supports step counting */
-  available:   boolean;
-  /** Whether we have permission and are receiving data */
-  isLive:      boolean;
-  /** Add steps manually on top of pedometer data */
-  addManual:   (amount: number) => Promise<void>;
-  /** Re-read manual steps from storage (call on screen focus) */
+  available: boolean;
+  isLive: boolean;
+  addManual: (amount: number) => Promise<void>;
   refreshManual: () => Promise<void>;
-  /** Source label for UI — "From phone" vs "Manual" */
   sourceLabel: string;
 }
 
 export function usePedometer(): UsePedometerResult {
-  const [available, setAvailable]   = useState(false);
-  const [autoSteps, setAutoSteps]   = useState(0);
+  const [available, setAvailable] = useState(false);
+  const [autoSteps, setAutoSteps] = useState(0);
   const [manualSteps, setManualSteps] = useState(0);
-  const [isLive, setIsLive]         = useState(false);
+  const [isLive, setIsLive] = useState(false);
 
   const subscriptionRef = useRef<ReturnType<typeof Pedometer.watchStepCount> | null>(null);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Initialise ──────────────────────────────────────────────────────────────
+  // ── Initialise + seal past days ───────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      // Load manual steps from storage first (always, regardless of pedometer)
+      await finalizePastStepDaysSinceLastOpen(async (start, end) => {
+        if (Platform.OS === 'web') return 0;
+        try {
+          const ok = await Pedometer.isAvailableAsync().catch(() => false);
+          if (!ok) return 0;
+          const { steps } = await Pedometer.getStepCountAsync(start, end);
+          return steps ?? 0;
+        } catch {
+          return 0;
+        }
+      });
+
       const manual = await loadManualSteps();
       if (!cancelled) setManualSteps(manual);
 
-      // Web / simulator — skip pedometer entirely
       if (Platform.OS === 'web') return;
 
-      // Check hardware availability
       const isAvailable = await Pedometer.isAvailableAsync().catch(() => false);
       if (!isAvailable || cancelled) {
         setAvailable(false);
@@ -98,34 +85,19 @@ export function usePedometer(): UsePedometerResult {
       }
       setAvailable(true);
 
-      // Get today's count since midnight
       try {
         const start = startOfToday();
-        const end   = new Date();
+        const end = new Date();
         const { steps } = await Pedometer.getStepCountAsync(start, end);
         if (!cancelled) setAutoSteps(steps);
-      } catch {
-        // getStepCountAsync can throw on Android if permission not yet granted
-      }
+      } catch {}
 
-      // Subscribe to live updates
       try {
         subscriptionRef.current = Pedometer.watchStepCount(({ steps }) => {
           if (!cancelled) {
-            // watchStepCount gives cumulative steps since the subscription started.
-            // We accumulate on top of the snapshot we already have.
-            setAutoSteps(prev => {
-              // Only update if the new value is larger (protects against resets)
-              return steps > 0 ? prev + steps : prev;
-            });
+            setAutoSteps(prev => (steps > 0 ? prev + steps : prev));
           }
         });
-
-        // Re-fetch snapshot every time the subscription fires a batch
-        // Actually watchStepCount gives delta steps per event, so we need
-        // to re-snapshot periodically to stay accurate across midnight.
-        // We'll re-snapshot on focus instead (see app lifecycle below).
-
         if (!cancelled) setIsLive(true);
       } catch {
         setIsLive(false);
@@ -141,34 +113,26 @@ export function usePedometer(): UsePedometerResult {
     };
   }, []);
 
-  // ── Re-snapshot at midnight / app foreground ─────────────────────────────
-  // Expo's watchStepCount gives delta steps per event — we snapshot once at
-  // init and accumulate deltas. To handle midnight rollover correctly we
-  // re-snapshot when the app comes to foreground.
+  // ── Re-snapshot every 5 minutes (midnight rollover while app open) ─────────
   useEffect(() => {
     if (Platform.OS === 'web') return;
-
-    let lastSnapshot = autoSteps;
 
     async function refreshSnapshot() {
       try {
         const isAvailable = await Pedometer.isAvailableAsync().catch(() => false);
         if (!isAvailable) return;
         const start = startOfToday();
-        const end   = new Date();
+        const end = new Date();
         const { steps } = await Pedometer.getStepCountAsync(start, end);
         setAutoSteps(steps);
-        lastSnapshot = steps;
       } catch {}
     }
 
-    // Re-snapshot every 5 minutes while app is open (handles midnight rollover)
     const interval = setInterval(refreshSnapshot, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // ── watchStepCount gives DELTA steps per event — accumulate correctly ─────
-  // We reset the subscription to use delta accumulation from a fresh snapshot.
+  // ── Live watch with correct delta handling ──────────────────────────────────
   useEffect(() => {
     if (Platform.OS === 'web' || !available) return;
 
@@ -176,18 +140,15 @@ export function usePedometer(): UsePedometerResult {
     let snapshotAtSubscription = 0;
 
     async function setupLiveWatch() {
-      // Remove previous subscription
       subscriptionRef.current?.remove();
 
       try {
-        // Fresh snapshot as baseline
         const start = startOfToday();
-        const end   = new Date();
+        const end = new Date();
         const { steps: snapshot } = await Pedometer.getStepCountAsync(start, end);
         snapshotAtSubscription = snapshot;
         if (!cancelled) setAutoSteps(snapshot);
 
-        // Watch for deltas from this point forward
         subscriptionRef.current = Pedometer.watchStepCount(({ steps: delta }) => {
           if (!cancelled && delta > 0) {
             setAutoSteps(snapshotAtSubscription + delta);
@@ -209,24 +170,33 @@ export function usePedometer(): UsePedometerResult {
     };
   }, [available]);
 
-  // ── addManual ───────────────────────────────────────────────────────────────
+  const steps = autoSteps + manualSteps;
+
+  // ── Persist auto + manual total for today (debounced) ─────────────────────
+  useEffect(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      persistTimerRef.current = null;
+      void saveDayTotal(new Date(), steps);
+    }, 2000);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [steps]);
+
   const addManual = useCallback(async (amount: number) => {
     const updated = manualSteps + amount;
     setManualSteps(updated);
     await saveManualSteps(updated);
   }, [manualSteps]);
 
-  // ── refreshManual — re-read manual steps from storage (call on screen focus)
   const refreshManual = useCallback(async () => {
     const manual = await loadManualSteps();
     setManualSteps(manual);
   }, []);
 
-  // ── Derived ─────────────────────────────────────────────────────────────────
-  const steps = autoSteps + manualSteps;
-  const sourceLabel = available && isLive
-    ? 'From phone · tap to add more'
-    : 'Manual · tap to log steps';
+  const sourceLabel =
+    available && isLive ? 'From phone · tap to add more' : 'Manual · tap to log steps';
 
   return {
     steps,

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Play, Square, Flame, Clock, Trophy, Settings, ChevronRight, Sun, Moon } from 'lucide-react-native';
+import { Play, Square, Flame, Clock, Trophy, Settings, ChevronRight, Sun, Moon, Bell } from 'lucide-react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { useTheme }        from '@/contexts/ThemeContext';
@@ -25,7 +25,9 @@ import ReviewPromptCard    from '@/components/ReviewPromptCard';
 import { formatWater, kgToLbs } from '@/utils/calculatePlan';
 import { FastType } from '@/types/fasting';
 import { FastPlanPickerModal, FastPlanOption } from '@/components/FastPlanPickerModal';
+import { WeeklyFastDaysModal } from '@/components/WeeklyFastDaysModal';
 import type { ColorScheme } from '@/constants/colors';
+import { loadWeekStepBars } from '@/utils/stepsDayStorage';
 
 // ─── Storage keys ─────────────────────────────────────────────────────────────
 
@@ -107,11 +109,21 @@ export default function HomeScreen() {
   const [showEndTimePicker, setShowEndTimePicker]     = useState(false);
   const [pendingFast, setPendingFast] = useState<{ type: FastType; name: string; duration: number } | null>(null);
   const [showPlanPicker, setShowPlanPicker] = useState(false);
+  const [showWeeklyDaysModal, setShowWeeklyDaysModal] = useState(false);
+  const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<FastPlanOption | null>(null);
 
   // ── Water and weight (not from pedometer, still AsyncStorage) ─────────────
   const [waterMl, setWaterMl]     = useState(0);
   const [weightKg, setWeightKg]   = useState<number | null>(null);
   const [weekStepData, setWeekStepData] = useState<{ v: number; today: boolean }[]>([]);
+
+  const plan        = profile?.plan;
+  const hasPlan     = !!(plan?.fastHours);
+  const waterTarget = plan?.dailyWaterMl ?? 2500;
+  const stepsTarget = plan?.dailySteps   ?? 8000;
+  const goalKg      = profile?.goalWeightKg ?? null;
+  const displayKg   = weightKg ?? profile?.currentWeightKg ?? null;
+  const weightUnit  = profile?.weightUnit ?? 'kg';
 
   // Re-read water + weight + steps every time the screen gains focus
   // (handles coming back from detail pages where data was changed)
@@ -132,16 +144,10 @@ export default function HomeScreen() {
           try { const log: { kg: number }[] = JSON.parse(raw); if (log.length > 0) setWeightKg(log[0].kg); } catch {}
         }
       });
-      // 7-day step history (manual key, since pedometer gives live today)
-      const now = new Date();
-      const fromMon = now.getDay() === 0 ? 6 : now.getDay() - 1;
-      Promise.all(Array.from({ length: 7 }, async (_, i) => {
-        const diff = i - fromMon;
-        const d = new Date(now); d.setDate(d.getDate() + diff);
-        const key = `aayu_steps_manual_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
-        try { const r = await AsyncStorage.getItem(key); return { v: r ? parseInt(r,10) : 0, today: diff === 0 }; }
-        catch { return { v: 0, today: false }; }
-      })).then(setWeekStepData);
+      // 7-day step history (unified day key; today overwritten below from pedometer)
+      loadWeekStepBars().then(bars =>
+        setWeekStepData(bars.map(b => ({ v: b.steps, today: b.isToday }))),
+      );
     }, [])
   );
 
@@ -222,16 +228,8 @@ export default function HomeScreen() {
   const progress  = activeFast ? timer.elapsedMs / activeFast.targetDuration : 0;
   const remaining = activeFast ? Math.max(0, activeFast.targetDuration - timer.elapsedMs) : 0;
 
-  // Plan data
-  const plan        = profile?.plan;
-  const hasPlan     = !!(plan?.fastHours);
-  const waterTarget = plan?.dailyWaterMl ?? 2500;
-  const stepsTarget = plan?.dailySteps   ?? 8000;
   const waterPct    = waterTarget > 0 ? (waterMl / waterTarget) * 100 : 0;
   const stepsPct    = stepsTarget > 0 ? (pedometer.steps / stepsTarget) * 100 : 0;
-  const goalKg      = profile?.goalWeightKg ?? null;
-  const displayKg   = weightKg ?? profile?.currentWeightKg ?? null;
-  const weightUnit  = profile?.weightUnit ?? 'kg';
 
   const waterColor  = '#5b8dd9';
   const stepsColor  = colors.success;
@@ -262,10 +260,28 @@ export default function HomeScreen() {
                   style={[styles.themeBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
                   onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleTheme(); }}
                   activeOpacity={0.7}
+                  accessibilityLabel="Toggle light or dark theme"
                 >
                   {isDark ? <Sun size={16} color="#e8a84c" /> : <Moon size={16} color="#a06820" />}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]} onPress={() => router.push('/settings' as any)} activeOpacity={0.7}>
+                <TouchableOpacity
+                  style={[styles.iconHeaderBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/notification-settings' as any);
+                  }}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Notification settings"
+                  accessibilityHint="Customize fasting and water reminders"
+                >
+                  <Bell size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.iconHeaderBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
+                  onPress={() => router.push('/settings' as any)}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Settings"
+                >
                   <Settings size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -437,7 +453,13 @@ export default function HomeScreen() {
         currentPlan={plan?.fastLabel ?? null}
         isProUser={isProUser}
         onSelect={(p: FastPlanOption) => {
-          updateFastPlan(p.fastHours, p.eatHours, p.label);
+          if (p.id === 'if_5_2' || p.id === 'if_4_3') {
+            setWeeklyPlanDraft(p);
+            setShowPlanPicker(false);
+            setShowWeeklyDaysModal(true);
+            return;
+          }
+          updateFastPlan(p.fastHours, p.eatHours, p.label, { planId: p.id });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
         onClose={() => setShowPlanPicker(false)}
@@ -446,6 +468,30 @@ export default function HomeScreen() {
           // TODO: Navigate to paywall
         }}
       />
+
+      {weeklyPlanDraft && (weeklyPlanDraft.id === 'if_5_2' || weeklyPlanDraft.id === 'if_4_3') && (
+        <WeeklyFastDaysModal
+          visible={showWeeklyDaysModal}
+          planTemplateId={weeklyPlanDraft.id}
+          initialDays={
+            profile?.plan?.planTemplateId === weeklyPlanDraft.id
+              ? profile.plan.weeklyFastDays
+              : undefined
+          }
+          onClose={() => {
+            setShowWeeklyDaysModal(false);
+            setWeeklyPlanDraft(null);
+          }}
+          onConfirm={(days) => {
+            updateFastPlan(weeklyPlanDraft.fastHours, weeklyPlanDraft.eatHours, weeklyPlanDraft.label, {
+              planId: weeklyPlanDraft.id,
+              weeklyFastDays: days,
+            });
+            setWeeklyPlanDraft(null);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -463,7 +509,7 @@ function makeStyles(colors: ColorScheme) {
     greetingDate:      { fontSize: 12, marginTop: 1 }                                   as TextStyle,
     headerActions:     { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 } as ViewStyle,
     themeBtn:          { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    settingsBtn:       { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
+    iconHeaderBtn:     { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
     myPlanPill:        { flexDirection: 'row' as const, alignItems: 'center' as const, alignSelf: 'center' as const, gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, marginBottom: 12 } as ViewStyle,
     myPlanLabel:       { fontSize: 13, fontWeight: '500' as const } as TextStyle,
     myPlanValue:       { fontSize: 14, fontWeight: '700' as const } as TextStyle,

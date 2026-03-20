@@ -13,12 +13,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { FastingProvider } from '@/contexts/FastingContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
-import {
-  registerForPushNotifications,
-  getNotificationsEnabled,
-  scheduleDailyReminder,
-  scheduleWeeklySummary,
-} from '@/utils/notifications';
+import { registerForPushNotifications } from '@/utils/notifications';
+import { NotificationScheduleSync } from '@/components/NotificationScheduleSync';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 
 SplashScreen.preventAutoHideAsync();
@@ -102,13 +98,6 @@ function RootLayoutNav() {
   useEffect(() => {
     registerForPushNotifications();
 
-    getNotificationsEnabled().then((enabled) => {
-      if (enabled) {
-        scheduleDailyReminder();
-        scheduleWeeklySummary();
-      }
-    });
-
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       if (__DEV__) console.log('Notification received:', notification.request.content.title);
     });
@@ -185,6 +174,13 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="notification-settings"
+        options={{
+          presentation: 'card',
+          title: 'Notifications',
+        }}
+      />
+      <Stack.Screen
         name="sign-in"
         options={{
           presentation: 'card',
@@ -209,6 +205,7 @@ export default function RootLayout() {
         <ThemeProvider>
           <AuthProvider>
             <UserProfileProvider>
+              <NotificationScheduleSync />
               <FastingProvider>
                 <RootLayoutNav />
               </FastingProvider>

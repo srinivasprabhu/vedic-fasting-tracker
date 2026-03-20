@@ -18,6 +18,7 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 import { usePedometer } from '@/hooks/usePedometer';
 import { formatWater, calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor, kgToLbs, lbsToKg } from '@/utils/calculatePlan';
 import type { ColorScheme } from '@/constants/colors';
+import { loadWeekStepBars } from '@/utils/stepsDayStorage';
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -178,17 +179,7 @@ export default function DailyScreen() {
       setWaterEntries(w);
       setWeightLog(wl);
     });
-    // Build 7-day step history from AsyncStorage
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const now = new Date();
-    const fromMon = now.getDay() === 0 ? 6 : now.getDay() - 1;
-    Promise.all(days.map(async (label, i) => {
-      const diff = i - fromMon;
-      const d = new Date(now); d.setDate(d.getDate() + diff);
-      const key = `aayu_steps_manual_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
-      try { const r = await AsyncStorage.getItem(key); return { label, steps: r ? parseInt(r,10) : 0, isToday: diff === 0 }; }
-      catch { return { label, steps: 0, isToday: false }; }
-    })).then(setWeekSteps);
+    loadWeekStepBars().then(setWeekSteps);
   }, []);
 
   // Keep today's bar in the 7-day chart in sync with live pedometer total

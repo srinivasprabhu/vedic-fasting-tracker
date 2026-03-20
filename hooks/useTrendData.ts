@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFasting } from '@/contexts/FastingContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { toLocalDateString } from '@/utils/analytics-helpers';
+import { loadDayTotal } from '@/utils/stepsDayStorage';
 
 export type TimeRange = 'week' | 'month' | 'year';
 
@@ -60,10 +61,6 @@ function formatLabel(date: Date, range: TimeRange): string {
 
 function waterKeyForDate(d: Date): string {
   return `aayu_water_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
-}
-
-function stepsKeyForDate(d: Date): string {
-  return `aayu_steps_manual_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -243,10 +240,9 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
         const stepsPromises = Array.from({ length: 365 }, (_, i) => {
           const d = new Date(now);
           d.setDate(d.getDate() - i);
-          const key = stepsKeyForDate(d);
           const dateStr = toLocalDateString(d);
-          return AsyncStorage.getItem(key).then(raw => {
-            if (raw) dailySteps[dateStr] = parseInt(raw, 10) || 0;
+          return loadDayTotal(d).then(v => {
+            if (v > 0) dailySteps[dateStr] = v;
           }).catch(() => {});
         });
 
@@ -273,13 +269,7 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
 
         if (!cancelled) setStepsData(stepsPoints);
       } else {
-        const stepsPromises = dates.map(async d => {
-          const key = stepsKeyForDate(d);
-          try {
-            const raw = await AsyncStorage.getItem(key);
-            return raw ? parseInt(raw, 10) || 0 : 0;
-          } catch { return 0; }
-        });
+        const stepsPromises = dates.map(d => loadDayTotal(d));
 
         const stepsValues = await Promise.all(stepsPromises);
         const stepsPoints: TrendPoint[] = dates.map((d, i) => ({

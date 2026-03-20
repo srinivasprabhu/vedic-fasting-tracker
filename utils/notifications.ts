@@ -1,12 +1,36 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import type { UserProfile } from '@/types/user';
+import {
+  buildPlanScheduleInput,
+  getReminderHourBeforeFastEnd,
+  getReminderHourBeforeFastStart,
+  jsWeekdayToExpoCalendarWeekday,
+  nextJsWeekday,
+} from '@/utils/fastingPlanSchedule';
 
 const NOTIF_PREF_KEY = 'aayu_notifications_enabled';
 const DAILY_REMINDER_ID_KEY = 'aayu_daily_reminder_id';
 const WEEKLY_SUMMARY_ID_KEY = 'aayu_weekly_summary_id';
 const MILESTONE_IDS_KEY = 'aayu_milestone_notif_ids';
 const POST_FAST_IDS_KEY = 'aayu_post_fast_notif_ids';
+
+/** Sub-preferences (free tier). */
+const REMINDER_BEFORE_START_KEY = 'aayu_notif_before_fast_start';
+const REMINDER_BEFORE_END_KEY = 'aayu_notif_before_fast_end';
+const WATER_REMINDERS_ENABLED_KEY = 'aayu_notif_water_enabled';
+
+/** JSON string array of notification ids (supports multiple weekdays for 5:2 / 4:3). */
+const BEFORE_FAST_START_IDS_KEY = 'aayu_before_fast_start_notif_ids';
+const BEFORE_FAST_END_IDS_KEY = 'aayu_before_fast_end_notif_ids';
+/** Legacy single-id storage (migrated on cancel). */
+const LEGACY_BEFORE_FAST_START_ID_KEY = 'aayu_before_fast_start_notif_id';
+const LEGACY_BEFORE_FAST_END_ID_KEY = 'aayu_before_fast_end_notif_id';
+const WATER_NOTIF_IDS_KEY = 'aayu_water_notif_ids';
+
+/** Water reminders: every 2 hours from 8:00 through 20:00 (local). */
+const WATER_REMINDER_HOURS = [8, 10, 12, 14, 16, 18, 20] as const;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -60,10 +84,235 @@ async function hasPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
-/** Checks OS permission AND user opt-in — for daily/weekly recurring reminders. */
-async function isOptedIn(): Promise<boolean> {
-  if (!(await hasPermission())) return false;
-  return getNotificationsEnabled();
+// ─── Plan-based & water reminder preferences ───────────────────────────────
+
+export async function getReminderBeforeFastStart(): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(REMINDER_BEFORE_START_KEY);
+    if (v === null) return true;
+    return v === 'true';
+  } catch {
+    return true;
+  }
+}
+
+export async function setReminderBeforeFastStart(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(REMINDER_BEFORE_START_KEY, String(enabled));
+}
+
+export async function getReminderBeforeFastEnd(): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(REMINDER_BEFORE_END_KEY);
+    if (v === null) return true;
+    return v === 'true';
+  } catch {
+    return true;
+  }
+}
+
+export async function setReminderBeforeFastEnd(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(REMINDER_BEFORE_END_KEY, String(enabled));
+}
+
+export async function getWaterRemindersEnabled(): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(WATER_REMINDERS_ENABLED_KEY);
+    if (v === null) return false;
+    return v === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setWaterRemindersEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(WATER_REMINDERS_ENABLED_KEY, String(enabled));
+}
+
+async function cancelBeforeFastStartNotifications(): Promise<void> {
+  await cancelStoredIds(BEFORE_FAST_START_IDS_KEY);
+  try {
+    const legacy = await AsyncStorage.getItem(LEGACY_BEFORE_FAST_START_ID_KEY);
+    if (legacy) {
+      await cancelById(legacy);
+      await AsyncStorage.removeItem(LEGACY_BEFORE_FAST_START_ID_KEY);
+    }
+  } catch {}
+}
+
+async function cancelBeforeFastEndNotifications(): Promise<void> {
+  await cancelStoredIds(BEFORE_FAST_END_IDS_KEY);
+  try {
+    const legacy = await AsyncStorage.getItem(LEGACY_BEFORE_FAST_END_ID_KEY);
+    if (legacy) {
+      await cancelById(legacy);
+      await AsyncStorage.removeItem(LEGACY_BEFORE_FAST_END_ID_KEY);
+    }
+  } catch {}
+}
+
+async function cancelWaterReminderNotifications(): Promise<void> {
+  await cancelStoredIds(WATER_NOTIF_IDS_KEY);
+}
+
+/**
+ * Reschedules plan-based daily reminders + water slots.
+ * Call when: notifications toggled on, plan/profile changes, or sub-toggle changes.
+ * Requires OS permission + master notifications enabled.
+ */
+export async function syncRecurringNotifications(profile: UserProfile | null): Promise<void> {
+  if (Platform.OS === 'web') return;
+  if (!(await hasPermission())) return;
+  if (!(await getNotificationsEnabled())) return;
+
+  await cancelBeforeFastStartNotifications();
+  await cancelBeforeFastEndNotifications();
+  await cancelWaterReminderNotifications();
+  await cancelDailyReminder();
+
+  const planInput = buildPlanScheduleInput(profile);
+  const beforeStart = await getReminderBeforeFastStart();
+  const beforeEnd = await getReminderBeforeFastEnd();
+  const waterOn = await getWaterRemindersEnabled();
+
+  if (planInput && beforeStart) {
+    const startIds: string[] = [];
+    const startHour = getReminderHourBeforeFastStart(planInput.lastMealHour);
+    if (planInput.mode === 'weekly' && planInput.weeklyFastDays?.length) {
+      for (const jsDay of planInput.weeklyFastDays) {
+        try {
+          const id = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Fast starts in 1 hour ⏳',
+              body: `Wind down eating — your ${planInput.fastLabel} fast day begins soon.`,
+              sound: true,
+              data: { type: 'before_fast_start' },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+              weekday: jsWeekdayToExpoCalendarWeekday(jsDay),
+              hour: startHour,
+              minute: 0,
+            },
+          });
+          startIds.push(id);
+        } catch (e) {
+          console.log('Before fast start (weekly) schedule error:', e);
+        }
+      }
+    } else {
+      try {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Fast starts in 1 hour ⏳',
+            body: `Wind down eating — your ${planInput.fastLabel} fast begins soon.`,
+            sound: true,
+            data: { type: 'before_fast_start' },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: startHour,
+            minute: 0,
+          },
+        });
+        startIds.push(id);
+      } catch (e) {
+        console.log('Before fast start schedule error:', e);
+      }
+    }
+    if (startIds.length > 0) {
+      await AsyncStorage.setItem(BEFORE_FAST_START_IDS_KEY, JSON.stringify(startIds));
+    }
+  }
+
+  if (planInput && beforeEnd) {
+    const endIds: string[] = [];
+    const endHour = getReminderHourBeforeFastEnd(planInput.lastMealHour, planInput.fastHours);
+    if (planInput.mode === 'weekly' && planInput.weeklyFastDays?.length) {
+      for (const jsDay of planInput.weeklyFastDays) {
+        const endJsDay = nextJsWeekday(jsDay);
+        try {
+          const id = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Eating window soon 🍽️',
+              body: `About 1 hour until you can break your ${planInput.fastLabel} fast.`,
+              sound: true,
+              data: { type: 'before_fast_end' },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+              weekday: jsWeekdayToExpoCalendarWeekday(endJsDay),
+              hour: endHour,
+              minute: 0,
+            },
+          });
+          endIds.push(id);
+        } catch (e) {
+          console.log('Before fast end (weekly) schedule error:', e);
+        }
+      }
+    } else {
+      try {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Eating window soon 🍽️',
+            body: `About 1 hour until you can break your ${planInput.fastLabel} fast.`,
+            sound: true,
+            data: { type: 'before_fast_end' },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: endHour,
+            minute: 0,
+          },
+        });
+        endIds.push(id);
+      } catch (e) {
+        console.log('Before fast end schedule error:', e);
+      }
+    }
+    if (endIds.length > 0) {
+      await AsyncStorage.setItem(BEFORE_FAST_END_IDS_KEY, JSON.stringify(endIds));
+    }
+  }
+
+  if (waterOn) {
+    const ids: string[] = [];
+    const bodies = [
+      'Hydration supports your fast — take a sip. 💧',
+      'Water break — your cells will thank you.',
+      'Stay light and clear. Time for some water.',
+    ];
+    for (let i = 0; i < WATER_REMINDER_HOURS.length; i++) {
+      const h = WATER_REMINDER_HOURS[i];
+      try {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Water reminder 💧',
+            body: bodies[i % bodies.length],
+            sound: true,
+            data: { type: 'water_reminder' },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: h,
+            minute: 0,
+          },
+        });
+        ids.push(id);
+      } catch (e) {
+        console.log('Water reminder schedule error:', e);
+      }
+    }
+    if (ids.length > 0) {
+      await AsyncStorage.setItem(WATER_NOTIF_IDS_KEY, JSON.stringify(ids));
+    }
+  }
+
+  try {
+    await scheduleWeeklySummary();
+  } catch (e) {
+    console.log('Weekly summary reschedule error:', e);
+  }
 }
 
 // ─── Low-level helpers ───────────────────────────────────────────────
@@ -299,15 +548,14 @@ export async function cancelWeeklySummary(): Promise<void> {
 
 // ─── 5. Enable / Disable All ─────────────────────────────────────────
 
-export async function enableNotifications(): Promise<boolean> {
+export async function enableNotifications(profile?: UserProfile | null): Promise<boolean> {
   if (Platform.OS === 'web') return false;
 
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return false;
 
   await setNotificationsEnabled(true);
-  await scheduleDailyReminder();
-  await scheduleWeeklySummary();
+  await syncRecurringNotifications(profile ?? null);
   return true;
 }
 
@@ -315,6 +563,9 @@ export async function disableNotifications(): Promise<void> {
   await setNotificationsEnabled(false);
   await cancelDailyReminder();
   await cancelWeeklySummary();
+  await cancelBeforeFastStartNotifications();
+  await cancelBeforeFastEndNotifications();
+  await cancelWaterReminderNotifications();
   await cancelActiveFastNotifications();
   await cancelPostFastNotifications();
 }

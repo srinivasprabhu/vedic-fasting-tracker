@@ -271,10 +271,22 @@ export function calculatePlan(profile: UserProfile): UserPlan | null {
     ? calcWeeksToGoal(currentWeightKg, profile.goalWeightKg, deficit)
     : null;
 
+  const prev = profile.plan;
+  const keepWeekly =
+    prev?.planTemplateId === 'if_5_2' || prev?.planTemplateId === 'if_4_3'
+      ? {
+          planTemplateId: prev.planTemplateId,
+          weeklyFastDays: prev.weeklyFastDays,
+          fastHours:      prev.fastHours,
+          eatHours:       prev.eatHours,
+          fastLabel:      prev.fastLabel,
+        }
+      : null;
+
   return {
-    fastHours:     protocol.fastHours,
-    eatHours:      protocol.eatHours,
-    fastLabel:     protocol.fastLabel,
+    fastHours:     keepWeekly?.fastHours ?? protocol.fastHours,
+    eatHours:      keepWeekly?.eatHours ?? protocol.eatHours,
+    fastLabel:     keepWeekly?.fastLabel ?? protocol.fastLabel,
     dailySteps:    steps,
     dailyWaterMl:  waterMl,
     dailyCalories: calories,
@@ -285,6 +297,9 @@ export function calculatePlan(profile: UserProfile): UserPlan | null {
     bmiCategory:   bmiCat,
     weeksToGoal,
     generatedAt:   Date.now(),
+    ...(keepWeekly?.planTemplateId
+      ? { planTemplateId: keepWeekly.planTemplateId, weeklyFastDays: keepWeekly.weeklyFastDays }
+      : {}),
   };
 }
 

@@ -10,7 +10,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ChevronLeft, Footprints } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -18,49 +17,7 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 import { usePedometer } from '@/hooks/usePedometer';
 import { formatSteps } from '@/utils/calculatePlan';
 import type { ColorScheme } from '@/constants/colors';
-
-// ─── Storage ──────────────────────────────────────────────────────────────────
-
-const stepsKey = (date: Date) => {
-  return `aayu_steps_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}`;
-};
-
-const todayKey = () => stepsKey(new Date());
-
-async function loadTodaySteps(): Promise<number> {
-  try {
-    const raw = await AsyncStorage.getItem(todayKey());
-    return raw ? parseInt(raw, 10) : 0;
-  } catch { return 0; }
-}
-
-async function saveTodaySteps(steps: number): Promise<void> {
-  try {
-    await AsyncStorage.setItem(todayKey(), String(steps));
-  } catch {}
-}
-
-async function loadWeekSteps(): Promise<{ label: string; steps: number; isToday: boolean }[]> {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const daysFromMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  const result = await Promise.all(
-    days.map(async (label, i) => {
-      const diff = i - daysFromMon;
-      const d = new Date(now);
-      d.setDate(d.getDate() + diff);
-      const isToday = diff === 0;
-      const key = stepsKey(d);
-      try {
-        const raw = await AsyncStorage.getItem(key);
-        return { label, steps: raw ? parseInt(raw, 10) : 0, isToday };
-      } catch { return { label, steps: 0, isToday }; }
-    })
-  );
-  return result;
-}
+import { loadWeekStepBars } from '@/utils/stepsDayStorage';
 
 // ─── Quick-add amounts ────────────────────────────────────────────────────────
 
@@ -197,7 +154,7 @@ export default function StepsScreen() {
   const steps = pedometer.steps;
 
   useEffect(() => {
-    loadWeekSteps().then((week) => {
+    loadWeekStepBars().then((week) => {
       setWeekData(week);
       setLoading(false);
     });
