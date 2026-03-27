@@ -22,12 +22,9 @@ interface AayuInsightCardProps {
   weekAutophagyCount: number;
 }
 
-function generateInsight(
-  props: AayuInsightCardProps,
-  bodyTextColor: string,
-): {
-  quote: string;
-  body: React.ReactNode;
+function generateInsight(props: AayuInsightCardProps): {
+  headline: string;
+  supporting: string;
   tags: InsightTag[];
 } {
   const {
@@ -39,159 +36,77 @@ function generateInsight(
     weekAutophagyCount,
   } = props;
 
-  const gutRestHours = Math.round(weekTotalHours * 0.6);
-  const hghMultiplier = weekLongestHours >= 72 ? 25 : weekLongestHours >= 48 ? 15 : weekLongestHours >= 24 ? 5 : weekLongestHours >= 16 ? 2 : 1;
-  const avgRounded = Math.round(weekAvgHours);
+  const avgRounded = Math.round(weekAvgHours * 10) / 10;
+  const totalRounded = Math.round(weekTotalHours * 10) / 10;
+  const longestRounded = Math.round(weekLongestHours * 10) / 10;
   const hasAutophagy = weekAutophagyCount >= 2;
   const hasDeepFast = weekLongestHours >= 24;
   const hasGoodStreak = streak >= 3;
 
-  const bodyBase = { fontSize: 14, lineHeight: 22, color: bodyTextColor };
-
-  // No fasts this week — motivational nudge
   if (weekFasts === 0) {
-    const motivations = [
-      {
-        quote: '"A new week is a blank page — write something powerful."',
-        body: (
-          <Text style={bodyBase}>
-            You haven't fasted yet this week. Even a short{' '}
-            <Text style={{ color: '#D4A03C', fontWeight: '700' }}>12-hour fast</Text>
-            {' '}can lower insulin, boost fat-burning, and give your gut a{' '}
-            <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>much-needed break</Text>
-            . Start today and make this week count. 💪
-          </Text>
-        ),
-        tags: [
-          { label: 'Fresh start', emoji: '🌅', color: '#D4A03C' },
-          ...(hasGoodStreak ? [{ label: `${streak} streak to protect`, emoji: '🔥', color: '#C25450' }] : []),
-        ],
-      },
-      {
-        quote: '"The best time to start was yesterday. The next best time is now."',
-        body: (
-          <Text style={bodyBase}>
-            Your body is ready for its next fast. Research shows{' '}
-            <Text style={{ color: '#2E86AB', fontWeight: '700' }}>autophagy</Text>
-            {' '}— your body's cellular cleanup — kicks in after just{' '}
-            <Text style={{ color: '#D4A03C', fontWeight: '700' }}>16 hours</Text>
-            . One fast can set the tone for the entire week. 🚀
-          </Text>
-        ),
-        tags: [
-          { label: 'Week awaits', emoji: '⚡', color: '#7B68AE' },
-        ],
-      },
-      {
-        quote: '"Consistency beats perfection — show up this week."',
-        body: (
-          <Text style={bodyBase}>
-            No fasts logged yet, but the week is young. Even{' '}
-            <Text style={{ color: '#D4A03C', fontWeight: '700' }}>one fast</Text>
-            {' '}this week keeps the momentum going. Your{' '}
-            <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>metabolism</Text>
-            {' '}responds best to regular fasting windows. Make it happen. 🎯
-          </Text>
-        ),
-        tags: [
-          { label: 'Stay consistent', emoji: '🎯', color: '#5B8C5A' },
-        ],
-      },
-    ];
-    const idx = new Date().getDay() % motivations.length;
-    return motivations[idx];
+    return {
+      headline: 'Start your first fast this week',
+      supporting:
+        'Even a 12–16h window can support insulin balance and metabolic flexibility. Pick a day and begin when it feels right.',
+      tags: [
+        { label: 'Fresh start', emoji: '🌅', color: '#D4A03C' },
+        ...(hasGoodStreak ? [{ label: `${streak}-day streak to protect`, emoji: '🔥', color: '#C25450' }] : []),
+      ],
+    };
   }
 
-  // Strong week: 3+ fasts with autophagy hits
   if (weekFasts >= 3 && hasAutophagy) {
     return {
-      quote: `"Your gut rested ${gutRestHours}h this week — your metabolism is adapting."`,
-      body: (
-        <Text style={bodyBase}>
-          You completed{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{weekFasts} fasts</Text>
-          {' '}averaging{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{avgRounded}h</Text>
-          , reaching{' '}
-          <Text style={{ color: '#2E86AB', fontWeight: '700' }}>Deep Autophagy</Text>
-          {' '}{weekAutophagyCount > 1 ? `${weekAutophagyCount} times` : 'once'}.{weekLongestHours >= 48 ? ` Your longest fast (${Math.round(weekLongestHours)}h) triggered ${hghMultiplier}×` : ''}{weekLongestHours >= 48 ? <Text style={{ color: '#D4A03C', fontWeight: '700' }}> HGH boost</Text> : ''}{weekLongestHours >= 48 ? ' — a powerful cellular renewal event.' : ' Consistency is your superpower. '} 🔥
-        </Text>
-      ),
+      headline:
+        weekLongestHours >= 1
+          ? `Longest fast: ${longestRounded}h`
+          : 'Strong fasting week',
+      supporting:
+        weekLongestHours >= 48
+          ? `Your longest fast reached advanced fasting territory — often associated with deeper fat adaptation and recovery signaling. You logged ${totalRounded}h across ${weekFasts} fasts.`
+          : weekLongestHours >= 24
+            ? `Your ${longestRounded}h fast likely entered deeper fasting territory, where repair and metabolic adaptation are often more active. ${totalRounded}h total across ${weekFasts} fasts.`
+            : `You hit autophagy-friendly length ${weekAutophagyCount > 1 ? `${weekAutophagyCount} times` : 'this week'} — averaging ${avgRounded}h per fast. Consistency builds the habit.`,
       tags: [
-        { label: 'Metabolism adapting', emoji: '↑', color: '#5B8C5A' },
-        { label: 'Deep rest achieved', emoji: '🌙', color: '#D4A03C' },
-        { label: `Autophagy ${weekAutophagyCount}×`, emoji: '✦', color: '#7B68AE' },
+        { label: 'Deep fast zone', emoji: '🌙', color: '#7B68AE' },
+        { label: 'Metabolic shift', emoji: '↗', color: '#5B8C5A' },
+        ...(weekLongestHours >= 48
+          ? [{ label: 'Advanced phase', emoji: '✦', color: '#D4A03C' }]
+          : [{ label: 'Autophagy window', emoji: '✦', color: '#7B68AE' }]),
       ],
     };
   }
 
-  // Deep fast this week with significant HGH boost
-  if (hasDeepFast && hghMultiplier >= 5) {
+  if (hasDeepFast) {
     return {
-      quote: `"In stillness, the body heals what the mind cannot see."`,
-      body: (
-        <Text style={bodyBase}>
-          This week your{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(weekLongestHours)}h fast</Text>
-          {' '}triggered a{' '}
-          <Text style={{ color: '#E8913A', fontWeight: '700' }}>{hghMultiplier}× HGH boost</Text>
-          {' '}— activating deep{' '}
-          <Text style={{ color: '#C97B2A', fontStyle: 'italic', fontWeight: '600' }}>cellular renewal</Text>
-          . You've fasted{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(weekTotalHours)}h</Text>
-          {' '}so far this week. Your body is thanking you. 🔥
-        </Text>
-      ),
+      headline: `Longest fast: ${longestRounded}h`,
+      supporting:
+        'Extended fasting is often associated with stronger metabolic flexibility and recovery pathways. Keep listening to your body and hydrate well.',
       tags: [
         { label: 'Deep fast unlocked', emoji: '🌙', color: '#7B68AE' },
-        { label: `HGH ${hghMultiplier}×`, emoji: '⚡', color: '#E8913A' },
-        ...(hasGoodStreak ? [{ label: `${streak} day streak`, emoji: '🔥', color: '#C25450' }] : []),
+        { label: 'Fat adaptation', emoji: '⚡', color: '#5B8C5A' },
+        ...(hasGoodStreak ? [{ label: `${streak}-day streak`, emoji: '🔥', color: '#C25450' }] : []),
       ],
     };
   }
 
-  // Good streak going
   if (hasGoodStreak) {
     return {
-      quote: `"Discipline practised daily becomes identity."`,
-      body: (
-        <Text style={bodyBase}>
-          A{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{streak}-fast streak</Text>
-          {' '}and{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{weekFasts} fast{weekFasts > 1 ? 's' : ''}</Text>
-          {' '}this week — this is how transformation happens. Averaging{' '}
-          <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{avgRounded}h per fast</Text>
-          , your{' '}
-          <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>metabolism</Text>
-          {' '}grows more efficient each cycle. 💪
-        </Text>
-      ),
+      headline: `${streak}-day streak · ${weekFasts} fast${weekFasts === 1 ? '' : 's'} this week`,
+      supporting: `Averaging ${avgRounded}h per fast — regular windows help your metabolism stay flexible.`,
       tags: [
-        { label: `${streak} fast streak`, emoji: '🔥', color: '#C25450' },
+        { label: `${streak} day streak`, emoji: '🔥', color: '#C25450' },
         { label: `${weekFasts} this week`, emoji: '📊', color: '#5B8C5A' },
       ],
     };
   }
 
-  // Default: some fasting activity this week
   return {
-    quote: '"Every fast is a gift your body gives itself."',
-    body: (
-      <Text style={bodyBase}>
-        You've fasted{' '}
-        <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{Math.round(weekTotalHours)}h</Text>
-        {' '}across{' '}
-        <Text style={{ color: '#D4A03C', fontWeight: '700' }}>{weekFasts} fast{weekFasts > 1 ? 's' : ''}</Text>
-        {' '}this week, giving your{' '}
-        <Text style={{ color: '#5B8C5A', fontWeight: '700' }}>digestive system</Text>
-        {' '}rest. Each fast strengthens{' '}
-        <Text style={{ color: '#2E86AB', fontWeight: '700' }}>insulin sensitivity</Text>
-        {' '}and deepens cellular renewal. Keep going! ✨
-      </Text>
-    ),
+    headline: `${totalRounded}h logged · ${weekFasts} fast${weekFasts === 1 ? '' : 's'}`,
+    supporting:
+      'Each completed window supports insulin sensitivity and digestive rest. Small wins compound.',
     tags: [
-      { label: `${Math.round(weekTotalHours)}h this week`, emoji: '⏱️', color: '#5B8C5A' },
+      { label: `${totalRounded}h this week`, emoji: '⏱️', color: '#5B8C5A' },
       { label: 'Building momentum', emoji: '✨', color: '#D4A03C' },
     ],
   };
@@ -217,14 +132,17 @@ export default function AayuInsightCard({
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const dateLabel = `${fmt(weekStart)} – ${fmt(weekEnd)}`;
 
-  const bodyTextColor = isDark ? '#C8B8A2' : colors.textSecondary;
-
   const insight = useMemo(
-    () => generateInsight(
-      { weekFasts, weekAvgHours, weekLongestHours, weekTotalHours, streak, weekAutophagyCount },
-      bodyTextColor,
-    ),
-    [weekFasts, weekAvgHours, weekLongestHours, weekTotalHours, streak, weekAutophagyCount, bodyTextColor]
+    () =>
+      generateInsight({
+        weekFasts,
+        weekAvgHours,
+        weekLongestHours,
+        weekTotalHours,
+        streak,
+        weekAutophagyCount,
+      }),
+    [weekFasts, weekAvgHours, weekLongestHours, weekTotalHours, streak, weekAutophagyCount],
   );
 
   useEffect(() => {
@@ -239,36 +157,35 @@ export default function AayuInsightCard({
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2400, useNativeDriver: true }),
         Animated.timing(glowAnim, { toValue: 0.4, duration: 2400, useNativeDriver: true }),
-      ])
+      ]),
     ).start();
   }, [fadeAnim, glowAnim]);
 
   const cardBg = isDark ? '#1A0D06' : colors.surfaceWarm;
   const cardBorder = isDark ? '#3D2010' : colors.border;
-  const quoteColor = '#D4A03C';
   const borderAccent = '#C97B2A';
   const pillBg = isDark ? '#2A1508' : colors.surface;
   const pillBorder = isDark ? '#3D2010' : colors.border;
   const labelColor = isDark ? '#9E7A50' : colors.textSecondary;
   const dateLabelColor = isDark ? '#6E5540' : colors.textMuted;
+  const headlineColor = colors.text;
+  const supportingColor = isDark ? '#C8B8A2' : colors.textSecondary;
 
   return (
     <Animated.View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, opacity: fadeAnim }]}>
       <View style={styles.header}>
         <View style={[styles.headerLeft, { backgroundColor: pillBg, borderColor: pillBorder }]}>
-          <Animated.View style={[styles.liveDot, { opacity: glowAnim, backgroundColor: quoteColor }]} />
-          <Text style={[styles.headerLabel, { color: labelColor }]}>INSIGHT · WEEK</Text>
+          <Animated.View style={[styles.liveDot, { opacity: glowAnim, backgroundColor: '#D4A03C' }]} />
+          <Text style={[styles.headerLabel, { color: labelColor }]}>WEEKLY HIGHLIGHT</Text>
         </View>
         <Text style={[styles.dateLabel, { color: dateLabelColor }]}>{dateLabel}</Text>
       </View>
 
-      <View style={[styles.quoteBlock, { borderLeftColor: borderAccent }]}>
-        <Text style={[styles.quoteText, { color: quoteColor }]}>{insight.quote}</Text>
+      <View style={[styles.headlineBlock, { borderLeftColor: borderAccent }]}>
+        <Text style={[styles.headline, { color: headlineColor }]}>{insight.headline}</Text>
       </View>
 
-      <View style={styles.body}>
-        {insight.body}
-      </View>
+      <Text style={[styles.supporting, { color: supportingColor }]}>{insight.supporting}</Text>
 
       <View style={styles.tagsRow}>
         {insight.tags.map((tag, i) => (
@@ -294,7 +211,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -313,26 +230,28 @@ const styles = StyleSheet.create({
   headerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   dateLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
   },
-  quoteBlock: {
+  headlineBlock: {
     borderLeftWidth: 3,
     paddingLeft: 14,
+    marginBottom: 10,
+  },
+  headline: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
+    letterSpacing: -0.3,
+  },
+  supporting: {
+    fontSize: 15,
+    lineHeight: 23,
     marginBottom: 14,
-  },
-  quoteText: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    fontWeight: '600',
-    lineHeight: 24,
-    letterSpacing: -0.1,
-  },
-  body: {
-    marginBottom: 16,
+    fontWeight: '400',
   },
   tagsRow: {
     flexDirection: 'row',
@@ -346,7 +265,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.1,
   },

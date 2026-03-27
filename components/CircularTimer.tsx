@@ -19,8 +19,8 @@ export default function CircularTimer({ progress, elapsed, remaining, label, isA
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  const size = 240;
-  const strokeWidth = 8;
+  const size = 260;
+  const strokeWidth = 9;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - Math.min(progress, 1));
@@ -129,15 +129,15 @@ function makeStyles(colors: ColorScheme) {
     },
     glowRing: {
       position: 'absolute' as const,
-      width: 270,
-      height: 270,
-      borderRadius: 135,
+      width: 292,
+      height: 292,
+      borderRadius: 146,
       backgroundColor: colors.primary,
     },
     timerOuter: {
-      width: 240,
-      height: 240,
-      borderRadius: 120,
+      width: 260,
+      height: 260,
+      borderRadius: 130,
       backgroundColor: colors.card,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
@@ -155,23 +155,26 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
     },
     elapsedTime: {
-      fontSize: 36,
-      fontWeight: '300' as const,
+      fontSize: 56,
+      fontWeight: '500' as const,
       color: colors.text,
-      letterSpacing: 1,
+      letterSpacing: 0.5,
+      lineHeight: 62,
     },
     label: {
-      fontSize: 13,
+      fontSize: 12,
       color: colors.textSecondary,
-      marginTop: 4,
-      fontWeight: '500' as const,
+      marginTop: 8,
+      fontWeight: '600' as const,
       textTransform: 'uppercase' as const,
-      letterSpacing: 1.5,
+      letterSpacing: 0.8,
+      lineHeight: 16,
     },
     remaining: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 6,
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 8,
+      lineHeight: 18,
     },
   });
 }

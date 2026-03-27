@@ -63,6 +63,13 @@ function waterKeyForDate(d: Date): string {
   return `aayu_water_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
 }
 
+/** Latest weight logged on a calendar day (by `time`), or null. */
+function latestLogKgOnDay(log: { kg: number; date: string; time: number }[], dateStr: string): number | null {
+  const matches = log.filter(e => e.date === dateStr);
+  if (matches.length === 0) return null;
+  return matches.reduce((a, b) => (a.time >= b.time ? a : b)).kg;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
@@ -89,7 +96,8 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
           return rd.getFullYear() === y && rd.getMonth() === m;
         });
         const totalHours = monthRecords.reduce((sum, r) => {
-          return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+          const end = r.endTime ?? r.startTime;
+          return sum + Math.max(0, end - r.startTime) / 3600000;
         }, 0);
         return {
           date: toLocalDateString(monthDate),
@@ -107,7 +115,8 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
         return rDate === dateStr;
       });
       const totalHours = dayRecords.reduce((sum, r) => {
-        return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+        const end = r.endTime ?? r.startTime;
+        return sum + Math.max(0, end - r.startTime) / 3600000;
       }, 0);
       return {
         date: dateStr,
@@ -194,12 +203,15 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
         if (!cancelled) setWaterData(waterPoints);
       }
 
-      // Weight
+      // Weight — seed from onboarding (startingWeightKg / currentWeightKg), forward-fill from logs
       try {
         const raw = await AsyncStorage.getItem('aayu_weight_log');
         const log: { kg: number; date: string; time: number }[] = raw ? JSON.parse(raw) : [];
+        const anchorKg =
+          profile?.startingWeightKg ?? profile?.currentWeightKg ?? null;
 
         if (range === 'year') {
+          let carry: number | null = anchorKg;
           const weightPoints: TrendPoint[] = dates.map(monthDate => {
             const y = monthDate.getFullYear();
             const m = monthDate.getMonth();
@@ -207,23 +219,27 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
               const ed = new Date(e.time);
               return ed.getFullYear() === y && ed.getMonth() === m;
             });
-            // Use latest entry for the month
-            const latest = monthEntries.sort((a, b) => b.time - a.time)[0];
+            const latestInMonth = monthEntries.sort((a, b) => b.time - a.time)[0];
+            if (latestInMonth) carry = latestInMonth.kg;
+            const v = carry != null ? Math.round(carry * 10) / 10 : 0;
             return {
               date: toLocalDateString(monthDate),
               label: formatLabel(monthDate, range),
-              value: latest ? Math.round(latest.kg * 10) / 10 : 0,
+              value: v,
             };
           });
           if (!cancelled) setWeightData(weightPoints);
         } else {
+          let carry: number | null = anchorKg;
           const weightPoints: TrendPoint[] = dates.map(d => {
             const dateStr = toLocalDateString(d);
-            const dayEntry = log.find(e => e.date === dateStr);
+            const dayKg = latestLogKgOnDay(log, dateStr);
+            if (dayKg != null) carry = dayKg;
+            const v = carry != null ? Math.round(carry * 10) / 10 : 0;
             return {
               date: dateStr,
               label: formatLabel(d, range),
-              value: dayEntry ? Math.round(dayEntry.kg * 10) / 10 : 0,
+              value: v,
             };
           });
           if (!cancelled) setWeightData(weightPoints);
@@ -295,7 +311,7 @@ export function useTrendData(range: TimeRange, todayStepsOverride?: number) {
 
     load();
     return () => { cancelled = true; };
-  }, [range]);
+  }, [range, profile?.startingWeightKg, profile?.currentWeightKg]);
 
   // Update today's steps with live pedometer data without re-running full load
   useEffect(() => {

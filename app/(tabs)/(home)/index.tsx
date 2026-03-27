@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Play, Square, Flame, Clock, Trophy, Settings, ChevronRight, Sun, Moon, Bell } from 'lucide-react-native';
+import { Play, Square, Flame, Clock, Trophy, Settings, ChevronRight, Sun, Moon, Bell, Sparkles } from 'lucide-react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { useTheme }        from '@/contexts/ThemeContext';
@@ -22,7 +22,7 @@ import { useFastTimer }    from '@/hooks/useFastTimer';
 import { useReviewPrompt } from '@/hooks/useReviewPrompt';
 import { usePedometer }    from '@/hooks/usePedometer';
 import ReviewPromptCard    from '@/components/ReviewPromptCard';
-import { formatWater, kgToLbs } from '@/utils/calculatePlan';
+import { formatWater, kgToLbs, getAge, calcBMI } from '@/utils/calculatePlan';
 import { FastType } from '@/types/fasting';
 import { FastPlanPickerModal, FastPlanOption } from '@/components/FastPlanPickerModal';
 import { WeeklyFastDaysModal } from '@/components/WeeklyFastDaysModal';
@@ -81,14 +81,19 @@ const WaterQuickBtn: React.FC<{ label: string; ml: number; onPress: () => void; 
   <TouchableOpacity
     onPress={onPress} activeOpacity={0.75}
     style={{
-      flex: 1, paddingVertical: 7, borderRadius: 9, borderWidth: 1,
+      minWidth: 78,
+      height: 56,
+      paddingHorizontal: 12,
+      borderRadius: 16,
+      borderWidth: 1,
       alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       backgroundColor: featured ? 'rgba(91,141,217,.18)' : colors.surface,
       borderColor: featured ? 'rgba(91,141,217,.4)' : colors.borderLight,
     }}
   >
-    <Text style={{ fontSize: 11, fontWeight: '700' as const, color: '#5b8dd9' }}>+{ml >= 1000 ? `${ml/1000}L` : `${ml}ml`}</Text>
-    <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 1 }}>{label}</Text>
+    <Text style={{ fontSize: 16, fontWeight: '700' as const, color: '#5b8dd9' }}>+{ml >= 1000 ? `${ml/1000}L` : `${ml}ml`}</Text>
+    <Text style={{ fontSize: 13, fontWeight: '500' as const, color: colors.textSecondary, marginTop: 2 }}>{label}</Text>
   </TouchableOpacity>
 );
 
@@ -231,6 +236,23 @@ export default function HomeScreen() {
   const waterPct    = waterTarget > 0 ? (waterMl / waterTarget) * 100 : 0;
   const stepsPct    = stepsTarget > 0 ? (pedometer.steps / stepsTarget) * 100 : 0;
 
+  // ── Plan picker safety restrictions ───────────────────────────────────────
+  const userAge = profile ? getAge(profile) : 30;
+  const userBmi = (profile?.currentWeightKg && profile?.heightCm)
+    ? calcBMI(profile.currentWeightKg, profile.heightCm) : null;
+
+  const planMaxFastHours = useMemo(() => {
+    if (userAge < 18) return 14;               // minors: max 14:10
+    if (userBmi !== null && userBmi < 18.5) return 12;  // underweight: max 12:12
+    return null;                                // no restriction
+  }, [userAge, userBmi]);
+
+  const planRestrictionReason = useMemo(() => {
+    if (userAge < 18) return 'Fasting plans longer than 14 hours are not recommended for users under 18. Your body is still growing and needs adequate nutrition.';
+    if (userBmi !== null && userBmi < 18.5) return 'Longer fasting plans are not recommended at your current BMI. Focus on maintaining a healthy weight with gentle time-restricted eating.';
+    return undefined;
+  }, [userAge, userBmi]);
+
   const waterColor  = '#5b8dd9';
   const stepsColor  = colors.success;
   const weightColor = isDark ? '#e8a84c' : '#a06820';
@@ -247,12 +269,30 @@ export default function HomeScreen() {
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{getInitial()}</Text>
                 </View>
-                <View>
-                  <Text style={[styles.greeting, { color: colors.text }]}>{getGreeting()}</Text>
-                  <Text style={[styles.greetingDate, { color: colors.textMuted }]}>
-                    {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    {streak > 0 ? ` · ${streak} day streak 🔥` : ''}
+                <View style={styles.headerTextCol}>
+                  <Text
+                    style={[styles.greeting, { color: colors.text }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {getGreeting()}
                   </Text>
+                  <Text
+                    style={[styles.greetingDate, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </Text>
+                  {streak > 0 && (
+                    <Text
+                      style={[styles.greetingStreak, { color: colors.textSecondary }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {streak} day streak 🔥
+                    </Text>
+                  )}
                 </View>
               </View>
               <View style={styles.headerActions}>
@@ -262,7 +302,7 @@ export default function HomeScreen() {
                   activeOpacity={0.7}
                   accessibilityLabel="Toggle light or dark theme"
                 >
-                  {isDark ? <Sun size={16} color="#e8a84c" /> : <Moon size={16} color="#a06820" />}
+                  {isDark ? <Sun size={20} color="#e8a84c" /> : <Moon size={20} color="#a06820" />}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.iconHeaderBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
@@ -274,7 +314,7 @@ export default function HomeScreen() {
                   accessibilityLabel="Notification settings"
                   accessibilityHint="Customize fasting and water reminders"
                 >
-                  <Bell size={18} color={colors.textSecondary} />
+                  <Bell size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.iconHeaderBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
@@ -282,7 +322,7 @@ export default function HomeScreen() {
                   activeOpacity={0.7}
                   accessibilityLabel="Settings"
                 >
-                  <Settings size={18} color={colors.textSecondary} />
+                  <Settings size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -291,7 +331,7 @@ export default function HomeScreen() {
           {/* Quote */}
           <Animated.View style={[styles.quoteCard, { opacity: fadeAnim, backgroundColor: colors.surface, borderLeftColor: colors.primary }]}>
             <Text style={[styles.quoteText, { color: colors.text }]}>"{quote.text}"</Text>
-            <Text style={[styles.quoteSrc, { color: colors.textMuted }]}>— {quote.source}</Text>
+            <Text style={[styles.quoteSrc, { color: colors.textSecondary }]}>— {quote.source}</Text>
           </Animated.View>
 
           {showReview && <ReviewPromptCard onReview={handleReview} onDismiss={dismissReview} />}
@@ -312,20 +352,20 @@ export default function HomeScreen() {
           {/* Timer card */}
           <View style={[styles.timerCard, { backgroundColor: colors.card, borderColor: activeFast ? `${colors.primary}35` : colors.borderLight }]}>
             {activeFast ? (
-              <Text style={[styles.timerEyebrow, { color: colors.textMuted }]}>{activeFast.label} · {formatShortDuration(remaining)} remaining</Text>
+              <Text style={[styles.timerEyebrow, { color: colors.textSecondary }]}>{activeFast.label} · {formatShortDuration(remaining)} remaining</Text>
             ) : plan?.fastLabel ? (
-              <Text style={[styles.timerEyebrow, { color: colors.textMuted }]}>Next fast · {plan.fastLabel} · starts tonight</Text>
+              <Text style={[styles.timerEyebrow, { color: colors.textSecondary }]}>Next fast · {plan.fastLabel} · starts tonight</Text>
             ) : null}
             <CircularTimer progress={progress} elapsed={activeFast ? timer.formatted : '00:00:00'} remaining={formatShortDuration(remaining)} label={activeFast ? activeFast.label : 'READY TO FAST'} isActive={!!activeFast} />
-            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+            <Animated.View style={[styles.timerCtaWrap, { transform: [{ scale: buttonScale }] }]}>
               {activeFast ? (
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={handleEndFast} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={0.85} testID="stop-fast-button">
-                  <Square size={16} color={colors.textLight} fill={colors.textLight} />
+                  <Square size={18} color={colors.textLight} fill={colors.textLight} />
                   <Text style={[styles.actionBtnText, { color: colors.textLight }]}>End Fast</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleBeginFast} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={0.85} testID="start-fast-button">
-                  <Play size={16} color={colors.textLight} fill={colors.textLight} />
+                  <Play size={18} color={colors.textLight} fill={colors.textLight} />
                   <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Begin Fast</Text>
                 </TouchableOpacity>
               )}
@@ -340,7 +380,7 @@ export default function HomeScreen() {
               { icon: '🏆', val: String(completedRecords.filter(r=>r.completed).length),  bg: colors.successLight, clr: colors.success,  lbl: 'Done'   },
             ].map(({ icon, val, bg, clr, lbl }) => (
               <View key={lbl} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
-                <View style={[styles.statIcon, { backgroundColor: bg }]}><Text style={{ fontSize: 14 }}>{icon}</Text></View>
+                <View style={[styles.statIcon, { backgroundColor: bg }]}><Text style={{ fontSize: 16 }}>{icon}</Text></View>
                 <Text style={[styles.statVal, { color: colors.text }]}>{val}</Text>
                 <Text style={[styles.statLbl, { color: colors.textMuted }]}>{lbl}</Text>
               </View>
@@ -360,32 +400,32 @@ export default function HomeScreen() {
               </View>
 
               {/* Water card with inline quick-add */}
-              <View style={[styles.trackerCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+              <View style={[styles.trackerCard, styles.waterTrackerCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
                 <View style={styles.trackerCardTop}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.trackerEyebrow, { color: waterColor }]}>WATER</Text>
                     <View style={styles.trackerValRow}>
                       <Text style={[styles.trackerVal, { color: colors.text }]}>{waterMl >= 1000 ? (waterMl/1000).toFixed(1) : waterMl}</Text>
-                      <Text style={[styles.trackerUnit, { color: colors.textMuted }]}>{waterMl >= 1000 ? 'L' : 'ml'}</Text>
-                      <Text style={[styles.trackerOf, { color: colors.textMuted }]}>/ {formatWater(waterTarget)}</Text>
+                      <Text style={[styles.trackerUnit, { color: colors.textSecondary }]}>{waterMl >= 1000 ? 'L' : 'ml'}</Text>
+                      <Text style={[styles.trackerOf, { color: colors.textSecondary }]}>/ {formatWater(waterTarget)}</Text>
                     </View>
-                    <ProgBar pct={waterPct} color={waterColor} bg={isDark ? 'rgba(91,141,217,.12)' : 'rgba(91,141,217,.1)'} />
+                    <ProgBar pct={waterPct} color={waterColor} height={6} bg={isDark ? 'rgba(91,141,217,.12)' : 'rgba(91,141,217,.1)'} />
                   </View>
                   <TouchableOpacity onPress={() => router.push('/(tabs)/(home)/water' as any)} style={styles.trackerRight}>
                     <Text style={[styles.trackerPct, { color: waterPct >= 100 ? colors.success : waterColor }]}>{waterPct >= 100 ? '✓' : `${Math.round(waterPct)}%`}</Text>
-                    <ChevronRight size={13} color={colors.textMuted} />
+                    <ChevronRight size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
-                <View style={styles.waterQuickRow}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.waterQuickRow}>
                   <WaterQuickBtn label="Cup"    ml={150} onPress={() => addWater(150,'Cup')}    colors={colors} />
                   <WaterQuickBtn label="Glass"  ml={250} onPress={() => addWater(250,'Glass')}  colors={colors} featured />
                   <WaterQuickBtn label="Bottle" ml={500} onPress={() => addWater(500,'Bottle')} colors={colors} featured />
                   <WaterQuickBtn label="Large"  ml={750} onPress={() => addWater(750,'Large')}  colors={colors} />
-                </View>
+                </ScrollView>
               </View>
 
               {/* Steps card — pedometer-aware */}
-              <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/(tabs)/(home)/steps' as any)} style={[styles.trackerCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+                <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/(tabs)/(home)/steps' as any)} style={[styles.trackerCard, styles.stepsTrackerCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
                 <View style={styles.trackerCardTop}>
                   <View style={{ flex: 1 }}>
                     <View style={styles.stepsEyebrowRow}>
@@ -395,11 +435,11 @@ export default function HomeScreen() {
                       )}
                     </View>
                     <View style={styles.trackerValRow}>
-                      <Text style={[styles.trackerVal, { color: colors.text }]}>{pedometer.steps >= 1000 ? (pedometer.steps/1000).toFixed(1) : pedometer.steps}</Text>
-                      {pedometer.steps >= 1000 && <Text style={[styles.trackerUnit, { color: colors.textMuted }]}>k</Text>}
-                      <Text style={[styles.trackerOf, { color: colors.textMuted }]}>/ {stepsTarget >= 1000 ? `${stepsTarget/1000}k` : stepsTarget}</Text>
+                      <Text style={[styles.trackerVal, styles.stepsMainVal, { color: colors.text }]}>{pedometer.steps >= 1000 ? (pedometer.steps/1000).toFixed(1) : pedometer.steps}</Text>
+                      {pedometer.steps >= 1000 && <Text style={[styles.trackerUnit, { color: colors.textSecondary }]}>k</Text>}
+                      <Text style={[styles.trackerOf, { color: colors.textSecondary }]}>/ {stepsTarget >= 1000 ? `${stepsTarget/1000}k` : stepsTarget}</Text>
                     </View>
-                    <ProgBar pct={stepsPct} color={stepsColor} bg={isDark ? 'rgba(58,170,110,.12)' : 'rgba(58,170,110,.1)'} />
+                    <ProgBar pct={stepsPct} color={stepsColor} height={8} bg={isDark ? 'rgba(58,170,110,.12)' : 'rgba(58,170,110,.1)'} />
                   </View>
                   <View style={styles.trackerRight}>
                     {weekStepData.length === 7 ? (
@@ -407,11 +447,11 @@ export default function HomeScreen() {
                     ) : (
                       <Text style={[styles.trackerPct, { color: stepsPct >= 100 ? colors.success : stepsColor }]}>{stepsPct >= 100 ? '✓' : `${Math.round(stepsPct)}%`}</Text>
                     )}
-                    <ChevronRight size={13} color={colors.textMuted} />
+                    <ChevronRight size={16} color={colors.textSecondary} />
                   </View>
                 </View>
                 {pedometer.available && (
-                  <Text style={[styles.sourceLabel, { color: colors.textMuted }]}>
+                  <Text style={[styles.sourceLabel, { color: colors.textSecondary }]}>
                     {pedometer.isLive ? '📱 Counting automatically from your phone' : '📱 Motion sensor available'}
                   </Text>
                 )}
@@ -429,19 +469,39 @@ export default function HomeScreen() {
                   </View>
                   {goalKg && (
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={[styles.trackerEyebrow, { color: colors.textMuted }]}>GOAL</Text>
+                      <Text style={[styles.trackerEyebrow, { color: colors.textSecondary }]}>GOAL</Text>
                       <Text style={[styles.weightGoal, { color: colors.textSecondary }]}>
                         {weightUnit === 'lbs' ? `${kgToLbs(goalKg).toFixed(1)} lbs` : `${goalKg.toFixed(1)} kg`}
                       </Text>
                     </View>
                   )}
-                  <ChevronRight size={14} color={colors.textMuted} />
+                  <ChevronRight size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
           )}
 
           <MetabolicZoneRiver hoursElapsed={timer.hoursElapsed} isActive={!!activeFast} colors={colors} />
+
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push({ pathname: '/did-you-know' } as any);
+            }}
+            style={[styles.didYouKnowCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
+            accessibilityRole="button"
+            accessibilityLabel="Did you know? Quick facts on fasting"
+          >
+            <View style={[styles.didYouKnowIcon, { backgroundColor: isDark ? 'rgba(232,160,90,0.15)' : 'rgba(201,123,42,0.12)' }]}>
+              <Sparkles size={20} color={colors.primary} />
+            </View>
+            <View style={styles.didYouKnowTextCol}>
+              <Text style={[styles.didYouKnowTitle, { color: colors.text }]}>Did you know?</Text>
+              <Text style={[styles.didYouKnowSub, { color: colors.textSecondary }]}>Quick facts on fasting & your body</Text>
+            </View>
+            <ChevronRight size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
 
@@ -452,6 +512,8 @@ export default function HomeScreen() {
         visible={showPlanPicker}
         currentPlan={plan?.fastLabel ?? null}
         isProUser={isProUser}
+        maxFastHours={planMaxFastHours}
+        restrictionReason={planRestrictionReason}
         onSelect={(p: FastPlanOption) => {
           if (p.id === 'if_5_2' || p.id === 'if_4_3') {
             setWeeklyPlanDraft(p);
@@ -498,54 +560,65 @@ export default function HomeScreen() {
 
 function makeStyles(colors: ColorScheme) {
   return StyleSheet.create({
-    root:              { flex: 1, backgroundColor: colors.background }                  as ViewStyle,
-    scrollContent:     { paddingHorizontal: 18, paddingBottom: 100 }                    as ViewStyle,
-    header:            { marginTop: 10, marginBottom: 12 }                              as ViewStyle,
-    headerRow:         { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const } as ViewStyle,
-    headerLeft:        { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, flex: 1 } as ViewStyle,
-    avatar:            { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    avatarText:        { fontSize: 16, fontWeight: '700' as const, color: '#fff' }      as TextStyle,
-    greeting:          { fontSize: 15, fontWeight: '600' as const }                     as TextStyle,
-    greetingDate:      { fontSize: 12, marginTop: 1 }                                   as TextStyle,
-    headerActions:     { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 } as ViewStyle,
-    themeBtn:          { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    iconHeaderBtn:     { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    myPlanPill:        { flexDirection: 'row' as const, alignItems: 'center' as const, alignSelf: 'center' as const, gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, marginBottom: 12 } as ViewStyle,
-    myPlanLabel:       { fontSize: 13, fontWeight: '500' as const } as TextStyle,
-    myPlanValue:       { fontSize: 14, fontWeight: '700' as const } as TextStyle,
-    myPlanEdit:        { fontSize: 14, marginLeft: 2 } as TextStyle,
-    quoteCard:         { borderRadius: 13, padding: 13, marginBottom: 14, borderLeftWidth: 3 } as ViewStyle,
-    quoteText:         { fontSize: 13, fontStyle: 'italic' as const, lineHeight: 19 }   as TextStyle,
-    quoteSrc:          { fontSize: 11, marginTop: 5 }                                   as TextStyle,
-    timerCard:         { borderRadius: 20, borderWidth: 1, padding: 16, marginBottom: 14, alignItems: 'center' as const, gap: 12 } as ViewStyle,
-    timerEyebrow:      { fontSize: 11, fontWeight: '500' as const, letterSpacing: 0.5, alignSelf: 'center' as const } as TextStyle,
-    actionBtn:         { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 26, gap: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 10, elevation: 6 } as ViewStyle,
-    actionBtnText:     { fontSize: 15, fontWeight: '600' as const }                     as TextStyle,
-    statsRow:          { flexDirection: 'row' as const, gap: 8, marginBottom: 14 }      as ViewStyle,
-    statCard:          { flex: 1, borderRadius: 13, borderWidth: 1, padding: 11, alignItems: 'center' as const } as ViewStyle,
-    statIcon:          { width: 32, height: 32, borderRadius: 16, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: 6 } as ViewStyle,
-    statVal:           { fontSize: 20, fontWeight: '700' as const }                     as TextStyle,
-    statLbl:           { fontSize: 10, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: 0.7 } as TextStyle,
-    targetsSection:    { marginBottom: 14 }                                             as ViewStyle,
-    targetsHeader:     { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 10 } as ViewStyle,
-    targetsTitle:      { fontSize: 15, fontWeight: '700' as const }                     as TextStyle,
-    planPill:          { flexDirection: 'row' as const, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 } as ViewStyle,
-    planPillText:      { fontSize: 12, fontWeight: '500' as const }                     as TextStyle,
-    trackerCard:       { borderRadius: 14, borderWidth: 1, padding: 13, marginBottom: 8 } as ViewStyle,
-    trackerCardTop:    { flexDirection: 'row' as const, alignItems: 'flex-end' as const, gap: 10, marginBottom: 10 } as ViewStyle,
-    trackerEyebrow:    { fontSize: 10, fontWeight: '600' as const, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 3 } as TextStyle,
-    trackerValRow:     { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 3, marginBottom: 6 } as ViewStyle,
-    trackerVal:        { fontSize: 26, fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
-    trackerUnit:       { fontSize: 13, fontWeight: '500' as const }                     as TextStyle,
-    trackerOf:         { fontSize: 12, marginLeft: 2 }                                  as TextStyle,
-    trackerRight:      { alignItems: 'center' as const, flexDirection: 'row' as const, gap: 4 } as ViewStyle,
-    trackerPct:        { fontSize: 13, fontWeight: '700' as const }                     as TextStyle,
-    waterQuickRow:     { flexDirection: 'row' as const, gap: 6 }                        as ViewStyle,
+    root:              { flex: 1, backgroundColor: colors.background } as ViewStyle,
+    scrollContent:     { paddingHorizontal: 20, paddingBottom: 100 } as ViewStyle,
+    header:            { marginTop: 16, marginBottom: 16 } as ViewStyle,
+    headerRow:         { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, minHeight: 72 } as ViewStyle,
+    headerLeft:        { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, flex: 1, minWidth: 0 } as ViewStyle,
+    headerTextCol:     { flex: 1, minWidth: 0, justifyContent: 'center' as const } as ViewStyle,
+    avatar:            { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0 } as ViewStyle,
+    avatarText:        { fontSize: 18, fontWeight: '700' as const, color: '#fff' } as TextStyle,
+    greeting:          { fontSize: 24, fontWeight: '600' as const, lineHeight: 30 } as TextStyle,
+    greetingDate:      { fontSize: 13, fontWeight: '500' as const, marginTop: 2, lineHeight: 18 } as TextStyle,
+    greetingStreak:    { fontSize: 13, fontWeight: '500' as const, marginTop: 2, lineHeight: 18 } as TextStyle,
+    headerActions:     { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, flexShrink: 0 } as ViewStyle,
+    themeBtn:          { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
+    iconHeaderBtn:     { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
+    myPlanPill:        { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, alignSelf: 'center' as const, gap: 8, paddingHorizontal: 16, minHeight: 44, borderRadius: 22, borderWidth: 1, marginBottom: 16 } as ViewStyle,
+    myPlanLabel:       { fontSize: 17, fontWeight: '600' as const, color: colors.text } as TextStyle,
+    myPlanValue:       { fontSize: 18, fontWeight: '600' as const, color: colors.primary } as TextStyle,
+    myPlanEdit:        { fontSize: 15, marginLeft: 2, opacity: 0.7 } as TextStyle,
+    quoteCard:         { borderRadius: 24, padding: 18, marginBottom: 16, borderLeftWidth: 3, minHeight: 112 } as ViewStyle,
+    quoteText:         { fontSize: 16, fontStyle: 'italic' as const, lineHeight: 24, fontWeight: '400' as const } as TextStyle,
+    quoteSrc:          { fontSize: 13, fontWeight: '500' as const, marginTop: 8, lineHeight: 18 } as TextStyle,
+    didYouKnowCard:    { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 14, borderRadius: 24, borderWidth: 1, paddingVertical: 16, paddingHorizontal: 16, marginTop: 8, marginBottom: 16 } as ViewStyle,
+    didYouKnowIcon:    { width: 44, height: 44, borderRadius: 22, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
+    didYouKnowTextCol: { flex: 1, minWidth: 0 } as ViewStyle,
+    didYouKnowTitle:   { fontSize: 17, fontWeight: '600' as const, letterSpacing: -0.2 } as TextStyle,
+    didYouKnowSub:     { fontSize: 13, fontWeight: '500' as const, marginTop: 3, lineHeight: 18 } as TextStyle,
+    timerCard:         { borderRadius: 28, borderWidth: 1, paddingTop: 24, paddingHorizontal: 20, paddingBottom: 24, marginBottom: 20, alignItems: 'center' as const, minHeight: 420 } as ViewStyle,
+    timerEyebrow:      { fontSize: 14, fontWeight: '500' as const, lineHeight: 20, alignSelf: 'center' as const, textAlign: 'center' as const, marginBottom: 20 } as TextStyle,
+    timerCtaWrap:      { marginTop: 26, width: '100%' as const, alignItems: 'center' as const } as ViewStyle,
+    actionBtn:         { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, minWidth: 252, height: 60, paddingHorizontal: 28, borderRadius: 30, gap: 10, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 10, elevation: 6 } as ViewStyle,
+    actionBtnText:     { fontSize: 18, fontWeight: '600' as const, lineHeight: 22 } as TextStyle,
+    statsRow:          { flexDirection: 'row' as const, gap: 12, marginBottom: 20 } as ViewStyle,
+    statCard:          { flex: 1, borderRadius: 20, borderWidth: 1, padding: 14, alignItems: 'center' as const, minHeight: 118 } as ViewStyle,
+    statIcon:          { width: 34, height: 34, borderRadius: 17, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: 8 } as ViewStyle,
+    statVal:           { fontSize: 30, fontWeight: '600' as const, lineHeight: 34 } as TextStyle,
+    statLbl:           { fontSize: 12, fontWeight: '600' as const, marginTop: 4, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
+    targetsSection:    { marginBottom: 0 } as ViewStyle,
+    targetsHeader:     { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginTop: 4, marginBottom: 12 } as ViewStyle,
+    targetsTitle:      { fontSize: 20, fontWeight: '600' as const, lineHeight: 26 } as TextStyle,
+    planPill:          { flexDirection: 'row' as const, paddingHorizontal: 14, minHeight: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const } as ViewStyle,
+    planPillText:      { fontSize: 16, fontWeight: '600' as const } as TextStyle,
+    trackerCard:       { borderRadius: 24, borderWidth: 1, padding: 18, marginBottom: 14 } as ViewStyle,
+    waterTrackerCard:  { minHeight: 180 } as ViewStyle,
+    stepsTrackerCard:  { minHeight: 168 } as ViewStyle,
+    stepsMainVal:      { fontSize: 34, lineHeight: 38, fontWeight: '600' as const } as TextStyle,
+    trackerCardTop:    { flexDirection: 'row' as const, alignItems: 'flex-end' as const, gap: 12, marginBottom: 12 } as ViewStyle,
+    trackerEyebrow:    { fontSize: 12, fontWeight: '600' as const, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 4 } as TextStyle,
+    trackerValRow:     { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 5, marginBottom: 8 } as ViewStyle,
+    trackerVal:        { fontSize: 30, fontWeight: '600' as const, letterSpacing: -0.5 } as TextStyle,
+    trackerUnit:       { fontSize: 18, fontWeight: '500' as const } as TextStyle,
+    trackerOf:         { fontSize: 18, fontWeight: '500' as const, marginLeft: 2 } as TextStyle,
+    trackerRight:      { alignItems: 'center' as const, flexDirection: 'row' as const, gap: 4, minWidth: 36 } as ViewStyle,
+    trackerPct:        { fontSize: 18, fontWeight: '600' as const } as TextStyle,
+    waterQuickRow:     { flexDirection: 'row' as const, gap: 10, marginTop: 16, paddingRight: 4 } as ViewStyle,
     stepsEyebrowRow:   { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6 } as ViewStyle,
-    liveDot:           { width: 6, height: 6, borderRadius: 3, marginBottom: 3 }        as ViewStyle,
-    sourceLabel:       { fontSize: 11, marginTop: 4 }                                    as TextStyle,
-    weightRow:         { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, borderRadius: 14, borderWidth: 1, padding: 13, marginBottom: 8 } as ViewStyle,
-    weightVal:         { fontSize: 17, fontWeight: '700' as const }                     as TextStyle,
-    weightGoal:        { fontSize: 14, fontWeight: '600' as const }                     as TextStyle,
+    liveDot:           { width: 6, height: 6, borderRadius: 3, marginBottom: 3 } as ViewStyle,
+    sourceLabel:       { fontSize: 14, fontWeight: '400' as const, marginTop: 12, lineHeight: 20 } as TextStyle,
+    weightRow:         { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 0, minHeight: 100 } as ViewStyle,
+    weightVal:         { fontSize: 24, fontWeight: '600' as const, lineHeight: 28 } as TextStyle,
+    weightGoal:        { fontSize: 20, fontWeight: '600' as const, lineHeight: 24 } as TextStyle,
   });
 }

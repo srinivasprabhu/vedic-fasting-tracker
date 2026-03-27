@@ -175,7 +175,8 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
 
   const totalHours = useMemo(() => {
     return completedRecords.reduce((sum, r) => {
-      const duration = (r.endTime ?? 0) - r.startTime;
+      const end = r.endTime ?? r.startTime;
+      const duration = Math.max(0, end - r.startTime);
       return sum + duration / 3600000;
     }, 0);
   }, [completedRecords]);

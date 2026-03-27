@@ -57,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncOnSignIn(uid).then(() => {
       queryClient.invalidateQueries({ queryKey: ['fasting-records'] });
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['weight-logs'] });
+      if (__DEV__) console.log('[Auth] syncOnSignIn complete — all local data uploaded to Supabase');
     });
   }, [session?.user?.id, queryClient]);
 

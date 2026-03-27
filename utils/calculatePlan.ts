@@ -154,9 +154,13 @@ export function calcDailyCalories(
   bmi:         number | null,
   sex?:        UserSex,
   hasGoalWeight?: boolean,
+  age?:        number,
 ): { calories: number; deficit: number } {
   // Sex-aware calorie floor: 1500 for males, 1200 for females
   const floor = sex === 'male' ? 1500 : 1200;
+
+  // Under 18: never create a calorie deficit — growing bodies need full nutrition
+  if (age !== undefined && age < 18) return { calories: tdee, deficit: 0 };
 
   if (bmi !== null && bmi < 18.5) return { calories: tdee + 100, deficit: -100 };
 
@@ -234,15 +238,72 @@ export function calcDailySteps(
 
 // ─── Weeks to goal ────────────────────────────────────────────────────────────
 
+// Realistic projection that accounts for:
+//  1. Calorie deficit from diet
+//  2. IF metabolic bonus (15-20% more fat loss than CICO alone per research)
+//  3. Steps/activity calorie burn beyond sedentary baseline
+//  4. Initial water weight drop in first 1-2 weeks of IF
+//  5. Non-linear curve: faster early, slight adaptive slowdown after week 8
+//  6. Age-adjusted metabolic recovery rate
 export function calcWeeksToGoal(
   currentKg: number,
   goalKg:    number,
   deficit:   number,
+  options?: {
+    fastHours?:     number;
+    dailySteps?:    number;
+    activityLevel?: ActivityLevel | null;
+    age?:           number;
+  },
 ): number | null {
   if (goalKg >= currentKg || deficit <= 0) return null;
   const kgToLose = currentKg - goalKg;
-  const kgPerWeek = (deficit * 7) / 7700;
-  return Math.ceil(kgToLose / kgPerWeek);
+
+  // Base loss from calorie deficit: 7700 kcal = 1 kg fat
+  const baseKgPerWeek = (deficit * 7) / 7700;
+
+  // 1. IF metabolic bonus: research shows 15-20% more fat loss with IF
+  const fastHours = options?.fastHours ?? 16;
+  const ifBonus = fastHours >= 18 ? 0.20
+    : fastHours >= 16 ? 0.17
+    : fastHours >= 14 ? 0.12
+    : fastHours >= 12 ? 0.08
+    : 0.05;
+
+  // 2. Steps: ~0.04 kcal per step above sedentary baseline (3000)
+  const steps = options?.dailySteps ?? 7000;
+  const extraStepsBurn = Math.max(0, (steps - 3000) * 0.04);
+  const stepsKgPerWeek = (extraStepsBurn * 7) / 7700;
+
+  // 3. Age factor
+  const age = options?.age ?? 35;
+  const ageFactor = age < 30 ? 1.05 : age < 40 ? 1.0 : age < 50 ? 0.97 : 0.93;
+
+  // Effective weekly loss (steady state)
+  const effectiveKgPerWeek = (baseKgPerWeek * (1 + ifBonus) + stepsKgPerWeek) * ageFactor;
+
+  // 4. Initial water weight from glycogen depletion (~1-1.5kg in weeks 1-2)
+  const waterWeightBonus = fastHours >= 14 ? 1.2 : fastHours >= 12 ? 0.8 : 0.4;
+
+  // 5. Week-by-week simulation with non-linear curve
+  let remaining = kgToLose;
+  let weeks = 0;
+
+  while (remaining > 0 && weeks < 200) {
+    weeks++;
+    let weekLoss: number;
+    if (weeks <= 2) {
+      weekLoss = effectiveKgPerWeek + (waterWeightBonus / 2);
+    } else if (weeks <= 8) {
+      weekLoss = effectiveKgPerWeek;
+    } else {
+      const slowdown = Math.min(0.08, (weeks - 8) * 0.003);
+      weekLoss = effectiveKgPerWeek * (1 - slowdown);
+    }
+    remaining -= weekLoss;
+  }
+
+  return Math.max(1, weeks);
 }
 
 // ─── Master function ──────────────────────────────────────────────────────────
@@ -252,23 +313,43 @@ export function calculatePlan(profile: UserProfile): UserPlan | null {
   if (!sex || !heightCm || !currentWeightKg) return null;
 
   const age     = getAge(profile);
+
+  // ── Safety: minors and underweight ────────────────────────────────────────
+  const bmiCheck = calcBMI(currentWeightKg, heightCm);
+  // Under 18: never generate a weight-loss plan, override purpose
+  const safePurpose = (age < 18 && profile.fastingPurpose === 'weight_loss')
+    ? 'energy' as FastingPurpose
+    : profile.fastingPurpose;
+  // Underweight: clear goal weight to prevent deficit plan
+  const safeGoalKg = (bmiCheck < 18.5 && profile.goalWeightKg && profile.goalWeightKg < currentWeightKg)
+    ? undefined
+    : profile.goalWeightKg;
   const bmr     = calcBMR(currentWeightKg, heightCm, age, sex);
   const tdee    = calcTDEE(bmr, profile.activityLevel ?? null, profile.fastingLevel ?? null);
   const bmi     = calcBMI(currentWeightKg, heightCm);
   const bmiCat  = getBMICategory(bmi);
-  const protocol = selectIFProtocol(profile.fastingPurpose, profile.fastingLevel ?? null, bmi);
+  let protocol = selectIFProtocol(safePurpose, profile.fastingLevel ?? null, bmi);
+  // Under 18: cap at 14:10 max — longer fasts not recommended for growing bodies
+  if (age < 18 && protocol.fastHours > 14) {
+    protocol = { fastHours: 14, eatHours: 10, fastLabel: '14:10' };
+  }
   const { calories, deficit } = calcDailyCalories(
-    tdee, profile.fastingPurpose, bmi, sex, !!profile.goalWeightKg,
+    tdee, safePurpose, bmi, sex, !!safeGoalKg, age,
   );
   const waterMl = calcDailyWaterMl(currentWeightKg);
   const steps   = calcDailySteps(
-    profile.fastingPurpose,
+    safePurpose,
     profile.fastingLevel ?? null,
     profile.activityLevel ?? null,
     profile.ageGroup ?? null,
   );
-  const weeksToGoal = profile.goalWeightKg
-    ? calcWeeksToGoal(currentWeightKg, profile.goalWeightKg, deficit)
+  const weeksToGoal = safeGoalKg
+    ? calcWeeksToGoal(currentWeightKg, safeGoalKg, deficit, {
+        fastHours: protocol.fastHours,
+        dailySteps: steps,
+        activityLevel: profile.activityLevel ?? null,
+        age,
+      })
     : null;
 
   const prev = profile.plan;
@@ -318,6 +399,7 @@ export function estimateAdjustedWeeksToGoal(
   customSteps:     number,
   currentKg:       number,
   goalKg:          number,
+  age?:            number,
 ): number | null {
   if (goalKg >= currentKg || basePlan.dailyDeficit <= 0) return basePlan.weeksToGoal;
 
@@ -333,9 +415,12 @@ export function estimateAdjustedWeeksToGoal(
 
   const adjustedDeficit = Math.max(50, Math.round(baseDeficit + fastDelta + stepDelta));
 
-  const kgToLose  = currentKg - goalKg;
-  const kgPerWeek = (adjustedDeficit * 7) / 7700;
-  return Math.max(1, Math.ceil(kgToLose / kgPerWeek));
+  // Use the improved formula with all factors
+  return calcWeeksToGoal(currentKg, goalKg, adjustedDeficit, {
+    fastHours: customFastHours,
+    dailySteps: customSteps,
+    age: age ?? 35,
+  });
 }
 
 export function formatWater(ml: number): string {

@@ -4,10 +4,8 @@ import { Platform } from 'react-native';
 import type { UserProfile } from '@/types/user';
 import {
   buildPlanScheduleInput,
-  getReminderHourBeforeFastEnd,
   getReminderHourBeforeFastStart,
   jsWeekdayToExpoCalendarWeekday,
-  nextJsWeekday,
 } from '@/utils/fastingPlanSchedule';
 
 const NOTIF_PREF_KEY = 'aayu_notifications_enabled';
@@ -23,7 +21,10 @@ const WATER_REMINDERS_ENABLED_KEY = 'aayu_notif_water_enabled';
 
 /** JSON string array of notification ids (supports multiple weekdays for 5:2 / 4:3). */
 const BEFORE_FAST_START_IDS_KEY = 'aayu_before_fast_start_notif_ids';
+/** Legacy recurring “before fast end” ids (daily/weekly); cleared on sync — no longer scheduled. */
 const BEFORE_FAST_END_IDS_KEY = 'aayu_before_fast_end_notif_ids';
+/** Single id: 1h-before-end for the *current* fast only (cancelled when fast ends or toggle off). */
+const BEFORE_FAST_END_ACTIVE_ID_KEY = 'aayu_before_fast_end_active_id';
 /** Legacy single-id storage (migrated on cancel). */
 const LEGACY_BEFORE_FAST_START_ID_KEY = 'aayu_before_fast_start_notif_id';
 const LEGACY_BEFORE_FAST_END_ID_KEY = 'aayu_before_fast_end_notif_id';
@@ -150,6 +151,16 @@ async function cancelBeforeFastEndNotifications(): Promise<void> {
   } catch {}
 }
 
+async function cancelScheduledBeforeFastEndForActiveFast(): Promise<void> {
+  try {
+    const id = await AsyncStorage.getItem(BEFORE_FAST_END_ACTIVE_ID_KEY);
+    if (id) {
+      await cancelById(id);
+      await AsyncStorage.removeItem(BEFORE_FAST_END_ACTIVE_ID_KEY);
+    }
+  } catch {}
+}
+
 async function cancelWaterReminderNotifications(): Promise<void> {
   await cancelStoredIds(WATER_NOTIF_IDS_KEY);
 }
@@ -173,6 +184,11 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
   const beforeStart = await getReminderBeforeFastStart();
   const beforeEnd = await getReminderBeforeFastEnd();
   const waterOn = await getWaterRemindersEnabled();
+
+  // Per-fast “eating window soon” lives in BEFORE_FAST_END_ACTIVE_ID_KEY; drop it if user turned this off.
+  if (!beforeEnd) {
+    await cancelScheduledBeforeFastEndForActiveFast();
+  }
 
   if (planInput && beforeStart) {
     const startIds: string[] = [];
@@ -224,56 +240,8 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
     }
   }
 
-  if (planInput && beforeEnd) {
-    const endIds: string[] = [];
-    const endHour = getReminderHourBeforeFastEnd(planInput.lastMealHour, planInput.fastHours);
-    if (planInput.mode === 'weekly' && planInput.weeklyFastDays?.length) {
-      for (const jsDay of planInput.weeklyFastDays) {
-        const endJsDay = nextJsWeekday(jsDay);
-        try {
-          const id = await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Eating window soon 🍽️',
-              body: `About 1 hour until you can break your ${planInput.fastLabel} fast.`,
-              sound: true,
-              data: { type: 'before_fast_end' },
-            },
-            trigger: {
-              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-              weekday: jsWeekdayToExpoCalendarWeekday(endJsDay),
-              hour: endHour,
-              minute: 0,
-            },
-          });
-          endIds.push(id);
-        } catch (e) {
-          console.log('Before fast end (weekly) schedule error:', e);
-        }
-      }
-    } else {
-      try {
-        const id = await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Eating window soon 🍽️',
-            body: `About 1 hour until you can break your ${planInput.fastLabel} fast.`,
-            sound: true,
-            data: { type: 'before_fast_end' },
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour: endHour,
-            minute: 0,
-          },
-        });
-        endIds.push(id);
-      } catch (e) {
-        console.log('Before fast end schedule error:', e);
-      }
-    }
-    if (endIds.length > 0) {
-      await AsyncStorage.setItem(BEFORE_FAST_END_IDS_KEY, JSON.stringify(endIds));
-    }
-  }
+  // “Before fast end” is no longer a recurring calendar trigger — it is scheduled per fast in
+  // scheduleActiveFastMilestones (1h before *this* fast’s target) so it does not fire after an early end.
 
   if (waterOn) {
     const ids: string[] = [];
@@ -400,6 +368,25 @@ export async function scheduleActiveFastMilestones(
     }
   }
 
+  // 1 hour before this fast’s planned end — only while this fast is active (cancelled on endFast).
+  if ((await getReminderBeforeFastEnd()) && (await getNotificationsEnabled())) {
+    const eatingWindowSoonAt = startTime + targetDurationMs - 3600_000;
+    const beforeEndDelayMs = eatingWindowSoonAt - now;
+    if (beforeEndDelayMs > 1000) {
+      const id = await schedule(
+        'Eating window soon 🍽️',
+        `About 1 hour until you can break your ${fastLabel} fast.`,
+        beforeEndDelayMs / 1000,
+        { type: 'before_fast_end' },
+      );
+      if (id) {
+        try {
+          await AsyncStorage.setItem(BEFORE_FAST_END_ACTIVE_ID_KEY, id);
+        } catch {}
+      }
+    }
+  }
+
   const targetFireAt = startTime + targetDurationMs;
   const targetDelay = targetFireAt - now;
   if (targetDelay > 1000) {
@@ -418,6 +405,7 @@ export async function scheduleActiveFastMilestones(
 }
 
 export async function cancelActiveFastNotifications(): Promise<void> {
+  await cancelScheduledBeforeFastEndForActiveFast();
   await cancelStoredIds(MILESTONE_IDS_KEY);
 }
 

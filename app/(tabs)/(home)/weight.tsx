@@ -14,6 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { syncWeightEntry } from '@/lib/sync';
 import { calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor, kgToLbs, lbsToKg } from '@/utils/calculatePlan';
 import type { ColorScheme } from '@/constants/colors';
 
@@ -111,6 +113,7 @@ const wr = StyleSheet.create({
 export default function WeightScreen() {
   const { colors, isDark } = useTheme();
   const { profile, updateBodyMetrics } = useUserProfile();
+  const { user, isAuthenticated } = useAuth();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const unit       = profile?.weightUnit ?? 'kg';
@@ -155,6 +158,11 @@ export default function WeightScreen() {
     setLog(updated);
     await saveWeightLog(updated);
     setInputVal('');
+
+    // Sync to Supabase in background
+    if (isAuthenticated && user?.id) {
+      syncWeightEntry(user.id, entry).catch(() => {});
+    }
 
     // Also update profile so plan stays current
     updateBodyMetrics({

@@ -90,8 +90,10 @@ const PlanCard: React.FC<{
   onSelect:   () => void;
   colors:     ColorScheme;
   isDark:     boolean;
-}> = ({ plan, selected, isProUser, onSelect, colors, isDark }) => {
+  restricted?: boolean;  // safety-restricted (age/BMI)
+}> = ({ plan, selected, isProUser, onSelect, colors, isDark, restricted }) => {
   const locked = plan.isPro && !isProUser;
+  const blocked = restricted || false;  // can't select even if Pro
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const pressIn  = () => Animated.spring(scaleAnim, { toValue: 0.96, speed: 30, bounciness: 3, useNativeDriver: true }).start();
@@ -110,15 +112,15 @@ const PlanCard: React.FC<{
         style={[
           s.planCard,
           {
-            backgroundColor: locked
+            backgroundColor: (locked || blocked)
               ? (isDark ? 'rgba(200,135,42,.06)' : 'rgba(200,135,42,.04)')
               : `${plan.color}${isDark ? '18' : '12'}`,
             borderColor: selected
               ? plan.color
-              : locked
+              : (locked || blocked)
                 ? (isDark ? 'rgba(200,135,42,.12)' : 'rgba(200,135,42,.15)')
                 : `${plan.color}40`,
-            opacity: locked ? 0.65 : 1,
+            opacity: (locked || blocked) ? 0.55 : 1,
           },
         ]}
       >
@@ -129,17 +131,21 @@ const PlanCard: React.FC<{
           </View>
         )}
 
-        {/* Pro badge */}
-        {plan.isPro && (
+        {/* Pro badge or safety badge */}
+        {blocked ? (
+          <View style={[s.proBadge, { backgroundColor: isDark ? 'rgba(212,96,96,.8)' : '#c05050' }]}>
+            <Text style={s.proBadgeText}>⚠️</Text>
+          </View>
+        ) : plan.isPro ? (
           <View style={[s.proBadge, { backgroundColor: isDark ? 'rgba(232,168,76,.9)' : '#E8913A' }]}>
             <Text style={s.proBadgeText}>PRO</Text>
           </View>
-        )}
+        ) : null}
 
         {/* Plan label */}
         <Text style={[
           s.planLabel,
-          { color: locked ? colors.textMuted : (isDark ? '#fff' : '#1a0d04') },
+          { color: (locked || blocked) ? colors.textMuted : (isDark ? '#fff' : '#1a0d04') },
         ]}>
           {plan.label}
         </Text>
@@ -147,13 +153,13 @@ const PlanCard: React.FC<{
         {/* Description */}
         <Text style={[
           s.planDesc,
-          { color: locked ? colors.textMuted : (isDark ? 'rgba(255,255,255,.65)' : 'rgba(26,13,4,.55)') },
+          { color: (locked || blocked) ? colors.textMuted : (isDark ? 'rgba(255,255,255,.65)' : 'rgba(26,13,4,.55)') },
         ]}>
           {plan.desc}
         </Text>
 
         {/* Lock icon */}
-        {locked && (
+        {(locked || blocked) && (
           <View style={s.lockWrap}>
             <Lock size={14} color={colors.textMuted} />
           </View>
@@ -194,10 +200,15 @@ interface FastPlanPickerModalProps {
   onSelect:    (plan: FastPlanOption) => void;
   onClose:     () => void;
   onUpgrade:   () => void;
+  /** Max fast hours allowed (e.g. 14 for under-18). null = no limit. */
+  maxFastHours?: number | null;
+  /** Reason shown when a plan exceeds maxFastHours */
+  restrictionReason?: string;
 }
 
 export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
   visible, currentPlan, isProUser, onSelect, onClose, onUpgrade,
+  maxFastHours = null, restrictionReason,
 }) => {
   const { colors, isDark } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -214,13 +225,19 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
   }, [onClose, slideAnim]);
 
   const handleSelect = useCallback((plan: FastPlanOption) => {
+    // Pro gate
     if (plan.isPro && !isProUser) {
       onUpgrade();
       return;
     }
+    // Safety gate: max fast hours (e.g. under-18 or underweight)
+    if (maxFastHours !== null && plan.fastHours > maxFastHours) {
+      // Blocked — do nothing (card shows as restricted)
+      return;
+    }
     onSelect(plan);
     handleClose();
-  }, [isProUser, onSelect, onUpgrade, handleClose]);
+  }, [isProUser, maxFastHours, onSelect, onUpgrade, handleClose]);
 
   // Find selected plan id from label
   const selectedId = useMemo(() => {
@@ -282,6 +299,19 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
             contentContainerStyle={s.scrollContent}
             bounces={false}
           >
+            {/* Safety restriction banner */}
+            {maxFastHours !== null && restrictionReason && (
+              <View style={[s.restrictBanner, {
+                backgroundColor: isDark ? 'rgba(212,96,96,.08)' : 'rgba(212,96,96,.06)',
+                borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)',
+              }]}>
+                <Text style={{ fontSize: 14 }}>⚠️</Text>
+                <Text style={[s.restrictText, { color: isDark ? 'rgba(240,224,192,.65)' : 'rgba(60,35,10,.65)' }]}>
+                  {restrictionReason}
+                </Text>
+              </View>
+            )}
+
             {PLAN_CATEGORIES.map((cat, ci) => (
               <View key={cat.title} style={ci > 0 ? s.catGap : undefined}>
                 <Text style={[s.catTitle, { color: colors.text }]}>{cat.title}</Text>
@@ -297,6 +327,7 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
                       onSelect={() => handleSelect(plan)}
                       colors={colors}
                       isDark={isDark}
+                      restricted={maxFastHours !== null && plan.fastHours > maxFastHours}
                     />
                   ))}
                 </View>
@@ -479,5 +510,21 @@ const s = StyleSheet.create({
   upsellArrow: {
     fontSize: 20,
     fontWeight: '300',
+  } as TextStyle,
+
+  restrictBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 16,
+  } as ViewStyle,
+
+  restrictText: {
+    fontSize: 13,
+    lineHeight: 19,
+    flex: 1,
   } as TextStyle,
 });

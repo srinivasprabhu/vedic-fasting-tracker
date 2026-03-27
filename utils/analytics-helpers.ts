@@ -35,6 +35,12 @@ export const WARRIOR_LEVELS = [
   { name: 'Legend', minFasts: 100, color: '#7B68AE', icon: '👑' },
 ];
 
+/** Safe fast duration in hours (never negative — fixes bad/synced records). */
+export function fastDurationHours(r: { startTime: number; endTime?: number | null }): number {
+  const end = r.endTime ?? r.startTime;
+  return Math.max(0, end - r.startTime) / 3600000;
+}
+
 /** Returns YYYY-MM-DD in local timezone (not UTC). Use for day-based grouping. */
 export function toLocalDateString(d: Date | number): string {
   const date = typeof d === 'number' ? new Date(d) : d;
@@ -45,8 +51,45 @@ export function toLocalDateString(d: Date | number): string {
 }
 
 export function formatHours(hours: number): string {
-  if (hours < 1) return `${Math.round(hours * 60)}m`;
-  return `${Math.round(hours * 10) / 10}h`;
+  const h = Number.isFinite(hours) ? Math.max(0, hours) : 0;
+  if (h < 1) return `${Math.round(h * 60)}m`;
+  return `${Math.round(h * 10) / 10}h`;
+}
+
+/** Lifetime / large totals: prefer hours; use days when helpful. Never negative. */
+export function formatFastingHoursTotal(hours: number): string {
+  const h = Number.isFinite(hours) ? Math.max(0, hours) : 0;
+  if (h >= 48) {
+    const d = h / 24;
+    if (d >= 10) return `${Math.round(d * 10) / 10} d`;
+    return `${Math.round(h * 10) / 10}h`;
+  }
+  return formatHours(h);
+}
+
+/**
+ * Safe UI copy for extended fasting — no numeric hormone multipliers.
+ * Use for gauges / cards where a 0–100 style score helps layout.
+ */
+export function getExtendedFastingSupportLevel(hours: number): {
+  score: number;
+  label: string;
+  sublabel: string;
+} {
+  const h = Math.max(0, hours);
+  if (h < 12) {
+    return { score: 25, label: 'Early window', sublabel: 'Longer fasts deepen metabolic adaptation' };
+  }
+  if (h < 18) {
+    return { score: 45, label: 'Fat-burn shift', sublabel: 'Often associated with deeper fat utilization' };
+  }
+  if (h < 24) {
+    return { score: 60, label: 'Extended phase', sublabel: 'Repair and hormone signaling may increase' };
+  }
+  if (h < 48) {
+    return { score: 78, label: 'Deep fasting zone', sublabel: 'Often linked to stronger metabolic flexibility' };
+  }
+  return { score: 92, label: 'Advanced phase', sublabel: 'Extended fast — listen to your body' };
 }
 
 export function formatNumber(n: number): string {

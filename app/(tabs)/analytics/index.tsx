@@ -32,6 +32,7 @@ import {
   CircleDot,
   Info,
 } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useFasting } from '@/contexts/FastingContext';
@@ -54,21 +55,33 @@ import {
   formatHours,
   formatNumber,
   getAutophagyScore,
-  getHGHMultiplier,
+  getExtendedFastingSupportLevel,
+  fastDurationHours,
   calculateFatBurned,
   toLocalDateString,
   MilestoneData,
   BarData,
 } from '@/utils/analytics-helpers';
+import { getTargetFastsPerWeek } from '@/utils/metabolic-score';
 import AayuInsightCard from '@/components/AayuInsightCard';
 import type { ColorScheme } from '@/constants/colors';
 
 type TabKey = 'overview' | 'spirit';
 
-function DedicatedSeekerCard({ completedCount, colors }: { completedCount: number; colors: ColorScheme }) {
+function DedicatedSeekerCard({
+  completedCount,
+  colors,
+  targetFastsPerWeek,
+}: {
+  completedCount: number;
+  colors: ColorScheme;
+  targetFastsPerWeek: number;
+}) {
   const BADGE_COLOR = '#D4A03C';
   const isUnlocked = completedCount >= 10;
   const progress = Math.min(completedCount, 10);
+  const remaining = Math.max(0, 10 - progress);
+  const estWeeks = remaining === 0 ? 0 : Math.ceil(remaining / Math.max(1, targetFastsPerWeek));
   const progressAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0.5)).current;
 
@@ -116,8 +129,15 @@ function DedicatedSeekerCard({ completedCount, colors }: { completedCount: numbe
           <Text style={[dStyles.sub, { color: colors.textMuted }]}>
             {isUnlocked
               ? 'A true commitment to fasting. Your discipline shines.'
-              : `${10 - progress} more fast${10 - progress === 1 ? '' : 's'} to unlock this badge`}
+              : `Complete ${remaining} more fast${remaining === 1 ? '' : 's'} to unlock this badge`}
           </Text>
+          {!isUnlocked && remaining > 0 && (
+            <Text style={[dStyles.paceHint, { color: colors.textSecondary }]}>
+              {estWeeks <= 1
+                ? 'One strong week can get you much closer.'
+                : `About ${estWeeks} weeks at your plan pace (${targetFastsPerWeek} fasts/wk).`}
+            </Text>
+          )}
         </View>
         <View style={dStyles.counter}>
           <Text style={[dStyles.countNum, { color: isUnlocked ? BADGE_COLOR : colors.text }]}>{progress}</Text>
@@ -161,7 +181,7 @@ const dStyles = StyleSheet.create({
     flexWrap: 'wrap' as const,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700' as const,
     letterSpacing: -0.2,
   },
@@ -176,9 +196,15 @@ const dStyles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   sub: {
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 2,
+    lineHeight: 18,
+  },
+  paceHint: {
+    fontSize: 12,
+    marginTop: 6,
     lineHeight: 16,
+    fontWeight: '500' as const,
   },
   counter: {
     flexDirection: 'row' as const,
@@ -253,7 +279,7 @@ export default function AnalyticsScreen() {
   const avgFastDuration = useMemo(() => {
     if (completedRecords.length === 0) return 0;
     const total = completedRecords.reduce((sum, r) => {
-      return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+      return sum + fastDurationHours(r);
     }, 0);
     return total / completedRecords.length;
   }, [completedRecords]);
@@ -276,7 +302,7 @@ export default function AnalyticsScreen() {
       });
 
       const hours = dayRecords.reduce((sum, r) => {
-        return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+        return sum + fastDurationHours(r);
       }, 0);
 
       return { label, value: hours, maxValue: 24 };
@@ -299,7 +325,7 @@ export default function AnalyticsScreen() {
   const longestFast = useMemo(() => {
     if (completedRecords.length === 0) return 0;
     return Math.max(
-      ...completedRecords.map(r => ((r.endTime ?? 0) - r.startTime) / 3600000)
+      ...completedRecords.map(r => fastDurationHours(r))
     );
   }, [completedRecords]);
 
@@ -319,15 +345,16 @@ export default function AnalyticsScreen() {
   const autophagyDepth = useMemo(() => {
     if (completedRecords.length === 0) return 0;
     const scores = completedRecords.map(r => {
-      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const hours = fastDurationHours(r);
       return getAutophagyScore(hours);
     });
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   }, [completedRecords]);
 
-  const bestHGH = useMemo(() => {
-    return getHGHMultiplier(longestFast);
-  }, [longestFast]);
+  const extendedFastingLevel = useMemo(
+    () => getExtendedFastingSupportLevel(longestFast),
+    [longestFast],
+  );
 
   const sattvicScore = useMemo(() => {
     let score = 0;
@@ -342,25 +369,38 @@ export default function AnalyticsScreen() {
     return Math.min(score, 100);
   }, [completedRecords, streak, completionRate]);
 
+  const completedFastCount = useMemo(
+    () => completedRecords.filter(r => r.completed).length,
+    [completedRecords],
+  );
+
   const warriorLevel = useMemo(() => {
-    const completedCount = completedRecords.filter(r => r.completed).length;
     let level = WARRIOR_LEVELS[0];
     for (const l of WARRIOR_LEVELS) {
-      if (completedCount >= l.minFasts) level = l;
+      if (completedFastCount >= l.minFasts) level = l;
     }
     return level;
-  }, [completedRecords]);
+  }, [completedFastCount]);
+
+  const warriorNextLevel = useMemo(() => {
+    return WARRIOR_LEVELS.find(l => l.minFasts > completedFastCount) ?? null;
+  }, [completedFastCount]);
+
+  const waterWeekTotalMl = useMemo(
+    () => waterTrend.waterData.reduce((s, d) => s + d.value, 0),
+    [waterTrend.waterData],
+  );
 
   const gutRestHours = useMemo(() => {
     return completedRecords.reduce((sum, r) => {
-      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const hours = fastDurationHours(r);
       return sum + Math.max(0, hours - 8);
     }, 0);
   }, [completedRecords]);
 
   const totalFatBurned = useMemo(() => {
     return completedRecords.reduce((sum, r) => {
-      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const hours = fastDurationHours(r);
       return sum + calculateFatBurned(hours);
     }, 0);
   }, [completedRecords]);
@@ -368,7 +408,7 @@ export default function AnalyticsScreen() {
   const totalAutophagyHours = useMemo(() => {
     let hours = 0;
     completedRecords.forEach(r => {
-      const dur = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const dur = fastDurationHours(r);
       if (dur > AUTOPHAGY_THRESHOLD_HOURS) {
         hours += dur - AUTOPHAGY_THRESHOLD_HOURS;
       }
@@ -392,7 +432,7 @@ export default function AnalyticsScreen() {
   const impactMetrics = useMemo(() => {
     const fatBurnedCalories = totalFatBurned * 9;
     const mealsSkipped = completedRecords.reduce((sum, r) => {
-      const durationHours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const durationHours = fastDurationHours(r);
       return sum + Math.floor(durationHours / 6);
     }, 0);
     return { fatBurnedCalories, fatBurnedGrams: totalFatBurned, autophagyHours: totalAutophagyHours, mealsSkipped };
@@ -481,14 +521,14 @@ export default function AnalyticsScreen() {
 
   const autophagyCount = useMemo(() => {
     return completedRecords.filter(r => {
-      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const hours = fastDurationHours(r);
       return hours > AUTOPHAGY_THRESHOLD_HOURS;
     }).length;
   }, [completedRecords]);
 
   const thisWeekHours = useMemo(() => {
     return thisWeekRecords.reduce((sum, r) => {
-      return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+      return sum + fastDurationHours(r);
     }, 0);
   }, [thisWeekRecords]);
 
@@ -507,7 +547,7 @@ export default function AnalyticsScreen() {
         r.startTime < startOfThisWeek.getTime()
     );
     return lastWeekRecs.reduce((sum, r) => {
-      return sum + ((r.endTime ?? 0) - r.startTime) / 3600000;
+      return sum + fastDurationHours(r);
     }, 0);
   }, [completedRecords]);
 
@@ -524,16 +564,102 @@ export default function AnalyticsScreen() {
   const thisWeekPersonalBest = useMemo(() => {
     if (thisWeekRecords.length === 0) return 0;
     return Math.max(
-      ...thisWeekRecords.map((r) => ((r.endTime ?? 0) - r.startTime) / 3600000)
+      ...thisWeekRecords.map((r) => fastDurationHours(r))
     );
   }, [thisWeekRecords]);
 
   const thisWeekAutophagyCount = useMemo(() => {
     return thisWeekRecords.filter(r => {
-      const hours = ((r.endTime ?? 0) - r.startTime) / 3600000;
+      const hours = fastDurationHours(r);
       return hours > AUTOPHAGY_THRESHOLD_HOURS;
     }).length;
   }, [thisWeekRecords]);
+
+  const targetFastsPerWeek = useMemo(() => {
+    const p = profile?.plan;
+    if (!p) return getTargetFastsPerWeek(null);
+    if (p.planTemplateId === 'if_5_2' || p.planTemplateId === 'if_4_3') {
+      const n = p.weeklyFastDays?.length;
+      if (n && n > 0) return n;
+    }
+    return getTargetFastsPerWeek(p.fastLabel);
+  }, [profile?.plan]);
+
+  const weekCompletedCount = useMemo(
+    () => thisWeekRecords.filter(r => r.completed).length,
+    [thisWeekRecords],
+  );
+
+  const goalAdherencePct = useMemo(() => {
+    const t = targetFastsPerWeek;
+    if (t <= 0) return 0;
+    return Math.min(100, Math.round((weekCompletedCount / t) * 100));
+  }, [weekCompletedCount, targetFastsPerWeek]);
+
+  const weekSummaryLine = useMemo(() => {
+    if (thisWeekHours < 0.05 && thisWeekRecords.length === 0) {
+      return 'No fasts logged this calendar week yet — start when you are ready.';
+    }
+    const parts = [`${formatHours(thisWeekHours)} fasting logged this week`];
+    if (thisWeekPersonalBest >= 1) {
+      parts.push(`longest single fast ${formatHours(thisWeekPersonalBest)}`);
+    }
+    return `${parts[0]}${parts.length > 1 ? ` · ${parts[1]}` : ''}.`;
+  }, [thisWeekHours, thisWeekRecords.length, thisWeekPersonalBest]);
+
+  const waterWeekLoggedDays = useMemo(() => {
+    if (waterRange !== 'week') return 99;
+    return waterTrend.waterData.filter(d => d.value > 0).length;
+  }, [waterTrend.waterData, waterRange]);
+
+  const fastingChartHint = useMemo(() => {
+    if (fastingRange === 'week') return 'Hours logged per day · This week';
+    if (fastingRange === 'month') return 'Hours logged per day · Last 30 days';
+    return 'Total hours · By month';
+  }, [fastingRange]);
+
+  const fastingInterpretation = useMemo(() => {
+    const pts = fastingTrend.fastingData.filter(d => d.value > 0);
+    if (pts.length === 0) return 'No hours in this range yet — complete a fast to see bars fill in.';
+    const best = fastingTrend.fastingData.reduce((m, d) => (d.value > m.v ? { v: d.value, l: d.label } : m), { v: 0, l: '' });
+    return `${pts.length} active day${pts.length === 1 ? '' : 's'} · strongest day ${best.l} (${formatHours(best.v)}).`;
+  }, [fastingTrend.fastingData]);
+
+  const weightInterpretation = useMemo(() => {
+    const data = weightTrend.weightData;
+    const positive = data.filter(d => d.value > 0);
+    if (positive.length < 2) return 'Log weight a few times to see trend and coaching notes here.';
+    const latest = data[data.length - 1]?.value ?? 0;
+    const first =
+      weightTrend.startingWeightKg && weightTrend.startingWeightKg > 0
+        ? weightTrend.startingWeightKg
+        : positive[0].value;
+    const change = latest - first;
+    if (Math.abs(change) < 0.08) return 'Weight is steady in this window — consistency beats speed.';
+    if (change < 0) return 'Slight downward move — small steps add up when you stay consistent.';
+    return 'Trending up in this window — zoom out to monthly view for context.';
+  }, [weightTrend.weightData, weightTrend.startingWeightKg]);
+
+  const stepsReferenceCaption = useMemo(() => {
+    const t = stepsTrend.stepsTarget;
+    if (!t || t <= 0) return undefined;
+    return `Goal: ${t >= 1000 ? `${(t / 1000).toFixed(1)}k` : t} steps`;
+  }, [stepsTrend.stepsTarget]);
+
+  const stepsInterpretation = useMemo(() => {
+    const data = stepsTrend.stepsData;
+    const t = stepsTrend.stepsTarget;
+    let hits = 0;
+    data.forEach(d => {
+      if (t && t > 0 && d.value >= t) hits++;
+    });
+    const best = data.reduce((m, d) => (d.value > m.v ? { v: d.value, l: d.label } : m), { v: 0, l: '' });
+    const active = data.filter(d => d.value > 0).length;
+    if (active === 0) return 'No step data in this range — move when you can; it supports recovery.';
+    const g = t && t > 0 ? ` Hit goal on ${hits} day${hits === 1 ? '' : 's'}.` : '';
+    const b = best.v > 0 ? ` Best day: ${best.l}.` : '';
+    return `${active} day${active === 1 ? '' : 's'} with activity.${g}${b}`;
+  }, [stepsTrend.stepsData, stepsTrend.stepsTarget]);
 
   const handleTabPress = useCallback((tab: TabKey) => {
     setActiveTab(tab);
@@ -570,43 +696,51 @@ export default function AnalyticsScreen() {
             <TrendingUp size={18} color={colors.warning} />
           </View>
           <Text style={styles.statValue}>{streak}</Text>
-          <Text style={styles.statLabel}>Current Streak</Text>
-        </View>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconWrap, { backgroundColor: colors.primaryLight }]}>
-            <Clock size={18} color={colors.primary} />
-          </View>
-          <Text style={styles.statValue}>{formatHours(totalHours)}</Text>
-          <Text style={styles.statLabel}>Total Fasted</Text>
-        </View>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconWrap, { backgroundColor: colors.successLight }]}>
-            <Target size={18} color={colors.success} />
-          </View>
-          <Text style={styles.statValue}>{completionRate}%</Text>
-          <Text style={styles.statLabel}>Completion</Text>
+          <Text style={styles.statLabel}>Current streak</Text>
         </View>
         <View style={styles.statCard}>
           <View style={[styles.statIconWrap, { backgroundColor: colors.accentLight }]}>
             <Award size={18} color={colors.accent} />
           </View>
           <Text style={styles.statValue}>{formatHours(longestFast)}</Text>
-          <Text style={styles.statLabel}>Longest Fast</Text>
+          <Text style={styles.statLabel}>Longest fast</Text>
         </View>
+        <View style={styles.statCard}>
+          <View style={[styles.statIconWrap, { backgroundColor: colors.primaryLight }]}>
+            <Clock size={18} color={colors.primary} />
+          </View>
+          <Text style={styles.statValue}>{formatHours(thisWeekHours)}</Text>
+          <Text style={styles.statLabel}>This week</Text>
+        </View>
+        <View style={styles.statCard}>
+          <View style={[styles.statIconWrap, { backgroundColor: colors.successLight }]}>
+            <Target size={18} color={colors.success} />
+          </View>
+          <Text style={styles.statValue}>{goalAdherencePct}%</Text>
+          <Text style={styles.statLabel}>Goal adherence</Text>
+          <Text style={[styles.statHint, { color: colors.textMuted }]}>
+            {weekCompletedCount} of {targetFastsPerWeek} planned fasts
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.summaryStrip, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+        <Text style={[styles.summaryStripEyebrow, { color: colors.textSecondary }]}>THIS WEEK</Text>
+        <Text style={[styles.summaryStripBody, { color: colors.text }]}>{weekSummaryLine}</Text>
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Star size={16} color="#D4A03C" />
-          <Text style={styles.sectionTitleInline}>Next Achievement</Text>
+          <Text style={styles.sectionTitleInline}>Next achievement</Text>
         </View>
         <DedicatedSeekerCard
-          completedCount={completedRecords.filter(r => r.completed).length}
+          completedCount={completedFastCount}
           colors={colors}
+          targetFastsPerWeek={targetFastsPerWeek}
         />
       </View>
 
-      {/* Trend charts */}
       <View style={styles.section}>
         <TrendChartCard
           title="Fasting"
@@ -617,6 +751,9 @@ export default function AnalyticsScreen() {
           chartType="bar"
           range={fastingRange}
           onRangeChange={setFastingRange}
+          detailHint={fastingChartHint}
+          interpretation={fastingInterpretation}
+          barMetricKind="fasting"
           formatValue={(v) => v >= 1 ? `${Math.round(v * 10) / 10}h` : `${Math.round(v * 60)}m`}
           formatYLabel={(v) => `${Math.round(v)}h`}
         />
@@ -631,6 +768,8 @@ export default function AnalyticsScreen() {
           onRangeChange={setWeightRange}
           goalValue={weightTrend.goalWeightKg ?? undefined}
           startingValue={weightTrend.startingWeightKg ?? undefined}
+          detailHint="Trend line · Dashed line is goal weight"
+          interpretation={weightInterpretation}
           formatValue={(v) => `${v.toFixed(1)}kg`}
           formatYLabel={(v) => `${Math.round(v * 10) / 10}`}
         />
@@ -644,35 +783,84 @@ export default function AnalyticsScreen() {
           range={stepsRange}
           onRangeChange={setStepsRange}
           targetValue={stepsTrend.stepsTarget}
+          detailHint="Steps per day in this range"
+          referenceLineCaption={stepsReferenceCaption}
+          interpretation={stepsInterpretation}
+          barMetricKind="steps"
           formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`}
           formatYLabel={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`}
         />
-        <TrendChartCard
-          title="Water"
-          icon="💧"
-          color="#5b8dd9"
-          data={waterTrend.waterData}
-          unit="ml"
-          chartType="bar"
-          range={waterRange}
-          onRangeChange={setWaterRange}
-          targetValue={waterTrend.waterTarget}
-          formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
-          formatYLabel={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
-        />
+        {waterRange === 'week' && waterWeekLoggedDays < 3 ? (
+          <View style={[styles.compactWaterCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+            <View style={styles.compactWaterTop}>
+              <Text style={styles.compactWaterIcon}>💧</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.compactWaterTitle, { color: colors.text }]}>Hydration</Text>
+                <Text style={[styles.compactWaterSub, { color: colors.textSecondary }]}>
+                  {waterWeekTotalMl >= 1000
+                    ? `${(waterWeekTotalMl / 1000).toFixed(1)} L logged this week`
+                    : `${Math.round(waterWeekTotalMl)} ml logged this week`}
+                  {waterTrend.waterTarget && waterTrend.waterTarget > 0
+                    ? ` · ~${(waterTrend.waterTarget / 1000).toFixed(1)} L/day target`
+                    : ''}
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.compactWaterHint, { color: colors.textMuted }]}>
+              Log a few more days to unlock the full week chart.
+            </Text>
+            <TouchableOpacity
+              style={[styles.compactWaterCta, { backgroundColor: '#5b8dd9' + '22', borderColor: '#5b8dd9' }]}
+              onPress={() => router.push('/(tabs)/(home)/water' as any)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.compactWaterCtaText, { color: '#5b8dd9' }]}>Log water on Today</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TrendChartCard
+            title="Water"
+            icon="💧"
+            color="#5b8dd9"
+            data={waterTrend.waterData}
+            unit="ml"
+            chartType="bar"
+            range={waterRange}
+            onRangeChange={setWaterRange}
+            targetValue={waterTrend.waterTarget}
+            detailHint="Fluid logged per day"
+            referenceLineCaption={
+              waterTrend.waterTarget && waterTrend.waterTarget > 0
+                ? `Goal: ${(waterTrend.waterTarget / 1000).toFixed(1)}L / day`
+                : undefined
+            }
+            barMetricKind="water"
+            formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
+            formatYLabel={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
+          />
+        )}
       </View>
 
       <View style={styles.warriorCard}>
         <View style={styles.warriorLeft}>
           <Text style={styles.warriorEmoji}>{warriorLevel.icon}</Text>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.warriorLevelLabel}>FASTING LEVEL</Text>
             <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
+            {warriorNextLevel ? (
+              <Text style={[styles.warriorNext, { color: colors.textSecondary }]}>
+                {warriorNextLevel.minFasts - completedFastCount} more to reach {warriorNextLevel.name}
+              </Text>
+            ) : (
+              <Text style={[styles.warriorNext, { color: colors.textSecondary }]}>Top level — keep the rhythm.</Text>
+            )}
           </View>
         </View>
         <View style={styles.warriorRight}>
-          <Text style={styles.warriorFastCount}>{completedRecords.filter(r => r.completed).length}</Text>
-          <Text style={styles.warriorFastLabel}>fasts</Text>
+          <Text style={styles.warriorFastCount}>{completedFastCount}</Text>
+          <Text style={styles.warriorFastLabel}>
+            {completedFastCount === 1 ? 'completed fast' : 'completed fasts'}
+          </Text>
         </View>
       </View>
     </>
@@ -721,11 +909,11 @@ export default function AnalyticsScreen() {
             <View style={styles.scoreGridRow}>
               <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('hghBoost')} style={styles.scoreGaugeTouchable}>
                 <ScoreGauge
-                  value={bestHGH.multiplier}
-                  maxValue={25}
-                  label="Best HGH Boost"
+                  value={extendedFastingLevel.score}
+                  maxValue={100}
+                  label="Fasting depth"
                   color="#E8913A"
-                  suffix="x"
+                  suffix="/100"
                   icon={<TrendingUp size={16} color="#E8913A" />}
                 />
               </TouchableOpacity>
@@ -782,9 +970,9 @@ export default function AnalyticsScreen() {
               />
               <ImpactCard
                 icon={<Zap size={20} color="#E8913A" />}
-                value={bestHGH.display}
-                label="Peak HGH Boost"
-                sublabel="From your longest fast"
+                value={extendedFastingLevel.label}
+                label="Metabolic phase"
+                sublabel={extendedFastingLevel.sublabel}
                 color="#E8913A"
                 index={1}
                 knowledgeId="hghBoost"
@@ -980,7 +1168,7 @@ export default function AnalyticsScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.screenTitle}>Journey</Text>
-          <Text style={styles.screenSubtitle}>Your fasting journey insights</Text>
+          <Text style={styles.screenSubtitle}>Your progress, patterns, and milestones</Text>
 
           {/* Sub-tabs: Overview + Spirit (if Vedic) */}
           {showVedic && (
@@ -1054,10 +1242,11 @@ function makeStyles(colors: ColorScheme) {
       letterSpacing: -0.5,
     },
     screenSubtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: colors.textSecondary,
       marginBottom: 16,
       marginTop: 2,
+      lineHeight: 21,
     },
     tabBar: {
       flexDirection: 'row' as const,
@@ -1116,18 +1305,83 @@ function makeStyles(colors: ColorScheme) {
       marginBottom: 10,
     },
     statValue: {
-      fontSize: 24,
+      fontSize: 28,
       fontWeight: '700' as const,
       color: colors.text,
+      letterSpacing: -0.5,
     },
     statLabel: {
-      fontSize: 13,
+      fontSize: 15,
+      fontWeight: '600' as const,
       color: colors.textMuted,
-      marginTop: 2,
+      marginTop: 4,
+    },
+    statHint: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      marginTop: 6,
+      lineHeight: 16,
+    },
+    summaryStrip: {
+      borderRadius: 14,
+      borderWidth: 1,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      marginBottom: 14,
+    },
+    summaryStripEyebrow: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      letterSpacing: 1,
+      marginBottom: 6,
+    },
+    summaryStripBody: {
+      fontSize: 15,
+      lineHeight: 22,
+      fontWeight: '500' as const,
+    },
+    compactWaterCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      padding: 16,
+      marginBottom: 12,
+    },
+    compactWaterTop: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: 12,
+    },
+    compactWaterIcon: {
+      fontSize: 22,
+    },
+    compactWaterTitle: {
+      fontSize: 17,
+      fontWeight: '700' as const,
+    },
+    compactWaterSub: {
+      fontSize: 14,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    compactWaterHint: {
+      fontSize: 13,
+      marginTop: 10,
+      lineHeight: 18,
+    },
+    compactWaterCta: {
+      marginTop: 12,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center' as const,
+    },
+    compactWaterCtaText: {
+      fontSize: 15,
+      fontWeight: '700' as const,
     },
     warriorCard: {
       flexDirection: 'row' as const,
-      alignItems: 'center' as const,
+      alignItems: 'flex-start' as const,
       justifyContent: 'space-between' as const,
       backgroundColor: colors.surfaceWarm,
       borderRadius: 16,
@@ -1138,8 +1392,10 @@ function makeStyles(colors: ColorScheme) {
     },
     warriorLeft: {
       flexDirection: 'row' as const,
-      alignItems: 'center' as const,
+      alignItems: 'flex-start' as const,
       gap: 12,
+      flex: 1,
+      minWidth: 0,
     },
     warriorEmoji: {
       fontSize: 32,
@@ -1155,6 +1411,12 @@ function makeStyles(colors: ColorScheme) {
       fontSize: 20,
       fontWeight: '800' as const,
       letterSpacing: -0.5,
+    },
+    warriorNext: {
+      fontSize: 13,
+      fontWeight: '500' as const,
+      marginTop: 6,
+      lineHeight: 18,
     },
     warriorRight: {
       alignItems: 'center' as const,
@@ -1178,7 +1440,7 @@ function makeStyles(colors: ColorScheme) {
       marginBottom: 4,
     },
     sectionTitleInline: {
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: '600' as const,
       color: colors.text,
       flex: 1,

@@ -213,7 +213,7 @@ export default function NotificationSettingsScreen() {
             <View style={[styles.row, !masterOn && styles.rowMuted]}>
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>1 hour before fast ends</Text>
-                <Text style={styles.rowDesc}>Heads-up before your eating window</Text>
+                <Text style={styles.rowDesc}>Only while a fast is running — 1h before your target end time</Text>
               </View>
               <Switch
                 value={beforeEnd}

@@ -144,25 +144,39 @@ export default function ProfileSetupScreen() {
     router.replace('/(tabs)/(home)' as any);
   }, [updateProfile]);
 
+  // ── Safety checks ───────────────────────────────────────────────────────────
+  const isMinor = age < 18;
+  const currentKgNum = weightUnit === 'lbs' ? parseFloat(currentWeight) / 2.20462 : parseFloat(currentWeight);
+  const heightCmNum = parseFloat(heightCm);
+  const currentBmi = (!isNaN(currentKgNum) && !isNaN(heightCmNum) && heightCmNum > 50 && currentKgNum > 20)
+    ? currentKgNum / ((heightCmNum / 100) ** 2) : null;
+  const isUnderweight = currentBmi !== null && currentBmi < 18.5;
+
+  // Under-18: block weight_loss purpose, redirect to energy/metabolic/spiritual
+  const isMinorWeightLoss = isMinor && purpose === 'weight_loss';
+  // Underweight: block goal weight lower than current
+  const targetKgNum = weightUnit === 'lbs' ? parseFloat(targetWeight) / 2.20462 : parseFloat(targetWeight);
+  const isUnderweightLosingMore = isUnderweight && !isNaN(targetKgNum) && targetKgNum < currentKgNum;
+
   const canProceed = useMemo(() => {
     switch (step) {
       case 1:  return name.trim().length > 0;
-      case 2:  return purpose !== null;
+      case 2:  return purpose !== null && !isMinorWeightLoss;
       case 3:  return sex !== null;
       case 4:  return age >= 14 && age <= 80;
       case 5:  return parseFloat(heightCm) > 50;
       case 6:  return parseFloat(currentWeight) > 0;
-      case 7:  return true;
+      case 7:  return !isUnderweightLosingMore; // block if underweight trying to lose
       case 8:  return activityLevel !== null;
       case 9:  return lastMealTime !== null;
-      case 10: return true;  // health concerns
-      case 11: return true;  // safety — always can proceed
+      case 10: return true;
+      case 11: return true;
       case 12: return fastingLevel !== null;
-      case 13: return false; // building screen — auto-advances, no CTA
+      case 13: return false;
       case 14: return true;
       default: return false;
     }
-  }, [step, name, purpose, sex, age, heightCm, currentWeight, activityLevel, lastMealTime, fastingLevel]);
+  }, [step, name, purpose, sex, age, heightCm, currentWeight, activityLevel, lastMealTime, fastingLevel, isMinorWeightLoss, isUnderweightLosingMore]);
 
   const ctaLabel = useMemo(() => {
     if (step === 7)  return targetWeight ? 'Continue →' : 'Skip for now →';
@@ -175,12 +189,36 @@ export default function ProfileSetupScreen() {
   const renderStep = () => {
     switch (step) {
       case 1:  return <Step1Name value={name} onChange={setName} onSubmit={canProceed ? handleNext : undefined} />;
-      case 2:  return <StepGoal value={purpose} onChange={setPurpose} />;
+      case 2:  return (
+        <>
+          <StepGoal value={purpose} onChange={setPurpose} />
+          {isMinorWeightLoss && (
+            <View style={[s.safetyBanner, { backgroundColor: isDark ? 'rgba(212,96,96,.08)' : 'rgba(212,96,96,.06)', borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)' }]}>
+              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <Text style={[s.safetyText, { color: isDark ? 'rgba(240,224,192,.7)' : 'rgba(60,35,10,.7)' }]}>
+                Weight loss programs are not recommended for users under 18. Your body is still growing and needs adequate nutrition. Please choose a different goal, or consult a healthcare provider.
+              </Text>
+            </View>
+          )}
+        </>
+      );
       case 3:  return <StepSex value={sex} onChange={setSex} />;
       case 4:  return <StepAge value={age} onChange={setAge} />;
       case 5:  return <StepHeight value={heightCm} onChange={setHeightCm} />;
       case 6:  return <StepCurrentWeight value={currentWeight} onChange={setCurrentWeight} heightCm={heightCm} unit={weightUnit} onUnitChange={setWeightUnit} />;
-      case 7:  return <StepTargetWeight value={targetWeight} onChange={setTargetWeight} currentWeightKg={currentWeight} heightCm={heightCm} unit={weightUnit} />;
+      case 7:  return (
+        <>
+          <StepTargetWeight value={targetWeight} onChange={setTargetWeight} currentWeightKg={currentWeight} heightCm={heightCm} unit={weightUnit} />
+          {isUnderweightLosingMore && (
+            <View style={[s.safetyBanner, { backgroundColor: isDark ? 'rgba(212,96,96,.08)' : 'rgba(212,96,96,.06)', borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)' }]}>
+              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <Text style={[s.safetyText, { color: isDark ? 'rgba(240,224,192,.7)' : 'rgba(60,35,10,.7)' }]}>
+                Your current BMI ({currentBmi?.toFixed(1)}) is in the underweight range. Setting a lower target weight could be harmful to your health. Please set a target at or above your current weight, or skip this step.
+              </Text>
+            </View>
+          )}
+        </>
+      );
       case 8:  return <StepActivity value={activityLevel} onChange={setActivityLevel} />;
       case 9:  return <StepLastMeal value={lastMealTime} onChange={setLastMealTime} />;
       case 10: return <StepHealthConcerns value={healthConcerns} onChange={setHealthConcerns} />;
@@ -290,4 +328,6 @@ const s = StyleSheet.create({
   ctaText:       { fontFamily: FONTS.bodyMedium, fontSize: 16, fontWeight: '600' as const, letterSpacing: .2 } as TextStyle,
   skipBtn:       { alignItems: 'center' as const, paddingVertical: 14 }                  as ViewStyle,
   skipText:      { fontFamily: FONTS.bodyRegular, fontSize: 13 }                         as TextStyle,
+  safetyBanner:  { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 10, padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 16 } as ViewStyle,
+  safetyText:    { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 19, flex: 1 } as TextStyle,
 });

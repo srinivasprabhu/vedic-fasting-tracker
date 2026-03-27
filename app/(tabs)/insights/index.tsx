@@ -14,6 +14,8 @@ import {
 } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
@@ -31,14 +33,27 @@ import {
   formatHours,
   formatNumber,
   getAutophagyScore,
-  getHGHMultiplier,
+  getExtendedFastingSupportLevel,
   calculateFatBurned,
   AUTOPHAGY_THRESHOLD_HOURS,
 } from '@/utils/analytics-helpers';
 import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
 import MetricKnowledgeModal from '@/components/MetricKnowledgeModal';
 import ScoreBreakdownModal from '@/components/ScoreBreakdownModal';
+import {
+  SmartProjectionActive,
+  SmartProjectionBuilding,
+  SmartProjectionLocked,
+} from '@/components/SmartProjectionCard';
+import {
+  isSmartProjectionEligible,
+  calculateSmartProjection,
+  getSmartProjectionTeaser,
+  WeightLogEntry,
+} from '@/utils/smart-projection';
 import type { ColorScheme } from '@/constants/colors';
+
+const WEIGHT_LOG_KEY = 'aayu_weight_log';
 
 // ─── Score ring (SVG arc) ─────────────────────────────────────────────────────
 
@@ -261,11 +276,26 @@ export default function InsightsScreen() {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<MetricKnowledge | null>(null);
   const [knowledgeModalVisible, setKnowledgeModalVisible] = useState(false);
+  const [weightLogs, setWeightLogs] = useState<WeightLogEntry[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, []);
+
+  // Load weight logs (refresh on screen focus)
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(WEIGHT_LOG_KEY).then(raw => {
+        if (raw) {
+          try {
+            const entries = JSON.parse(raw) as WeightLogEntry[];
+            setWeightLogs(entries);
+          } catch {}
+        }
+      });
+    }, [])
+  );
 
   const handleInfoPress = useCallback((id: string) => {
     const metric = METRIC_KNOWLEDGE[id];
@@ -328,7 +358,10 @@ export default function InsightsScreen() {
     return Math.max(...completedRecords.map(r => ((r.endTime ?? 0) - r.startTime) / 3600000));
   }, [completedRecords]);
 
-  const bestHGH = useMemo(() => getHGHMultiplier(longestFast), [longestFast]);
+  const extendedFastingLevel = useMemo(
+    () => getExtendedFastingSupportLevel(longestFast),
+    [longestFast],
+  );
 
   const inflammationReduction = useMemo(() => {
     const b = Math.min(40, (totalHours / 1000) * 40);
@@ -353,6 +386,32 @@ export default function InsightsScreen() {
   // Also keep this-week for the consistency dots (always 7-day)
   const thisWeekHours = useMemo(() => thisWeekRecords.reduce((sum, r) => sum + ((r.endTime ?? 0) - r.startTime) / 3600000, 0), [thisWeekRecords]);
   const weekCompleted = thisWeekRecords.filter(r => r.completed).length;
+
+  // ── Smart Projection (Pro feature) ────────────────────────────────────────
+  const goalKg = profile?.goalWeightKg ?? null;
+  const startKg = profile?.startingWeightKg ?? profile?.currentWeightKg ?? 0;
+  const weightUnit = profile?.weightUnit ?? 'kg';
+
+  const projectionEligibility = useMemo(() =>
+    isSmartProjectionEligible(weightLogs, completedRecords.length, streak, goalKg),
+    [weightLogs, completedRecords.length, streak, goalKg]
+  );
+
+  const smartProjection = useMemo(() => {
+    if (!projectionEligibility.eligible || !goalKg) return null;
+    return calculateSmartProjection({
+      weightLogs,
+      goalKg,
+      startKg,
+      completedRecords,
+      streak,
+    });
+  }, [weightLogs, goalKg, startKg, completedRecords, streak, projectionEligibility.eligible]);
+
+  const projectionTeaser = useMemo(() =>
+    getSmartProjectionTeaser(weightLogs.length, streak, !!goalKg),
+    [weightLogs.length, streak, goalKg]
+  );
 
   return (
     <View style={styles.root}>
@@ -439,6 +498,31 @@ export default function InsightsScreen() {
             </View>
           </View>
 
+          {/* ─── Smart Weight Projection (Pro) ────────────────────── */}
+          {isProUser ? (
+            smartProjection?.available ? (
+              <SmartProjectionActive
+                projection={smartProjection}
+                weightUnit={weightUnit}
+                colors={colors}
+                isDark={isDark}
+              />
+            ) : (
+              <SmartProjectionBuilding
+                teaser={projectionTeaser}
+                logsNeeded={projectionEligibility.logsNeeded}
+                daysNeeded={projectionEligibility.daysNeeded}
+                colors={colors}
+              />
+            )
+          ) : (
+            <SmartProjectionLocked
+              teaser={projectionTeaser}
+              colors={colors}
+              isDark={isDark}
+            />
+          )}
+
           {/* ─── Free Health Metrics ────────────────────────────────────── */}
           <Text style={[styles.sectionHeader, { color: colors.text }]}>Health Metrics</Text>
           <View style={styles.metricsGrid}>
@@ -478,9 +562,9 @@ export default function InsightsScreen() {
               <ProLockedCard title="Fat Burned" subtitle="Total estimated fat loss" icon={<Flame size={18} color="#E8913A" />} previewValue="●●●g" colors={colors} />
             )}
             {isProUser ? (
-              <FreeMetricCard icon={<TrendingUp size={18} color="#E8913A" />} value={bestHGH.display} label="HGH Boost" sublabel="Peak growth hormone" color="#E8913A" colors={colors} onPress={() => handleInfoPress('hghBoost')} />
+              <FreeMetricCard icon={<TrendingUp size={18} color="#E8913A" />} value={extendedFastingLevel.label} label="Fasting phase" sublabel={extendedFastingLevel.sublabel} color="#E8913A" colors={colors} onPress={() => handleInfoPress('hghBoost')} />
             ) : (
-              <ProLockedCard title="HGH Boost" subtitle="Peak growth hormone" icon={<TrendingUp size={18} color="#E8913A" />} previewValue="●●x" colors={colors} />
+              <ProLockedCard title="Fasting phase" subtitle="Metabolic depth from your longest fast" icon={<TrendingUp size={18} color="#E8913A" />} previewValue="●●●" colors={colors} />
             )}
           </View>
           <View style={styles.metricsGrid}>

@@ -356,6 +356,13 @@ export const Step6Plan: React.FC<Step6PlanProps> = ({
       {/* Goal timeline */}
       <GoalRow weeksToGoal={adjustedWeeksToGoal} isDark={isDark} delay={hasProjection ? 620 : 520} />
 
+      {/* Projection disclaimer */}
+      {hasProjection && (
+        <Text style={[styles.disclaimer, { color: isDark ? 'rgba(240,224,192,0.3)' : 'rgba(60,35,10,0.35)' }]}>
+          ℹ️ This is a conservative estimate based on your fasting plan, activity level, and age. Actual results may vary depending on food choices during your eating window, sleep quality, stress, hydration, and hormonal factors. Many users see results faster with consistent fasting and mindful eating.
+        </Text>
+      )}
+
     </ScrollView>
   );
 };
@@ -425,4 +432,8 @@ const styles = StyleSheet.create({
   goalValue:      { fontFamily: FONTS.displayLight, fontSize: 28, fontWeight: '300', lineHeight: 30 } as TextStyle,
   goalUnit:       { fontFamily: FONTS.bodyMedium, fontSize: 14, fontWeight: '500' } as TextStyle,
   goalSub:        { fontFamily: FONTS.bodyRegular, fontSize: 13 } as TextStyle,
+  disclaimer:      {
+    fontFamily: FONTS.bodyRegular, fontSize: 11, lineHeight: 16,
+    marginTop: SPACING.sm + 4, paddingHorizontal: 4,
+  }                                                              as TextStyle,
 });

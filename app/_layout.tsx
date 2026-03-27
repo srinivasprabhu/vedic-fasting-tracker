@@ -15,6 +15,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { registerForPushNotifications } from '@/utils/notifications';
 import { NotificationScheduleSync } from '@/components/NotificationScheduleSync';
+import { DailySyncManager } from '@/components/DailySyncManager';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 
 SplashScreen.preventAutoHideAsync();
@@ -194,6 +195,18 @@ function RootLayoutNav() {
           animation: 'slide_from_bottom',
         }}
       />
+      <Stack.Screen
+        name="did-you-know"
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          contentStyle: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          },
+        }}
+      />
     </Stack>
   );
 }
@@ -201,11 +214,12 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <ThemeProvider>
           <AuthProvider>
             <UserProfileProvider>
               <NotificationScheduleSync />
+              <DailySyncManager />
               <FastingProvider>
                 <RootLayoutNav />
               </FastingProvider>

@@ -40,7 +40,7 @@ export const lightColors: ColorScheme = {
 
   text: '#2C1810',
   textSecondary: '#8B7355',
-  textMuted: '#B8A898',
+  textMuted: '#9A8B78',
   textLight: '#FFFFFF',
 
   border: '#E8DFD0',
@@ -73,8 +73,8 @@ export const darkColors: ColorScheme = {
   surfaceWarm: '#271A0A',
 
   text: '#F2E5D0',
-  textSecondary: '#B8956A',
-  textMuted: '#6E5540',
+  textSecondary: '#C4A882',
+  textMuted: '#9A836F',
   textLight: '#FFFFFF',
 
   border: '#301E0F',
