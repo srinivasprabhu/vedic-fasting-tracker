@@ -13,10 +13,12 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { FastingProvider } from '@/contexts/FastingContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
+import { RevenueCatProvider } from '@/contexts/RevenueCatContext';
 import { registerForPushNotifications } from '@/utils/notifications';
 import { NotificationScheduleSync } from '@/components/NotificationScheduleSync';
 import { DailySyncManager } from '@/components/DailySyncManager';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
+import BrandedSplash from '@/components/BrandedSplash';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -93,6 +95,7 @@ function RootLayoutNav() {
   const [isReady, setIsReady] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
   const [needsProfile, setNeedsProfile] = useState<boolean>(false);
+  const [showBrandedSplash, setShowBrandedSplash] = useState<boolean>(true);
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
@@ -150,6 +153,10 @@ function RootLayoutNav() {
   if (!isReady) return null;
 
   return (
+    <>
+    {showBrandedSplash && (
+      <BrandedSplash onFinish={() => setShowBrandedSplash(false)} />
+    )}
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
@@ -208,6 +215,7 @@ function RootLayoutNav() {
         }}
       />
     </Stack>
+    </>
   );
 }
 
@@ -217,13 +225,15 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ThemeProvider>
           <AuthProvider>
-            <UserProfileProvider>
-              <NotificationScheduleSync />
-              <DailySyncManager />
-              <FastingProvider>
-                <RootLayoutNav />
-              </FastingProvider>
-            </UserProfileProvider>
+            <RevenueCatProvider>
+              <UserProfileProvider>
+                <NotificationScheduleSync />
+                <DailySyncManager />
+                <FastingProvider>
+                  <RootLayoutNav />
+                </FastingProvider>
+              </UserProfileProvider>
+            </RevenueCatProvider>
           </AuthProvider>
         </ThemeProvider>
       </GestureHandlerRootView>

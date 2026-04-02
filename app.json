@@ -1,8 +1,8 @@
 {
   "expo": {
     "backgroundColor": "#0a0604",
-    "name": "Aayu - Fasting",
-    "shortName": "Aayu - Fasting",
+    "name": "Aayu: Intermittent Fasting",
+    "shortName": "Aayu",
     "slug": "vedic-intermittent-fasting",
     "version": "1.0.3",
     "orientation": "portrait",
@@ -20,8 +20,8 @@
       "bundleIdentifier": "com.vedicintermittentfasting.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleDisplayName": "Aayu Fasting",
-        "CFBundleName": "Aayu Fasting",
+        "CFBundleDisplayName": "Aayu",
+        "CFBundleName": "Aayu",
         "NSMotionUsageDescription": "Aayu uses motion data to automatically count your steps and help you reach your daily activity target."
       }
     },

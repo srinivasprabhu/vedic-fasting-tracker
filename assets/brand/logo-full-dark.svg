@@ -1,0 +1,35 @@
+<svg width="640" height="128" viewBox="0 0 640 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Aayu Full Logo — Dark Background Version -->
+  <!-- Mandala mark -->
+  <g transform="translate(64,64)">
+    <circle cx="0" cy="0" r="56" fill="none" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.2"/>
+    <!-- Outer petals -->
+    <g>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(45)"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(90)"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(135)"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(180)"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(225)"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(270)"/>
+      <path d="M0,-44 C-12,-30 -12,-16 0,-14 C12,-16 12,-30 0,-44Z" fill="#c8872a" fill-opacity="0.15" stroke="#c8872a" stroke-width="1.8" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(315)"/>
+    </g>
+    <!-- Inner petals -->
+    <g>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(45)"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(90)"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(135)"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(180)"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(225)"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(270)"/>
+      <path d="M0,-28 C-8,-20 -8,-10 0,-8 C8,-10 8,-20 0,-28Z" fill="#c8872a" fill-opacity="0.2" stroke="#c8872a" stroke-width="1.4" stroke-opacity="0.55" stroke-linejoin="round" transform="rotate(315)"/>
+    </g>
+    <!-- Centre -->
+    <circle cx="0" cy="0" r="12" fill="none" stroke="#c8872a" stroke-width="2" stroke-opacity="0.6"/>
+    <polygon points="0,-7 5,0 0,7 -5,0" fill="#c8872a" fill-opacity="0.9"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="148" y="58" fill="#f0e0c0" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="52" font-weight="300" letter-spacing="10">Aayu</text>
+  <text x="148" y="92" fill="#c8872a" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="16" font-weight="400" letter-spacing="5" opacity="0.55">INTERMITTENT FASTING</text>
+</svg>

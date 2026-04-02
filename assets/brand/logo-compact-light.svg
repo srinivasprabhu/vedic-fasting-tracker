@@ -1,0 +1,17 @@
+<svg width="320" height="72" viewBox="0 0 320 72" xmlns="http://www.w3.org/2000/svg">
+  <!-- Aayu Compact Wordmark — Light Background -->
+  <g transform="translate(36,36)">
+    <g>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(45)"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(90)"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(135)"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(180)"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(225)"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(270)"/>
+      <path d="M0,-28 C-8,-19 -8,-10 0,-8 C8,-10 8,-19 0,-28Z" fill="#a06820" fill-opacity="0.08" stroke="#a06820" stroke-width="1.6" stroke-opacity="0.45" stroke-linejoin="round" transform="rotate(315)"/>
+    </g>
+    <polygon points="0,-6 4.3,0 0,6 -4.3,0" fill="#a06820" fill-opacity="0.85"/>
+  </g>
+  <text x="84" y="44" fill="#1e1004" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="40" font-weight="300" letter-spacing="8">Aayu</text>
+</svg>

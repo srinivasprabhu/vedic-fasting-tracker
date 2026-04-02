@@ -13,10 +13,10 @@ import {
 import { calculatePlan } from '@/utils/calculatePlan';
 import { detectCurrencyFromLocale, getCurrencyInfo } from '@/constants/currencies';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import { supabase } from '@/lib/supabase';
 
 const PROFILE_KEY = 'vedic_user_profile';
-const PRO_KEY = 'aayu_pro_override';
 
 async function loadProfile(): Promise<UserProfile | null> {
   try {
@@ -40,19 +40,13 @@ async function saveProfile(profile: UserProfile): Promise<UserProfile> {
 
 export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
   const { user, isAuthenticated } = useAuth();
+  const { isProUser, toggleDevProOverride } = useRevenueCat();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isProUser, setIsProUser] = useState(false);
-
-  // Load Pro override on mount
-  useEffect(() => {
-    AsyncStorage.getItem(PRO_KEY).then(v => setIsProUser(v === 'true')).catch(() => {});
-  }, []);
 
   const toggleProUser = useCallback(async () => {
-    const next = !isProUser;
-    setIsProUser(next);
-    await AsyncStorage.setItem(PRO_KEY, next ? 'true' : 'false');
-  }, [isProUser]);
+    if (!__DEV__) return;
+    await toggleDevProOverride();
+  }, [toggleDevProOverride]);
 
   const profileQuery = useQuery({
     queryKey: ['user-profile'],

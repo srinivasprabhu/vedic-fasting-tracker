@@ -14,6 +14,7 @@ import { useTheme }        from '@/contexts/ThemeContext';
 
 import { useFasting }      from '@/contexts/FastingContext';
 import { useUserProfile }  from '@/contexts/UserProfileContext';
+import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import { VEDIC_QUOTES } from '@/mocks/vedic-data';
 import CircularTimer       from '@/components/CircularTimer';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
@@ -104,6 +105,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, startFast, endFast, streak, totalHours, completedRecords } = useFasting();
   const { profile, getGreeting, getInitial, updateFastPlan, isProUser } = useUserProfile();
+  const { presentPaywall } = useRevenueCat();
   const completedFastCount = completedRecords.filter(r => r.completed).length;
   const { visible: showReview, handleReview, handleDismiss: dismissReview } = useReviewPrompt(completedFastCount, streak);
 
@@ -527,7 +529,7 @@ export default function HomeScreen() {
         onClose={() => setShowPlanPicker(false)}
         onUpgrade={() => {
           setShowPlanPicker(false);
-          // TODO: Navigate to paywall
+          void presentPaywall();
         }}
       />
 

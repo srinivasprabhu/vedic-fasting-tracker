@@ -19,6 +19,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import {
   calculateMetabolicScore,
   getScoreLevel,
@@ -40,6 +41,7 @@ import {
 import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
 import MetricKnowledgeModal from '@/components/MetricKnowledgeModal';
 import ScoreBreakdownModal from '@/components/ScoreBreakdownModal';
+import MonthlyReportCard from '@/components/MonthlyReportCard';
 import {
   SmartProjectionActive,
   SmartProjectionBuilding,
@@ -90,7 +92,8 @@ const RangeToggle: React.FC<{
   onChange: (v: InsightRange) => void;
   isProUser: boolean;
   colors: ColorScheme;
-}> = ({ value, onChange, isProUser, colors }) => {
+  onLockedProPress?: () => void;
+}> = ({ value, onChange, isProUser, colors, onLockedProPress }) => {
   const ranges: InsightRange[] = ['7D', '30D', '90D'];
   return (
     <View style={[rtS.row, { backgroundColor: colors.surface }]}>
@@ -103,7 +106,7 @@ const RangeToggle: React.FC<{
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               if (locked) {
-                // TODO: show Pro upsell
+                onLockedProPress?.();
                 return;
               }
               onChange(r);
@@ -204,9 +207,14 @@ const ProLockedCard: React.FC<{
   icon: React.ReactNode;
   previewValue?: string;
   colors: ColorScheme;
-}> = ({ title, subtitle, icon, previewValue, colors }) => (
+  onPress?: () => void;
+}> = ({ title, subtitle, icon, previewValue, colors, onPress }) => (
   <TouchableOpacity
     activeOpacity={0.8}
+    onPress={() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress?.();
+    }}
     style={[lockS.card, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
   >
     <View style={lockS.topRow}>
@@ -269,7 +277,11 @@ const freeS = StyleSheet.create({
 export default function InsightsScreen() {
   const { colors, isDark } = useTheme();
   const { profile, isProUser } = useUserProfile();
+  const { presentPaywall } = useRevenueCat();
   const { completedRecords, streak, totalHours, thisWeekRecords } = useFasting();
+  const openProPaywall = useCallback(() => {
+    void presentPaywall();
+  }, [presentPaywall]);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [range, setRange] = useState<InsightRange>('7D');
@@ -424,7 +436,13 @@ export default function InsightsScreen() {
           {/* Header row */}
           <View style={styles.headerRow}>
             <Text style={[styles.screenTitle, { color: colors.text }]}>Insights</Text>
-            <RangeToggle value={range} onChange={setRange} isProUser={isProUser} colors={colors} />
+            <RangeToggle
+              value={range}
+              onChange={setRange}
+              isProUser={isProUser}
+              colors={colors}
+              onLockedProPress={openProPaywall}
+            />
           </View>
 
           {/* ─── Hero: Metabolic Discipline Score ──────────────────────── */}
@@ -516,12 +534,17 @@ export default function InsightsScreen() {
               />
             )
           ) : (
-            <SmartProjectionLocked
-              teaser={projectionTeaser}
-              colors={colors}
-              isDark={isDark}
-            />
+            <TouchableOpacity activeOpacity={0.88} onPress={openProPaywall}>
+              <SmartProjectionLocked
+                teaser={projectionTeaser}
+                colors={colors}
+                isDark={isDark}
+              />
+            </TouchableOpacity>
           )}
+
+          {/* ─── Monthly Report (Pro) ────────────────────────────────── */}
+          <MonthlyReportCard />
 
           {/* ─── Free Health Metrics ────────────────────────────────────── */}
           <Text style={[styles.sectionHeader, { color: colors.text }]}>Health Metrics</Text>
@@ -559,36 +582,36 @@ export default function InsightsScreen() {
             {isProUser ? (
               <FreeMetricCard icon={<Flame size={18} color="#E8913A" />} value={`${formatNumber(totalFatBurned)}g`} label="Fat Burned" sublabel="Estimated fat loss" color="#E8913A" colors={colors} onPress={() => handleInfoPress('fatBurned')} />
             ) : (
-              <ProLockedCard title="Fat Burned" subtitle="Total estimated fat loss" icon={<Flame size={18} color="#E8913A" />} previewValue="●●●g" colors={colors} />
+              <ProLockedCard title="Fat Burned" subtitle="Total estimated fat loss" icon={<Flame size={18} color="#E8913A" />} previewValue="●●●g" colors={colors} onPress={openProPaywall} />
             )}
             {isProUser ? (
               <FreeMetricCard icon={<TrendingUp size={18} color="#E8913A" />} value={extendedFastingLevel.label} label="Fasting phase" sublabel={extendedFastingLevel.sublabel} color="#E8913A" colors={colors} onPress={() => handleInfoPress('hghBoost')} />
             ) : (
-              <ProLockedCard title="Fasting phase" subtitle="Metabolic depth from your longest fast" icon={<TrendingUp size={18} color="#E8913A" />} previewValue="●●●" colors={colors} />
+              <ProLockedCard title="Fasting phase" subtitle="Metabolic depth from your longest fast" icon={<TrendingUp size={18} color="#E8913A" />} previewValue="●●●" colors={colors} onPress={openProPaywall} />
             )}
           </View>
           <View style={styles.metricsGrid}>
             {isProUser ? (
               <FreeMetricCard icon={<Heart size={18} color="#C25450" />} value={`${inflammationReduction}/100`} label="Inflammation" sublabel="Cumulative reduction" color="#C25450" colors={colors} onPress={() => handleInfoPress('inflammationReduction')} />
             ) : (
-              <ProLockedCard title="Inflammation" subtitle="Cumulative reduction" icon={<Heart size={18} color="#C25450" />} previewValue="●●/100" colors={colors} />
+              <ProLockedCard title="Inflammation" subtitle="Cumulative reduction" icon={<Heart size={18} color="#C25450" />} previewValue="●●/100" colors={colors} onPress={openProPaywall} />
             )}
             {isProUser ? (
               <FreeMetricCard icon={<Brain size={18} color="#7B68AE" />} value={`-${cellularAgeReduction}y`} label="Cellular Age" sublabel="Biological age reduction" color="#7B68AE" colors={colors} onPress={() => handleInfoPress('cellularAge')} />
             ) : (
-              <ProLockedCard title="Cellular Age" subtitle="Biological age reduction" icon={<Brain size={18} color="#7B68AE" />} previewValue="-●●y" colors={colors} />
+              <ProLockedCard title="Cellular Age" subtitle="Biological age reduction" icon={<Brain size={18} color="#7B68AE" />} previewValue="-●●y" colors={colors} onPress={openProPaywall} />
             )}
           </View>
           <View style={styles.metricsGrid}>
             {isProUser ? (
               <FreeMetricCard icon={<Activity size={16} color="#5B8C5A" />} value={formatHours(gutRestHours)} label="Gut Rest (Agni)" sublabel="Digestive rest hours" color="#5B8C5A" colors={colors} onPress={() => handleInfoPress('gutRest')} />
             ) : (
-              <ProLockedCard title="Gut Rest (Agni)" subtitle="Digestive rest hours" icon={<Activity size={16} color="#5B8C5A" />} previewValue="●●h" colors={colors} />
+              <ProLockedCard title="Gut Rest (Agni)" subtitle="Digestive rest hours" icon={<Activity size={16} color="#5B8C5A" />} previewValue="●●h" colors={colors} onPress={openProPaywall} />
             )}
             {isProUser ? (
               <FreeMetricCard icon={<Sparkles size={16} color="#7B68AE" />} value={formatHours(totalAutophagyHours)} label="Deep Autophagy" sublabel="Cellular renewal time" color="#7B68AE" colors={colors} onPress={() => handleInfoPress('autophagy')} />
             ) : (
-              <ProLockedCard title="Deep Autophagy" subtitle="Cellular renewal time" icon={<Sparkles size={16} color="#7B68AE" />} previewValue="●●h" colors={colors} />
+              <ProLockedCard title="Deep Autophagy" subtitle="Cellular renewal time" icon={<Sparkles size={16} color="#7B68AE" />} previewValue="●●h" colors={colors} onPress={openProPaywall} />
             )}
           </View>
 
@@ -596,6 +619,7 @@ export default function InsightsScreen() {
           {!isProUser && (
             <TouchableOpacity
               activeOpacity={0.85}
+              onPress={openProPaywall}
               style={[styles.proBanner, {
                 backgroundColor: isDark ? 'rgba(232,168,76,0.08)' : 'rgba(200,135,42,0.06)',
                 borderColor: isDark ? 'rgba(232,168,76,0.25)' : 'rgba(200,135,42,0.2)',
