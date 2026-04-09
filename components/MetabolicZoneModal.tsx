@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
@@ -9,11 +10,15 @@ import {
   Easing,
   Dimensions,
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X, Waves, Flame, Zap, Brain, Sparkles, Leaf } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { ColorScheme } from '@/constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const ZONE_ICON_MAP: Record<string, React.FC<any>> = {
+  Waves, Flame, Zap, Brain, Sparkles, Leaf,
+};
 
 export interface MetabolicZoneInfo {
   id: string;
@@ -105,7 +110,7 @@ export default function MetabolicZoneModal({ visible, zone, onClose }: Metabolic
 
           <View style={styles.headerRow}>
             <View style={[styles.iconWrap, { backgroundColor: zone.color + '20' }]}>
-              <Text style={styles.iconEmoji}>{zone.icon}</Text>
+              {(() => { const Icon = ZONE_ICON_MAP[zone.icon]; return Icon ? <Icon size={24} color={zone.color} /> : null; })()}
             </View>
             <View style={styles.headerTextWrap}>
               <Text style={[styles.title, { color: colors.text }]}>{zone.name}</Text>
@@ -186,26 +191,24 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center',
       marginRight: 14,
     },
-    iconEmoji: {
-      fontSize: 24,
-    },
+    
     headerTextWrap: {
       flex: 1,
     },
     title: {
-      fontSize: 22,
+      fontSize: fs(22),
       fontWeight: '700',
       marginBottom: 2,
     },
     timeBadge: {
-      fontSize: 13,
+      fontSize: fs(13),
       fontWeight: '600',
     },
     closeBtn: {
       padding: 4,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: fs(14),
       marginBottom: 16,
     },
     accentLine: {
@@ -215,7 +218,7 @@ function makeStyles(colors: ColorScheme) {
       marginBottom: 20,
     },
     description: {
-      fontSize: 16,
+      fontSize: fs(16),
       lineHeight: 24,
       marginBottom: 20,
     },
@@ -227,12 +230,12 @@ function makeStyles(colors: ColorScheme) {
       marginBottom: 24,
     },
     benefitText: {
-      fontSize: 15,
+      fontSize: fs(15),
       lineHeight: 22,
       fontStyle: 'italic',
     },
     tapHint: {
-      fontSize: 12,
+      fontSize: fs(12),
       textAlign: 'center',
     },
   });

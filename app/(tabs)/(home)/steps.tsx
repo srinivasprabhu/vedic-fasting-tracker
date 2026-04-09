@@ -1,6 +1,7 @@
 // app/(tabs)/(home)/steps.tsx
 // Full steps tracker screen — manual logging, ring, 7-day bar chart.
 
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -9,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ChevronLeft, Footprints } from 'lucide-react-native';
+import { ChevronLeft, Footprints, Activity, Zap, Trophy, Check, Edit3, Sparkles, Lightbulb } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -21,11 +22,13 @@ import { loadWeekStepBars } from '@/utils/stepsDayStorage';
 
 // ─── Quick-add amounts ────────────────────────────────────────────────────────
 
+const STEPS_GREEN = '#7AAE79';
+
 const QUICK_STEPS = [
-  { steps: 1000, label: '~10 min walk',   emoji: '🚶' },
-  { steps: 2500, label: '~25 min walk',   emoji: '🏃' },
-  { steps: 5000, label: '~50 min walk',   emoji: '⚡' },
-  { steps: 10000, label: 'Full day goal', emoji: '🏆' },
+  { steps: 1000, label: '~10 min walk' },
+  { steps: 2500, label: '~25 min walk' },
+  { steps: 5000, label: '~50 min walk' },
+  { steps: 10000, label: 'Full day goal' },
 ];
 
 // ─── Ring ─────────────────────────────────────────────────────────────────────
@@ -70,9 +73,9 @@ const StepsRing: React.FC<{
 };
 
 const rs = StyleSheet.create({
-  val:  { fontSize: 36, fontWeight: '700' as const, letterSpacing: -1 } as TextStyle,
-  unit: { fontSize: 12, fontWeight: '500' as const, marginTop: 2 }      as TextStyle,
-  goal: { fontSize: 12, fontWeight: '600' as const, marginTop: 4 }      as TextStyle,
+  val:  { fontSize: fs(36), fontWeight: '700' as const, letterSpacing: -1 } as TextStyle,
+  unit: { fontSize: fs(12), fontWeight: '500' as const, marginTop: 2 }      as TextStyle,
+  goal: { fontSize: fs(12), fontWeight: '600' as const, marginTop: 4 }      as TextStyle,
 });
 
 // ─── 7-day bar chart ──────────────────────────────────────────────────────────
@@ -216,7 +219,7 @@ export default function StepsScreen() {
             >
               <Text style={[styles.targetLabel, { color: colors.textSecondary }]}>Daily target</Text>
               <Text style={[styles.targetValue, { color: colors.success }]}>{formatSteps(goal)}</Text>
-              <Text style={[styles.targetEdit, { color: colors.textMuted }]}>{editingTarget ? '✓' : '✎'}</Text>
+              {editingTarget ? <Check size={14} color={colors.success} /> : <Edit3 size={14} color={colors.textMuted} />}
             </TouchableOpacity>
 
             {editingTarget && (
@@ -225,6 +228,9 @@ export default function StepsScreen() {
                   <TouchableOpacity
                     key={s}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set daily step target to ${formatSteps(s)} steps`}
+                    accessibilityState={{ selected: s === goal }}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       updateDailyTarget('dailySteps', s);
@@ -279,14 +285,26 @@ export default function StepsScreen() {
             {/* Quick add */}
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>QUICK ADD</Text>
             <View style={styles.quickGrid}>
-              {QUICK_STEPS.map((opt) => (
+              {QUICK_STEPS.map((opt, idx) => (
                 <TouchableOpacity
                   key={opt.steps}
                   onPress={() => addSteps(opt.steps)}
                   activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    opt.steps >= 1000
+                      ? `Add ${opt.steps / 1000} thousand steps (${opt.label})`
+                      : `Add ${opt.steps} steps (${opt.label})`
+                  }
+                  accessibilityHint="Double tap to add these steps to your count for today"
                   style={[styles.quickBtn, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
                 >
-                  <Text style={styles.quickEmoji}>{opt.emoji}</Text>
+                  <View style={styles.quickIconCircle}>
+                    {idx === 0 ? <Footprints size={15} color={STEPS_GREEN} /> :
+                     idx === 1 ? <Activity size={15} color={STEPS_GREEN} /> :
+                     idx === 2 ? <Zap size={15} color={STEPS_GREEN} /> :
+                     <Trophy size={15} color={STEPS_GREEN} />}
+                  </View>
                   <Text style={[styles.quickSteps, { color: colors.success }]}>
                     +{opt.steps >= 1000 ? `${opt.steps / 1000}k` : opt.steps}
                   </Text>
@@ -333,20 +351,26 @@ export default function StepsScreen() {
             {/* Goal met */}
             {pct >= 100 && (
               <View style={[styles.goalBanner, { backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}>
-                <Text style={[styles.goalText, { color: colors.success }]}>
-                  🏆 Daily goal reached! Amazing work.
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Trophy size={15} color={colors.success} />
+                  <Text style={[styles.goalText, { color: colors.success }]}>
+                    Daily goal reached! Amazing work.
+                  </Text>
+                </View>
               </View>
             )}
 
             {/* Tip */}
             {pct < 100 && remaining > 0 && (
               <View style={[styles.tip, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
-                <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-                  💡 {remaining >= 1000
-                    ? `Walk ${Math.ceil(remaining / 120)} more minutes to hit your goal.`
-                    : `Just ${remaining} more steps — you're almost there!`}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                  <Lightbulb size={15} color={colors.textSecondary} style={{ marginTop: 2 }} />
+                  <Text style={[styles.tipText, { color: colors.textSecondary, flex: 1 }]}>
+                    {remaining >= 1000
+                      ? `Walk ${Math.ceil(remaining / 120)} more minutes to hit your goal.`
+                      : `Just ${remaining} more steps — you're almost there!`}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -366,39 +390,39 @@ function makeStyles(colors: ColorScheme) {
     content:     { paddingHorizontal: 20, paddingBottom: 40 }     as ViewStyle,
     header:      { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, marginTop: 12, marginBottom: 8 } as ViewStyle,
     backBtn:     { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    title:       { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.3 } as TextStyle,
+    title:       { fontSize: fs(22), fontWeight: '700' as const, letterSpacing: -0.3 } as TextStyle,
     targetPill:    { flexDirection: 'row' as const, alignItems: 'center' as const, alignSelf: 'center' as const, gap: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 14 } as ViewStyle,
-    targetLabel:   { fontSize: 13, fontWeight: '500' as const } as TextStyle,
-    targetValue:   { fontSize: 15, fontWeight: '700' as const } as TextStyle,
-    targetEdit:    { fontSize: 14, marginLeft: 2 } as TextStyle,
+    targetLabel:   { fontSize: fs(13), fontWeight: '500' as const } as TextStyle,
+    targetValue:   { fontSize: fs(15), fontWeight: '700' as const } as TextStyle,
+    targetEdit:    { fontSize: fs(14), marginLeft: 2 } as TextStyle,
     targetPresets: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, justifyContent: 'center' as const, marginBottom: 16 } as ViewStyle,
     targetPresetBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5 } as ViewStyle,
-    targetPresetText: { fontSize: 14 } as TextStyle,
+    targetPresetText: { fontSize: fs(14) } as TextStyle,
     statsRow:    { flexDirection: 'row' as const, gap: 8, marginBottom: 20 }       as ViewStyle,
     statBox:     { flex: 1, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center' as const } as ViewStyle,
-    statVal:     { fontSize: 18, fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
-    statLbl:     { fontSize: 11, fontWeight: '500' as const, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
+    statVal:     { fontSize: fs(18), fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
+    statLbl:     { fontSize: fs(11), fontWeight: '500' as const, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
     chartCard:   { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 20 } as ViewStyle,
     chartHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginBottom: 12 } as ViewStyle,
-    chartTitle:  { fontSize: 13, fontWeight: '600' as const }                      as TextStyle,
-    chartAvg:    { fontSize: 12 }                                                   as TextStyle,
-    sectionTitle:{ fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 10 } as TextStyle,
+    chartTitle:  { fontSize: fs(13), fontWeight: '600' as const }                      as TextStyle,
+    chartAvg:    { fontSize: fs(12) }                                                   as TextStyle,
+    sectionTitle:{ fontSize: fs(11), fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 10 } as TextStyle,
     quickGrid:   { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, marginBottom: 16 } as ViewStyle,
-    quickBtn:    { width: '47.5%', borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center' as const, gap: 4 } as ViewStyle,
-    quickEmoji:  { fontSize: 22 }                                                   as TextStyle,
-    quickSteps:  { fontSize: 15, fontWeight: '700' as const }                      as TextStyle,
-    quickLabel:  { fontSize: 11, textAlign: 'center' as const }                    as TextStyle,
+    quickBtn:    { width: '47.5%', borderRadius: 16, borderWidth: 1, padding: 12, alignItems: 'center' as const, gap: 4 } as ViewStyle,
+    quickIconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(122,174,121,0.1)', alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: 2 } as ViewStyle,
+    quickSteps:  { fontSize: fs(15), fontWeight: '700' as const }                      as TextStyle,
+    quickLabel:  { fontSize: fs(9), textAlign: 'center' as const, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
     manualCard:  { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 14 } as ViewStyle,
-    manualLabel: { fontSize: 12, marginBottom: 10 }                                as TextStyle,
+    manualLabel: { fontSize: fs(12), marginBottom: 10 }                                as TextStyle,
     manualRow:   { flexDirection: 'row' as const, gap: 10 }                        as ViewStyle,
-    manualInput: { flex: 1, fontSize: 18, fontWeight: '600' as const, borderBottomWidth: 1.5, paddingVertical: 6, paddingHorizontal: 0 } as TextStyle,
+    manualInput: { flex: 1, fontSize: fs(18), fontWeight: '600' as const, borderBottomWidth: 1.5, paddingVertical: 6, paddingHorizontal: 0 } as TextStyle,
     manualBtn:   { borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10, justifyContent: 'center' as const } as ViewStyle,
-    manualBtnText: { fontSize: 14, fontWeight: '600' as const }                    as TextStyle,
+    manualBtnText: { fontSize: fs(14), fontWeight: '600' as const }                    as TextStyle,
     manualToggle:{ borderWidth: 1, borderStyle: 'dashed' as const, borderRadius: 12, padding: 14, alignItems: 'center' as const, marginBottom: 14 } as ViewStyle,
-    manualToggleText: { fontSize: 13, fontWeight: '500' as const }                 as TextStyle,
+    manualToggleText: { fontSize: fs(13), fontWeight: '500' as const }                 as TextStyle,
     goalBanner:  { borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 14, alignItems: 'center' as const } as ViewStyle,
-    goalText:    { fontSize: 13, fontWeight: '600' as const }                      as TextStyle,
+    goalText:    { fontSize: fs(13), fontWeight: '600' as const }                      as TextStyle,
     tip:         { borderRadius: 12, borderWidth: 1, padding: 12 }                 as ViewStyle,
-    tipText:     { fontSize: 13, lineHeight: 19 }                                  as TextStyle,
+    tipText:     { fontSize: fs(13), lineHeight: 19 }                                  as TextStyle,
   });
 }

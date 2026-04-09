@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Svg, { Path, G, Text as SvgText } from 'react-native-svg';
@@ -309,11 +310,11 @@ function makeStyles(colors: ColorScheme) {
       gap: 6,
     },
     swirlIcon: {
-      fontSize: 16,
+      fontSize: fs(16),
       color: ARC_COLOR,
     },
     title: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '700' as const,
       color: colors.text,
       letterSpacing: -0.3,
@@ -324,12 +325,12 @@ function makeStyles(colors: ColorScheme) {
       gap: 4,
     },
     dateRange: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
     subtitle: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       marginBottom: 12,
       lineHeight: 16,
@@ -354,13 +355,13 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
     },
     centerHours: {
-      fontSize: 28,
+      fontSize: fs(28),
       fontWeight: '800' as const,
       color: colors.text,
       letterSpacing: -1,
     },
     centerSub: {
-      fontSize: 10,
+      fontSize: fs(10),
       fontWeight: '700' as const,
       color: colors.textMuted,
       letterSpacing: 1.5,
@@ -378,7 +379,7 @@ function makeStyles(colors: ColorScheme) {
     },
     dayLabel: {
       width: 28,
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
@@ -406,7 +407,7 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'flex-end' as const,
     },
     barValue: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textSecondary,
       fontWeight: '500' as const,
       textAlign: 'right' as const,
@@ -434,13 +435,13 @@ function makeStyles(colors: ColorScheme) {
       gap: 3,
     },
     footerValue: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '700' as const,
       color: colors.text,
       letterSpacing: -0.5,
     },
     footerLabel: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       marginTop: 2,
       fontWeight: '500' as const,

@@ -1,17 +1,20 @@
 // Shared animated card used across Steps 2, 8, 9
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { Check } from 'lucide-react-native';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
+import type { ColorScheme } from '@/constants/colors';
+import { hexAlpha } from '@/constants/colors';
 
 export interface OptionCardItem {
   id:    string;
-  icon:  string;
+  icon:  React.ReactNode;
   name:  string;
   desc:  string;
-  hint?: string;  // small green note below desc (e.g. beginner progression)
+  hint?: string;
 }
 
 interface OptionCardProps {
@@ -20,10 +23,11 @@ interface OptionCardProps {
   onPress:  () => void;
   delay:    number;
   isDark:   boolean;
+  colors:   ColorScheme;
 }
 
 export const OptionCard: React.FC<OptionCardProps> = ({
-  item, selected, onPress, delay, isDark,
+  item, selected, onPress, delay, isDark, colors,
 }) => {
   const selectAnim   = useRef(new Animated.Value(selected ? 1 : 0)).current;
   const scaleAnim    = useRef(new Animated.Value(1)).current;
@@ -56,46 +60,61 @@ export const OptionCard: React.FC<OptionCardProps> = ({
   const borderColor = selectAnim.interpolate({
     inputRange: [0, 1],
     outputRange: isDark
-      ? ['rgba(200,135,42,0.12)', 'rgba(200,135,42,0.55)']
-      : ['rgba(200,135,42,0.15)', 'rgba(200,135,42,0.55)'],
+      ? [hexAlpha(colors.primary, 0.12), hexAlpha(colors.primary, 0.55)]
+      : [hexAlpha(colors.primary, 0.15), hexAlpha(colors.primary, 0.55)],
   });
   const bgColor = selectAnim.interpolate({
     inputRange: [0, 1],
     outputRange: isDark
-      ? ['rgba(255,255,255,0.02)', 'rgba(200,135,42,0.08)']
+      ? ['rgba(255,255,255,0.02)', hexAlpha(colors.primary, 0.08)]
       : ['rgba(255,255,255,0.65)',  'rgba(255,248,232,0.95)'],
   });
   const nameColor = selectAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: isDark ? ['#e8d5b0', '#e8a84c'] : ['#1e1004', '#7a4010'],
+    outputRange: isDark ? [colors.textSecondary, colors.primary] : [colors.text, colors.primaryDark],
   });
 
-  const cream   = isDark ? '#f0e0c0' : '#1e1004';
-  const muted   = isDark ? 'rgba(240,224,192,0.38)' : 'rgba(60,35,10,0.48)';
+  const a11yLabel = useMemo(() => {
+    const parts = [item.name, item.desc];
+    if (item.hint) parts.push(item.hint);
+    return parts.join('. ');
+  }, [item.desc, item.hint, item.name]);
 
   return (
     <Animated.View style={{ opacity: entryOpac, transform: [{ translateY: entrySlide }, { scale: scaleAnim }] }}>
-      <TouchableOpacity activeOpacity={1} onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={onPress}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        accessibilityLabel={a11yLabel}
+        accessibilityHint={selected ? 'Currently selected. Double tap to keep this option.' : 'Double tap to select this option'}
+      >
         <Animated.View style={[s.card, { borderColor, backgroundColor: bgColor }]}>
-          <Text style={s.icon}>{item.icon}</Text>
+          <View style={s.iconWrap} importantForAccessibility="no-hide-descendants">{item.icon}</View>
           <View style={s.body}>
             <Animated.Text style={[s.name, { color: nameColor }]}>{item.name}</Animated.Text>
-            <Text style={[s.desc, { color: muted }]}>{item.desc}</Text>
+            <Text style={[s.desc, { color: colors.textSecondary }]}>{item.desc}</Text>
             {item.hint && (
-              <Text style={[s.hint, { color: isDark ? 'rgba(58,170,110,0.75)' : 'rgba(24,112,64,0.75)' }]}>
+              <Text style={[s.hint, { color: colors.success }]}>
                 {item.hint}
               </Text>
             )}
           </View>
-          <Animated.View style={[
-            s.check,
-            {
-              transform: [{ scale: checkScale }],
-              opacity: checkScale,
-              backgroundColor: isDark ? '#c8872a' : '#b07020',
-            },
-          ]}>
-            <Text style={s.checkText}>✓</Text>
+          <Animated.View
+            style={[
+              s.check,
+              {
+                transform: [{ scale: checkScale }],
+                opacity: checkScale,
+                backgroundColor: colors.primary,
+              },
+            ]}
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Check size={12} color={colors.textLight} strokeWidth={3} />
           </Animated.View>
         </Animated.View>
       </TouchableOpacity>
@@ -104,12 +123,11 @@ export const OptionCard: React.FC<OptionCardProps> = ({
 };
 
 const s = StyleSheet.create({
-  card:      { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: SPACING.md, padding: SPACING.md, borderRadius: RADIUS.xl - 2, borderWidth: 1.5 } as ViewStyle,
-  icon:      { fontSize: 22, flexShrink: 0, marginTop: 1 }                                                                                                             as TextStyle,
-  body:      { flex: 1, gap: 3 }                                                                                                                                        as ViewStyle,
-  name:      { fontFamily: FONTS.bodyMedium, fontSize: 13, fontWeight: '500' as const }                                                                                as TextStyle,
-  desc:      { fontFamily: FONTS.bodyRegular, fontSize: 11, lineHeight: 16 }                                                                                           as TextStyle,
-  hint:      { fontFamily: FONTS.bodyRegular, fontSize: 10, lineHeight: 14, marginTop: 2 }                                                                             as TextStyle,
-  check:     { width: 22, height: 22, borderRadius: 11, flexShrink: 0, alignItems: 'center' as const, justifyContent: 'center' as const, marginTop: 1 }               as ViewStyle,
-  checkText: { fontFamily: FONTS.bodyMedium, fontSize: 10, fontWeight: '700' as const, color: '#fff8ed' }                                                              as TextStyle,
+  card:     { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: SPACING.md, padding: SPACING.md, borderRadius: RADIUS.xl - 2, borderWidth: 1.5 } as ViewStyle,
+  iconWrap: { flexShrink: 0, marginTop: 1 }                                                                                                                         as ViewStyle,
+  body:     { flex: 1, gap: 3 }                                                                                                                                      as ViewStyle,
+  name:     { fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '500' as const }                                                                              as TextStyle,
+  desc:     { fontFamily: FONTS.bodyRegular, fontSize: fs(11), lineHeight: lh(11, 1.35) }                                                                                  as TextStyle,
+  hint:     { fontFamily: FONTS.bodyRegular, fontSize: fs(10), lineHeight: lh(10, 1.35), marginTop: 2 }                                                                  as TextStyle,
+  check:    { width: 22, height: 22, borderRadius: 11, flexShrink: 0, alignItems: 'center' as const, justifyContent: 'center' as const, marginTop: 1 }             as ViewStyle,
 });

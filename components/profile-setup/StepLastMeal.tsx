@@ -5,8 +5,9 @@ import {
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Clock, Sunrise, UtensilsCrossed, Moon, Check } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import type { LastMealTime } from '@/types/user';
 
 interface Props {
@@ -14,12 +15,12 @@ interface Props {
   onChange: (v: LastMealTime) => void;
 }
 
-const OPTIONS: { id: LastMealTime; emoji: string; label: string; desc: string }[] = [
-  { id: '7pm',   emoji: '🌅', label: '7:00 pm',  desc: 'Early dinner, early to bed' },
-  { id: '8pm',   emoji: '🍽️', label: '8:00 pm',  desc: 'Most common dinner time' },
-  { id: '9pm',   emoji: '🌙', label: '9:00 pm',  desc: 'Late dinner, moderate schedule' },
-  { id: '10pm',  emoji: '🌃', label: '10:00 pm', desc: 'Night owl, late meals' },
-  { id: 'later', emoji: '🦉', label: 'After 10',  desc: 'Very late / shift work' },
+const OPTIONS: { id: LastMealTime; Icon: typeof Clock; label: string; desc: string }[] = [
+  { id: '7pm',   Icon: Sunrise,          label: '7:00 pm',  desc: 'Early dinner, early to bed' },
+  { id: '8pm',   Icon: UtensilsCrossed,  label: '8:00 pm',  desc: 'Most common dinner time' },
+  { id: '9pm',   Icon: Moon,             label: '9:00 pm',  desc: 'Late dinner, moderate schedule' },
+  { id: '10pm',  Icon: Moon,             label: '10:00 pm', desc: 'Night owl, late meals' },
+  { id: 'later', Icon: Moon,             label: 'After 10',  desc: 'Very late / shift work' },
 ];
 
 export const StepLastMeal: React.FC<Props> = ({ value, onChange }) => {
@@ -44,7 +45,7 @@ export const StepLastMeal: React.FC<Props> = ({ value, onChange }) => {
         backgroundColor: 'rgba(200,135,42,.1)',
         borderColor: isDark ? 'rgba(200,135,42,.2)' : 'rgba(200,135,42,.28)',
       }]}>
-        <Text style={{ fontSize: 20 }}>🕐</Text>
+        <Clock size={20} color={goldLt} />
       </View>
 
       <Text style={[s.heading, { color: cream }]}>
@@ -72,7 +73,9 @@ export const StepLastMeal: React.FC<Props> = ({ value, onChange }) => {
                   : (isDark ? 'rgba(200,135,42,.12)' : 'rgba(200,135,42,.18)'),
               }]}
             >
-              <Text style={s.cardEmoji}>{opt.emoji}</Text>
+              <View style={[s.iconCircle, { backgroundColor: isDark ? 'rgba(200,135,42,.08)' : 'rgba(200,135,42,.06)' }]}>
+                <opt.Icon size={16} color={goldLt} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={[s.cardName, { color: sel ? goldLt : cream }]}>{opt.label}</Text>
                 <Text style={[s.cardDesc, { color: isDark ? 'rgba(240,224,192,.38)' : 'rgba(60,35,10,.42)' }]}>
@@ -81,7 +84,7 @@ export const StepLastMeal: React.FC<Props> = ({ value, onChange }) => {
               </View>
               {sel && (
                 <View style={[s.check, { backgroundColor: isDark ? '#c8872a' : '#b07020' }]}>
-                  <Text style={s.checkText}>✓</Text>
+                  <Check size={12} color="#fff8ed" strokeWidth={3} />
                 </View>
               )}
             </TouchableOpacity>
@@ -93,15 +96,14 @@ export const StepLastMeal: React.FC<Props> = ({ value, onChange }) => {
 };
 
 const s = StyleSheet.create({
-  iconWrap:    { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg } as ViewStyle,
-  heading:     { fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 42, letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
-  accent:      { fontFamily: FONTS.displayItalic, fontSize: 36 } as TextStyle,
-  sub:         { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 20, marginBottom: SPACING.xl } as TextStyle,
-  list:        { gap: SPACING.sm } as ViewStyle,
-  card:        { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12, borderRadius: RADIUS.lg, borderWidth: 1.5 } as ViewStyle,
-  cardEmoji:   { fontSize: 22, width: 36, textAlign: 'center' as const, flexShrink: 0 } as TextStyle,
-  cardName:    { fontFamily: FONTS.bodyMedium, fontSize: 15, fontWeight: '600' as const, marginBottom: 1 } as TextStyle,
-  cardDesc:    { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 18 } as TextStyle,
-  check:       { width: 22, height: 22, borderRadius: 11, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0 } as ViewStyle,
-  checkText:   { fontFamily: FONTS.bodyMedium, fontSize: 12, fontWeight: '700' as const, color: '#fff8ed' } as TextStyle,
+  iconWrap:   { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg } as ViewStyle,
+  heading:    { fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36), letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
+  accent:     { fontFamily: FONTS.displayItalic, fontSize: fs(36), lineHeight: lh(36) } as TextStyle,
+  sub:        { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.xl } as TextStyle,
+  list:       { gap: SPACING.sm } as ViewStyle,
+  card:       { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12, borderRadius: RADIUS.lg, borderWidth: 1.5 } as ViewStyle,
+  iconCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0 } as ViewStyle,
+  cardName:   { fontFamily: FONTS.bodyMedium, fontSize: fs(15), fontWeight: '600' as const, marginBottom: 1 } as TextStyle,
+  cardDesc:   { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35) } as TextStyle,
+  check:      { width: 22, height: 22, borderRadius: 11, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0 } as ViewStyle,
 });

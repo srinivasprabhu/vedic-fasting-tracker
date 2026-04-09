@@ -3,9 +3,10 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { Timer, Flame, Sparkles, Leaf, Check } from 'lucide-react-native';
 import type { FastingPath } from '@/types/user';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 
 interface Step4PathProps {
   value: FastingPath;
@@ -14,9 +15,11 @@ interface Step4PathProps {
 
 type PillVariant = 'default' | 'vedic' | 'both';
 
+type PathIcon = typeof Timer;
+
 interface PathOption {
   id: FastingPath;
-  icon: string;
+  Icon: PathIcon;
   name: string;
   description: string;
   pill: string;
@@ -27,7 +30,7 @@ interface PathOption {
 const PATHS: PathOption[] = [
   {
     id: 'if',
-    icon: '⏱️',
+    Icon: Timer,
     name: 'Intermittent Fasting',
     description: 'Time-based fasting windows. Science-backed, flexible, works for everyone.',
     pill: 'Default',
@@ -36,7 +39,7 @@ const PATHS: PathOption[] = [
   },
   {
     id: 'vedic',
-    icon: '🪔',
+    Icon: Flame,
     name: 'Vedic Fasting',
     description: 'Calendar-based fasting aligned with Hindu traditions. Ekadashi, Pradosh, Navratri and more.',
     pill: 'Traditional',
@@ -45,7 +48,7 @@ const PATHS: PathOption[] = [
   },
   {
     id: 'both',
-    icon: '✨',
+    Icon: Sparkles,
     name: 'Both',
     description: 'Combine IF windows with Vedic calendar days. The complete Aayu experience.',
     pill: 'Recommended',
@@ -131,6 +134,7 @@ const PathCard: React.FC<{
   });
 
   const pill = PILL_COLORS[option.pillVariant];
+  const cardIconColor = isDark ? '#e8a84c' : '#a06820';
 
   return (
     <Animated.View style={{
@@ -165,7 +169,7 @@ const PathCard: React.FC<{
               opacity: checkScale,
             },
           ]}>
-            <Text style={styles.checkText}>✓</Text>
+            <Check size={11} color="#fff8ed" strokeWidth={3} />
           </Animated.View>
 
           <View style={styles.cardHeader}>
@@ -176,7 +180,7 @@ const PathCard: React.FC<{
                 borderColor:     isDark ? 'rgba(200,135,42,0.2)'  : 'rgba(200,135,42,0.22)',
               },
             ]}>
-              <Text style={styles.cardIcon}>{option.icon}</Text>
+              <option.Icon size={17} color={cardIconColor} />
             </View>
             <View style={styles.titleRow}>
               <Animated.Text style={[styles.cardName, { color: nameColor }]}>
@@ -227,7 +231,7 @@ const PathCard: React.FC<{
 };
 
 export const Step4Path: React.FC<Step4PathProps> = ({ value, onChange }) => {
-  const { isDark, colors } = useTheme();
+  const { isDark } = useTheme();
   const iconOpacity = useRef(new Animated.Value(0)).current;
   const iconScale   = useRef(new Animated.Value(0.8)).current;
 
@@ -261,7 +265,7 @@ export const Step4Path: React.FC<Step4PathProps> = ({ value, onChange }) => {
           borderColor: isDark ? 'rgba(200,135,42,0.2)' : 'rgba(200,135,42,0.28)',
         },
       ]}>
-        <Text style={styles.headerEmoji}>🌿</Text>
+        <Leaf size={20} color={goldLight} />
       </Animated.View>
 
       <Text style={[styles.heading, { color: cream }]}>
@@ -295,17 +299,17 @@ const styles = StyleSheet.create({
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.lg,
   }                                                              as ViewStyle,
-  headerEmoji: { fontSize: 20 }                                  as TextStyle,
   heading:     {
-    fontFamily: FONTS.displayLight, fontSize: 38,
-    lineHeight: 44, letterSpacing: 0.2, marginBottom: SPACING.xs,
+    fontFamily: FONTS.displayLight, fontSize: fs(38),
+    lineHeight: lh(38), letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                              as TextStyle,
   headingAccent: {
-    fontFamily: FONTS.displayItalic, fontSize: 38,
+    fontFamily: FONTS.displayItalic, fontSize: fs(38),
+    lineHeight: lh(38),
   }                                                              as TextStyle,
   subheading:  {
-    fontFamily: FONTS.bodyRegular, fontSize: 13,
-    lineHeight: 21, marginBottom: SPACING.xl,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13),
+    lineHeight: lh(13, 1.35), marginBottom: SPACING.xl,
   }                                                              as TextStyle,
   cards:       { gap: SPACING.sm + 1 }                           as ViewStyle,
   card:        {
@@ -317,10 +321,6 @@ const styles = StyleSheet.create({
     width: 20, height: 20, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   }                                                              as ViewStyle,
-  checkText:   {
-    fontFamily: FONTS.bodyMedium, fontSize: 9,
-    fontWeight: '700', color: '#fff8ed',
-  }                                                              as TextStyle,
   cardHeader:  {
     flexDirection: 'row', alignItems: 'center',
     gap: SPACING.sm + 2, marginBottom: SPACING.xs + 2,
@@ -329,22 +329,21 @@ const styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: RADIUS.md,
     borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   }                                                              as ViewStyle,
-  cardIcon:    { fontSize: 17 }                                  as TextStyle,
   titleRow:    { flex: 1, gap: 3 }                               as ViewStyle,
   cardName:    {
-    fontFamily: FONTS.bodyMedium, fontSize: 13, fontWeight: '500',
+    fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '500',
   }                                                              as TextStyle,
   pill:        {
     alignSelf: 'flex-start', paddingHorizontal: SPACING.sm,
     paddingVertical: 2, borderRadius: RADIUS.pill, borderWidth: 1,
   }                                                              as ViewStyle,
   pillText:    {
-    fontFamily: FONTS.bodyMedium, fontSize: 8,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(8),
     fontWeight: '500', letterSpacing: 0.07,
   }                                                              as TextStyle,
   cardDesc:    {
-    fontFamily: FONTS.bodyRegular, fontSize: 11,
-    lineHeight: 17, marginBottom: SPACING.sm,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(11),
+    lineHeight: lh(11, 1.35), marginBottom: SPACING.sm,
   }                                                              as TextStyle,
   methodsRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 5 } as ViewStyle,
   methodPill:  {
@@ -352,6 +351,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm, paddingVertical: 2,
   }                                                              as ViewStyle,
   methodText:  {
-    fontFamily: FONTS.bodyRegular, fontSize: 9,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(9),
   }                                                              as TextStyle,
 });

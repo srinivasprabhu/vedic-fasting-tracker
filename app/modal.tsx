@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     minWidth: 300,
   },
   title: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '700',
     marginBottom: 16,
     color: Colors.text,
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     color: Colors.textSecondary,
     lineHeight: 20,
-    fontSize: 14,
+    fontSize: fs(14),
   },
   closeButton: {
     backgroundColor: Colors.primary,

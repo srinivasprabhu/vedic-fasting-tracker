@@ -2,13 +2,14 @@
 // Real-time weight forecast card for the Insights tab (Pro feature).
 // Shows personalised projection based on actual logged data.
 
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
 import Svg, { Path, Circle as SvgCircle, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { TrendingDown, Lock, Target, ChevronRight, Zap } from 'lucide-react-native';
+import { TrendingDown, Lock, Target, ChevronRight, Zap, FlaskConical } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { SmartProjection } from '@/utils/smart-projection';
 import type { ColorScheme } from '@/constants/colors';
@@ -112,10 +113,10 @@ const ConfidenceBar: React.FC<{ confidence: number; colors: ColorScheme }> = ({ 
 
 const confS = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 } as ViewStyle,
-  label: { fontSize: 11, fontWeight: '500', width: 68 } as TextStyle,
+  label: { fontSize: fs(11), fontWeight: '500', width: 68 } as TextStyle,
   track: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' } as ViewStyle,
   fill: { height: '100%' as any, borderRadius: 2 } as ViewStyle,
-  value: { fontSize: 11, fontWeight: '600', width: 48, textAlign: 'right' } as TextStyle,
+  value: { fontSize: fs(11), fontWeight: '600', width: 48, textAlign: 'right' } as TextStyle,
 });
 
 // ─── Progress toward goal ─────────────────────────────────────────────────────
@@ -157,12 +158,12 @@ const ProgressRow: React.FC<{
 const progS = StyleSheet.create({
   container: { marginTop: 12 } as ViewStyle,
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 } as ViewStyle,
-  lost: { fontSize: 12, fontWeight: '600' } as TextStyle,
-  remaining: { fontSize: 11 } as TextStyle,
+  lost: { fontSize: fs(12), fontWeight: '600' } as TextStyle,
+  remaining: { fontSize: fs(11) } as TextStyle,
   track: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 4 } as ViewStyle,
   fill: { height: '100%' as any, borderRadius: 3 } as ViewStyle,
   kgRow: { flexDirection: 'row', justifyContent: 'space-between' } as ViewStyle,
-  kgLabel: { fontSize: 10 } as TextStyle,
+  kgLabel: { fontSize: fs(10) } as TextStyle,
 });
 
 // ─── Locked state (free users) ────────────────────────────────────────────────
@@ -187,7 +188,7 @@ export const SmartProjectionLocked: React.FC<{
     {/* Blurred preview */}
     <View style={[s.lockedPreview, { backgroundColor: isDark ? 'rgba(122,174,121,0.04)' : 'rgba(58,122,57,0.03)' }]}>
       <View style={s.lockedChart}>
-        <Text style={{ fontSize: 32, opacity: 0.15 }}>📉</Text>
+        <TrendingDown size={32} color={colors.textMuted} style={{ opacity: 0.15 }} />
       </View>
       <View style={s.lockedOverlay}>
         <Lock size={20} color={colors.textMuted} />
@@ -223,7 +224,9 @@ export const SmartProjectionBuilding: React.FC<{
     </View>
 
     <View style={[s.buildingContent, { backgroundColor: colors.surface }]}>
-      <Text style={{ fontSize: 28, marginBottom: 8 }}>🔬</Text>
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(122,174,121,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+        <FlaskConical size={18} color="#7AAE79" />
+      </View>
       <Text style={[s.buildingTitle, { color: colors.text }]}>Collecting your data</Text>
       <Text style={[s.buildingText, { color: colors.textMuted }]}>{teaser}</Text>
 
@@ -347,41 +350,41 @@ const s = StyleSheet.create({
   card: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16 } as ViewStyle,
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } as ViewStyle,
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 } as ViewStyle,
-  title: { fontSize: 15, fontWeight: '700' } as TextStyle,
+  title: { fontSize: fs(15), fontWeight: '700' } as TextStyle,
   proBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(232,168,76,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 } as ViewStyle,
-  proText: { fontSize: 9, fontWeight: '800', color: '#e8a84c', letterSpacing: 0.8 } as TextStyle,
+  proText: { fontSize: fs(9), fontWeight: '800', color: '#e8a84c', letterSpacing: 0.8 } as TextStyle,
   liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 } as ViewStyle,
   liveDot: { width: 6, height: 6, borderRadius: 3 } as ViewStyle,
-  liveText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8 } as TextStyle,
+  liveText: { fontSize: fs(9), fontWeight: '800', letterSpacing: 0.8 } as TextStyle,
 
   // Hero stats
   heroRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 } as ViewStyle,
   heroStat: { flex: 1, alignItems: 'center' } as ViewStyle,
-  heroValue: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
-  heroLabel: { fontSize: 10, fontWeight: '500', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 } as TextStyle,
+  heroValue: { fontSize: fs(20), fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
+  heroLabel: { fontSize: fs(10), fontWeight: '500', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 } as TextStyle,
   heroDivider: { width: 1, height: 28, marginHorizontal: 4 } as ViewStyle,
 
   // Chart
   chartWrap: { alignItems: 'center', marginBottom: 4 } as ViewStyle,
 
   // Insight
-  insight: { fontSize: 12, lineHeight: 17, marginTop: 10 } as TextStyle,
-  disclaimer: { fontSize: 10, lineHeight: 14, marginTop: 8, fontStyle: 'italic' } as TextStyle,
+  insight: { fontSize: fs(12), lineHeight: 17, marginTop: 10 } as TextStyle,
+  disclaimer: { fontSize: fs(10), lineHeight: 14, marginTop: 8, fontStyle: 'italic' } as TextStyle,
 
   // Locked
   lockedPreview: { borderRadius: 12, padding: 20, alignItems: 'center', marginBottom: 8, minHeight: 100 } as ViewStyle,
   lockedChart: { marginBottom: 8 } as ViewStyle,
   lockedOverlay: { alignItems: 'center' } as ViewStyle,
-  lockedTitle: { fontSize: 14, fontWeight: '600', marginTop: 8, marginBottom: 4 } as TextStyle,
-  lockedText: { fontSize: 12, textAlign: 'center', lineHeight: 17, paddingHorizontal: 16 } as TextStyle,
-  lockedSubtext: { fontSize: 11, textAlign: 'center' } as TextStyle,
+  lockedTitle: { fontSize: fs(14), fontWeight: '600', marginTop: 8, marginBottom: 4 } as TextStyle,
+  lockedText: { fontSize: fs(12), textAlign: 'center', lineHeight: 17, paddingHorizontal: 16 } as TextStyle,
+  lockedSubtext: { fontSize: fs(11), textAlign: 'center' } as TextStyle,
 
   // Building
   buildingContent: { borderRadius: 12, padding: 16, alignItems: 'center' } as ViewStyle,
-  buildingTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 } as TextStyle,
-  buildingText: { fontSize: 12, textAlign: 'center', lineHeight: 17, marginBottom: 12 } as TextStyle,
+  buildingTitle: { fontSize: fs(14), fontWeight: '600', marginBottom: 4 } as TextStyle,
+  buildingText: { fontSize: fs(12), textAlign: 'center', lineHeight: 17, marginBottom: 12 } as TextStyle,
   buildingStats: { flexDirection: 'row', gap: 12 } as ViewStyle,
   buildingStat: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10, borderWidth: 1 } as ViewStyle,
-  buildingStatVal: { fontSize: 20, fontWeight: '700' } as TextStyle,
-  buildingStatLabel: { fontSize: 10, marginTop: 2, textAlign: 'center' } as TextStyle,
+  buildingStatVal: { fontSize: fs(20), fontWeight: '700' } as TextStyle,
+  buildingStatLabel: { fontSize: fs(10), marginTop: 2, textAlign: 'center' } as TextStyle,
 });

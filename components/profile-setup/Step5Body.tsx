@@ -4,7 +4,7 @@ import {
   ScrollView, Animated, Easing, ViewStyle, TextStyle, Platform,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import type { UserSex, FastingPurpose, WeightUnit } from '@/types/user';
 import { calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor } from '@/utils/calculatePlan';
 
@@ -112,16 +112,16 @@ const iStyles = StyleSheet.create({
     padding: SPACING.sm + 2, paddingTop: SPACING.sm,
   }                                                              as ViewStyle,
   label:      {
-    fontFamily: FONTS.bodyMedium, fontSize: 8,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(8),
     letterSpacing: 0.15, fontWeight: '500', marginBottom: 5,
   }                                                              as TextStyle,
   row:        { flexDirection: 'row', alignItems: 'baseline', gap: 4 } as ViewStyle,
   input:      {
     flex: 1, fontFamily: FONTS.displayLight,
-    fontSize: 26, lineHeight: 30, padding: 0,
+    fontSize: fs(26), lineHeight: lh(26), padding: 0,
   }                                                              as TextStyle,
   unit:       {
-    fontFamily: FONTS.bodyMedium, fontSize: 13, fontWeight: '500',
+    fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '500',
   }                                                              as TextStyle,
   underline:  { height: 1.5, borderRadius: 1, marginTop: 6 }   as ViewStyle,
 });
@@ -374,18 +374,18 @@ const styles = StyleSheet.create({
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.lg,
   }                                                              as ViewStyle,
-  iconEmoji:      { fontSize: 20 }                               as TextStyle,
+  iconEmoji:      { fontSize: fs(20) }                               as TextStyle,
   heading:        {
-    fontFamily: FONTS.displayLight, fontSize: 38,
-    lineHeight: 44, letterSpacing: 0.2, marginBottom: SPACING.xs,
+    fontFamily: FONTS.displayLight, fontSize: fs(38),
+    lineHeight: lh(38), letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                              as TextStyle,
-  headingAccent:  { fontFamily: FONTS.displayItalic, fontSize: 38 } as TextStyle,
+  headingAccent:  { fontFamily: FONTS.displayItalic, fontSize: fs(38), lineHeight: lh(38) } as TextStyle,
   subheading:     {
-    fontFamily: FONTS.bodyRegular, fontSize: 13,
-    lineHeight: 21, marginBottom: SPACING.xl,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13),
+    lineHeight: lh(13, 1.35), marginBottom: SPACING.xl,
   }                                                              as TextStyle,
   sectionLabel:   {
-    fontFamily: FONTS.bodyMedium, fontSize: 8,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(8),
     letterSpacing: 0.16, fontWeight: '500',
     marginBottom: SPACING.sm,
   }                                                              as TextStyle,
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
     flex: 1, borderWidth: 1.5, borderRadius: RADIUS.md,
     paddingVertical: SPACING.sm + 2, alignItems: 'center', gap: 4,
   }                                                              as ViewStyle,
-  sexEmoji:       { fontSize: 18 }                               as TextStyle,
+  sexEmoji:       { fontSize: fs(18) }                               as TextStyle,
   sexLabel:       {
-    fontFamily: FONTS.bodyMedium, fontSize: 10, fontWeight: '500',
+    fontFamily: FONTS.bodyMedium, fontSize: fs(10), fontWeight: '500',
   }                                                              as TextStyle,
   // Unit toggle
   rowBetween:     {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden', borderWidth: 1,
   }                                                              as ViewStyle,
   unitBtn:        { paddingHorizontal: 12, paddingVertical: 5 } as ViewStyle,
-  unitBtnText:    { fontFamily: FONTS.bodyMedium, fontSize: 11 } as TextStyle,
+  unitBtnText:    { fontFamily: FONTS.bodyMedium, fontSize: fs(11) } as TextStyle,
   // Inputs
   inputRow:       { flexDirection: 'row', gap: SPACING.sm, marginBottom: 0 } as ViewStyle,
   // BMI preview
@@ -419,20 +419,20 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   }                                                              as ViewStyle,
   bmiLabel:       {
-    fontFamily: FONTS.bodyMedium, fontSize: 8,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(8),
     letterSpacing: 0.15, fontWeight: '500', marginBottom: 5,
     alignSelf: 'flex-start',
   }                                                              as TextStyle,
   bmiValue:       {
-    fontFamily: FONTS.displayLight, fontSize: 26,
-    fontWeight: '300', lineHeight: 30,
+    fontFamily: FONTS.displayLight, fontSize: fs(26),
+    fontWeight: '300', lineHeight: lh(26),
   }                                                              as TextStyle,
   bmiCat:         {
-    fontFamily: FONTS.bodyMedium, fontSize: 10, fontWeight: '500',
+    fontFamily: FONTS.bodyMedium, fontSize: fs(10), fontWeight: '500',
     marginTop: 2,
   }                                                              as TextStyle,
   bmiEmpty:       {
-    fontFamily: FONTS.displayLight, fontSize: 26, lineHeight: 30,
+    fontFamily: FONTS.displayLight, fontSize: fs(26), lineHeight: lh(26),
   }                                                              as TextStyle,
   // Purpose
   purposeGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm } as ViewStyle,
@@ -446,15 +446,15 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   }                                                              as ViewStyle,
   purposeCheckText: {
-    fontFamily: FONTS.bodyMedium, fontSize: 9,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(9),
     fontWeight: '700', color: '#fff8ed',
   }                                                              as TextStyle,
-  purposeEmoji:   { fontSize: 20, marginBottom: 5 }              as TextStyle,
+  purposeEmoji:   { fontSize: fs(20), marginBottom: 5 }              as TextStyle,
   purposeName:    {
-    fontFamily: FONTS.bodyMedium, fontSize: 12,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(12),
     fontWeight: '500', marginBottom: 3,
   }                                                              as TextStyle,
   purposeDesc:    {
-    fontFamily: FONTS.bodyRegular, fontSize: 10, lineHeight: 14,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(10), lineHeight: lh(10, 1.35),
   }                                                              as TextStyle,
 });

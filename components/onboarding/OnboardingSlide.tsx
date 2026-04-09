@@ -8,6 +8,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import { fs } from '@/constants/theme';
 import { AayuMandala } from './AayuMandala';
 import type { OnboardingSlideData } from './types';
 
@@ -84,8 +85,14 @@ export const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
               animated={isActive}
               glow
             />
+          ) : slide.iconComponent ? (
+            slide.iconComponent
           ) : (
-            <Text style={[styles.icon, { fontSize: mandalaSize * 0.38 }]}>
+            <Text
+              style={[styles.icon, { fontSize: fs(Math.round(mandalaSize * 0.38)) }]}
+              accessible={false}
+              importantForAccessibility="no"
+            >
               {slide.icon}
             </Text>
           )}

@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
@@ -31,6 +32,14 @@ import {
   Battery,
   CircleDot,
   Info,
+  Leaf,
+  Dumbbell,
+  Dna,
+  Droplet,
+  UtensilsCrossed,
+  Flower2,
+  Scale,
+  Footprints,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -47,12 +56,14 @@ import {
 import { TrendChartCard } from '@/components/TrendChartCard';
 import { useTrendData, TimeRange } from '@/hooks/useTrendData';
 import { usePedometer as __usePedometer } from '@/hooks/usePedometer';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 import {
   WARRIOR_LEVELS,
   AUTOPHAGY_THRESHOLD_HOURS,
   AVG_MEAL_COST,
   formatHours,
+  formatInsightHours,
   formatNumber,
   getAutophagyScore,
   getExtendedFastingSupportLevel,
@@ -64,9 +75,14 @@ import {
 } from '@/utils/analytics-helpers';
 import { getTargetFastsPerWeek } from '@/utils/metabolic-score';
 import AayuInsightCard from '@/components/AayuInsightCard';
+import { StatValueText } from '@/components/ui/StatValueText';
 import type { ColorScheme } from '@/constants/colors';
 
 type TabKey = 'overview' | 'spirit';
+
+const WARRIOR_ICON_MAP: Record<string, React.ComponentType<{ size: number; color: string }>> = {
+  Leaf, Zap, Flame, Dumbbell, Sparkles, Crown,
+};
 
 function DedicatedSeekerCard({
   completedCount,
@@ -82,6 +98,7 @@ function DedicatedSeekerCard({
   const progress = Math.min(completedCount, 10);
   const remaining = Math.max(0, 10 - progress);
   const estWeeks = remaining === 0 ? 0 : Math.ceil(remaining / Math.max(1, targetFastsPerWeek));
+  const reduceMotion = useReducedMotion();
   const progressAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0.5)).current;
 
@@ -93,15 +110,23 @@ function DedicatedSeekerCard({
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-    if (isUnlocked) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0.5, duration: 2000, useNativeDriver: true }),
-        ])
-      ).start();
+    if (!isUnlocked) {
+      glowAnim.setValue(1);
+      return;
     }
-  }, [progress, isUnlocked, progressAnim, glowAnim]);
+    if (reduceMotion) {
+      glowAnim.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.5, duration: 2000, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [progress, isUnlocked, progressAnim, glowAnim, reduceMotion]);
 
   const barWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
@@ -181,7 +206,7 @@ const dStyles = StyleSheet.create({
     flexWrap: 'wrap' as const,
   },
   title: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '700' as const,
     letterSpacing: -0.2,
   },
@@ -191,17 +216,17 @@ const dStyles = StyleSheet.create({
     borderRadius: 8,
   },
   pillText: {
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: '700' as const,
     letterSpacing: 0.3,
   },
   sub: {
-    fontSize: 13,
+    fontSize: fs(13),
     marginTop: 2,
     lineHeight: 18,
   },
   paceHint: {
-    fontSize: 12,
+    fontSize: fs(12),
     marginTop: 6,
     lineHeight: 16,
     fontWeight: '500' as const,
@@ -211,12 +236,12 @@ const dStyles = StyleSheet.create({
     alignItems: 'baseline' as const,
   },
   countNum: {
-    fontSize: 26,
+    fontSize: fs(26),
     fontWeight: '800' as const,
     letterSpacing: -1,
   },
   countDen: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '500' as const,
     marginLeft: 1,
   },
@@ -695,28 +720,36 @@ export default function AnalyticsScreen() {
           <View style={[styles.statIconWrap, { backgroundColor: colors.warningLight }]}>
             <TrendingUp size={18} color={colors.warning} />
           </View>
-          <Text style={styles.statValue}>{streak}</Text>
+          <StatValueText color={colors.text} size="xl">
+            {String(streak)}
+          </StatValueText>
           <Text style={styles.statLabel}>Current streak</Text>
         </View>
         <View style={styles.statCard}>
           <View style={[styles.statIconWrap, { backgroundColor: colors.accentLight }]}>
             <Award size={18} color={colors.accent} />
           </View>
-          <Text style={styles.statValue}>{formatHours(longestFast)}</Text>
+          <StatValueText color={colors.text} size="xl">
+            {formatInsightHours(longestFast)}
+          </StatValueText>
           <Text style={styles.statLabel}>Longest fast</Text>
         </View>
         <View style={styles.statCard}>
           <View style={[styles.statIconWrap, { backgroundColor: colors.primaryLight }]}>
             <Clock size={18} color={colors.primary} />
           </View>
-          <Text style={styles.statValue}>{formatHours(thisWeekHours)}</Text>
+          <StatValueText color={colors.text} size="xl">
+            {formatInsightHours(thisWeekHours)}
+          </StatValueText>
           <Text style={styles.statLabel}>This week</Text>
         </View>
         <View style={styles.statCard}>
           <View style={[styles.statIconWrap, { backgroundColor: colors.successLight }]}>
             <Target size={18} color={colors.success} />
           </View>
-          <Text style={styles.statValue}>{goalAdherencePct}%</Text>
+          <StatValueText color={colors.text} size="xl">
+            {`${goalAdherencePct}%`}
+          </StatValueText>
           <Text style={styles.statLabel}>Goal adherence</Text>
           <Text style={[styles.statHint, { color: colors.textMuted }]}>
             {weekCompletedCount} of {targetFastsPerWeek} planned fasts
@@ -744,7 +777,7 @@ export default function AnalyticsScreen() {
       <View style={styles.section}>
         <TrendChartCard
           title="Fasting"
-          icon="⏱️"
+          icon={<Clock size={17} color={colors.primary} />}
           color={colors.primary}
           data={fastingTrend.fastingData}
           unit="h"
@@ -759,7 +792,7 @@ export default function AnalyticsScreen() {
         />
         <TrendChartCard
           title="Weight"
-          icon="⚖️"
+          icon={<Scale size={17} color={colors.warning} />}
           color={colors.warning}
           data={weightTrend.weightData}
           unit="kg"
@@ -775,7 +808,7 @@ export default function AnalyticsScreen() {
         />
         <TrendChartCard
           title="Steps"
-          icon="👟"
+          icon={<Footprints size={17} color={colors.success} />}
           color={colors.success}
           data={stepsTrend.stepsData}
           unit="steps"
@@ -793,7 +826,9 @@ export default function AnalyticsScreen() {
         {waterRange === 'week' && waterWeekLoggedDays < 3 ? (
           <View style={[styles.compactWaterCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
             <View style={styles.compactWaterTop}>
-              <Text style={styles.compactWaterIcon}>💧</Text>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${colors.hydration}15`, alignItems: 'center' as const, justifyContent: 'center' as const }}>
+                <Droplets size={18} color={colors.hydration} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.compactWaterTitle, { color: colors.text }]}>Hydration</Text>
                 <Text style={[styles.compactWaterSub, { color: colors.textSecondary }]}>
@@ -810,18 +845,18 @@ export default function AnalyticsScreen() {
               Log a few more days to unlock the full week chart.
             </Text>
             <TouchableOpacity
-              style={[styles.compactWaterCta, { backgroundColor: '#5b8dd9' + '22', borderColor: '#5b8dd9' }]}
+              style={[styles.compactWaterCta, { backgroundColor: `${colors.hydration}22`, borderColor: colors.hydration }]}
               onPress={() => router.push('/(tabs)/(home)/water' as any)}
               activeOpacity={0.75}
             >
-              <Text style={[styles.compactWaterCtaText, { color: '#5b8dd9' }]}>Log water on Today</Text>
+              <Text style={[styles.compactWaterCtaText, { color: colors.hydration }]}>Log water on Today</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <TrendChartCard
             title="Water"
-            icon="💧"
-            color="#5b8dd9"
+            icon={<Droplets size={17} color={colors.hydration} />}
+            color={colors.hydration}
             data={waterTrend.waterData}
             unit="ml"
             chartType="bar"
@@ -843,7 +878,12 @@ export default function AnalyticsScreen() {
 
       <View style={styles.warriorCard}>
         <View style={styles.warriorLeft}>
-          <Text style={styles.warriorEmoji}>{warriorLevel.icon}</Text>
+          <View style={styles.warriorIconCircle}>
+            {(() => {
+              const Icon = WARRIOR_ICON_MAP[warriorLevel.icon];
+              return Icon ? <Icon size={22} color={warriorLevel.color} /> : null;
+            })()}
+          </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.warriorLevelLabel}>FASTING LEVEL</Text>
             <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
@@ -960,7 +1000,7 @@ export default function AnalyticsScreen() {
             <View style={styles.impactGrid}>
               <ImpactCard
                 icon={<Sparkles size={20} color="#7B68AE" />}
-                value={formatHours(impactMetrics.autophagyHours)}
+                value={formatInsightHours(impactMetrics.autophagyHours)}
                 label="Deep Autophagy"
                 sublabel="Cellular renewal time"
                 color="#7B68AE"
@@ -1013,8 +1053,12 @@ export default function AnalyticsScreen() {
                   <View style={styles.infoHintRight}>
                     <Info size={13} color={colors.textMuted} />
                   </View>
-                  <Text style={styles.advancedEmoji}>🧬</Text>
-                  <Text style={styles.advancedValue}>-{cellularAgeReduction}y</Text>
+                  <View style={[styles.advancedIconCircle, { backgroundColor: '#7B68AE15' }]}>
+                    <Dna size={20} color="#7B68AE" />
+                  </View>
+                  <StatValueText color={colors.text} size="lg">
+                    {`-${cellularAgeReduction}y`}
+                  </StatValueText>
                   <Text style={styles.advancedLabel}>Cellular Age</Text>
                   <Text style={styles.advancedSub}>Estimated biological age reduction</Text>
                 </View>
@@ -1024,8 +1068,12 @@ export default function AnalyticsScreen() {
                   <View style={styles.infoHintRight}>
                     <Info size={13} color={colors.textMuted} />
                   </View>
-                  <Text style={styles.advancedEmoji}>🫗</Text>
-                  <Text style={styles.advancedValue}>{formatHours(gutRestHours)}</Text>
+                  <View style={[styles.advancedIconCircle, { backgroundColor: '#5B8C5A15' }]}>
+                    <Droplet size={20} color="#5B8C5A" />
+                  </View>
+                  <StatValueText color={colors.text} size="lg">
+                    {formatInsightHours(gutRestHours)}
+                  </StatValueText>
                   <Text style={styles.advancedLabel}>Gut Rest (Agni)</Text>
                   <Text style={styles.advancedSub}>Total digestive system rest</Text>
                 </View>
@@ -1035,7 +1083,9 @@ export default function AnalyticsScreen() {
             <View style={styles.savingsCard}>
               <View style={styles.savingsRow}>
                 <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('mealsSkipped')} style={styles.savingsItem}>
-                  <Text style={styles.savingsEmoji}>🍽️</Text>
+                  <View style={[styles.savingsIconCircle, { backgroundColor: '#E8913A15' }]}>
+                    <UtensilsCrossed size={18} color="#E8913A" />
+                  </View>
                   <Text style={styles.savingsValue}>{impactMetrics.mealsSkipped}</Text>
                   <Text style={styles.savingsLabel}>Meals Skipped</Text>
                   <Info size={11} color={colors.textMuted} style={styles.savingsInfoIcon} />
@@ -1124,17 +1174,23 @@ export default function AnalyticsScreen() {
         <View style={styles.pranaCard}>
           <View style={styles.pranaRow}>
             <View style={styles.pranaItem}>
-              <Text style={styles.pranaEmoji}>🧘</Text>
+              <View style={[styles.pranaIconCircle, { backgroundColor: '#5B8C5A15' }]}>
+                <Flower2 size={20} color="#5B8C5A" />
+              </View>
               <Text style={styles.pranaValue}>{Math.min(Math.round(avgFastDuration / 24 * 100), 100)}%</Text>
               <Text style={styles.pranaLabel}>Mental Clarity</Text>
             </View>
             <View style={styles.pranaItem}>
-              <Text style={styles.pranaEmoji}>⚡</Text>
+              <View style={[styles.pranaIconCircle, { backgroundColor: '#E8913A15' }]}>
+                <Zap size={20} color="#E8913A" />
+              </View>
               <Text style={styles.pranaValue}>{Math.min(Math.round(streak * 10 + completionRate * 0.3), 100)}%</Text>
               <Text style={styles.pranaLabel}>Vitality</Text>
             </View>
             <View style={styles.pranaItem}>
-              <Text style={styles.pranaEmoji}>🕉️</Text>
+              <View style={[styles.pranaIconCircle, { backgroundColor: '#7B68AE15' }]}>
+                <Sparkles size={20} color="#7B68AE" />
+              </View>
               <Text style={styles.pranaValue}>{Math.min(Math.round(sattvicScore * 0.9 + streak * 2), 100)}%</Text>
               <Text style={styles.pranaLabel}>Spiritual</Text>
             </View>
@@ -1162,15 +1218,11 @@ export default function AnalyticsScreen() {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <Animated.ScrollView
-          style={[styles.scroll, { opacity: fadeAnim }]}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        {/* Sticky header (outside scroll, matches Today tab) */}
+        <View style={[styles.headerSticky, { backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
           <Text style={styles.screenTitle}>Journey</Text>
           <Text style={styles.screenSubtitle}>Your progress, patterns, and milestones</Text>
 
-          {/* Sub-tabs: Overview + Spirit (if Vedic) */}
           {showVedic && (
             <View style={styles.tabBar}>
               {([
@@ -1191,13 +1243,21 @@ export default function AnalyticsScreen() {
               ))}
             </View>
           )}
+        </View>
 
+        <Animated.ScrollView
+          style={[styles.scroll, { opacity: fadeAnim }]}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {activeTab === 'overview' && renderOverviewTab()}
           {showVedic && activeTab === 'spirit' && renderSpiritTab()}
 
           {completedRecords.length === 0 && activeTab !== 'spirit' && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🧘</Text>
+              <View style={styles.emptyIconCircle}>
+                <Flower2 size={28} color={colors.textMuted} />
+              </View>
               <Text style={styles.emptyTitle}>No fasts recorded yet</Text>
               <Text style={styles.emptyText}>
                 Begin your first fast — every great journey starts with a single step.
@@ -1227,24 +1287,31 @@ function makeStyles(colors: ColorScheme) {
     safeArea: {
       flex: 1,
     },
+    headerSticky: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+    },
     scroll: {
       flex: 1,
     },
     scrollContent: {
       paddingHorizontal: 20,
+      paddingTop: 16,
       paddingBottom: 100,
     },
     screenTitle: {
-      fontSize: 28,
+      fontSize: fs(28),
       fontWeight: '700' as const,
       color: colors.text,
-      marginTop: 12,
+      marginTop: 4,
       letterSpacing: -0.5,
     },
     screenSubtitle: {
-      fontSize: 15,
+      fontSize: fs(15),
       color: colors.textSecondary,
-      marginBottom: 16,
+      marginBottom: 0,
       marginTop: 2,
       lineHeight: 21,
     },
@@ -1253,7 +1320,8 @@ function makeStyles(colors: ColorScheme) {
       backgroundColor: colors.surface,
       borderRadius: 12,
       padding: 3,
-      marginBottom: 20,
+      marginTop: 12,
+      marginBottom: 0,
     },
     tabItem: {
       flex: 1,
@@ -1273,7 +1341,7 @@ function makeStyles(colors: ColorScheme) {
       elevation: 2,
     },
     tabLabel: {
-      fontSize: 13,
+      fontSize: fs(13),
       fontWeight: '500' as const,
       color: colors.textMuted,
     },
@@ -1284,17 +1352,19 @@ function makeStyles(colors: ColorScheme) {
     statsGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
+      alignItems: 'stretch' as const,
       gap: 10,
       marginBottom: 14,
     },
     statCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
       flexGrow: 1,
       flexBasis: '45%' as any,
+      alignSelf: 'stretch' as const,
     },
     statIconWrap: {
       width: 36,
@@ -1304,39 +1374,33 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
       marginBottom: 10,
     },
-    statValue: {
-      fontSize: 28,
-      fontWeight: '700' as const,
-      color: colors.text,
-      letterSpacing: -0.5,
-    },
     statLabel: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '600' as const,
       color: colors.textMuted,
       marginTop: 4,
     },
     statHint: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '500' as const,
       marginTop: 6,
       lineHeight: 16,
     },
     summaryStrip: {
-      borderRadius: 14,
+      borderRadius: 16,
       borderWidth: 1,
       paddingVertical: 14,
       paddingHorizontal: 16,
       marginBottom: 14,
     },
     summaryStripEyebrow: {
-      fontSize: 10,
+      fontSize: fs(10),
       fontWeight: '700' as const,
       letterSpacing: 1,
       marginBottom: 6,
     },
     summaryStripBody: {
-      fontSize: 15,
+      fontSize: fs(15),
       lineHeight: 22,
       fontWeight: '500' as const,
     },
@@ -1351,20 +1415,24 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'flex-start' as const,
       gap: 12,
     },
-    compactWaterIcon: {
-      fontSize: 22,
+    compactWaterIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     compactWaterTitle: {
-      fontSize: 17,
+      fontSize: fs(17),
       fontWeight: '700' as const,
     },
     compactWaterSub: {
-      fontSize: 14,
+      fontSize: fs(14),
       marginTop: 4,
       lineHeight: 20,
     },
     compactWaterHint: {
-      fontSize: 13,
+      fontSize: fs(13),
       marginTop: 10,
       lineHeight: 18,
     },
@@ -1376,7 +1444,7 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'center' as const,
     },
     compactWaterCtaText: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '700' as const,
     },
     warriorCard: {
@@ -1397,23 +1465,28 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
       minWidth: 0,
     },
-    warriorEmoji: {
-      fontSize: 32,
+    warriorIconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     warriorLevelLabel: {
-      fontSize: 10,
+      fontSize: fs(10),
       fontWeight: '700' as const,
       color: colors.textMuted,
       letterSpacing: 1.2,
       marginBottom: 2,
     },
     warriorLevelName: {
-      fontSize: 20,
+      fontSize: fs(20),
       fontWeight: '800' as const,
       letterSpacing: -0.5,
     },
     warriorNext: {
-      fontSize: 13,
+      fontSize: fs(13),
       fontWeight: '500' as const,
       marginTop: 6,
       lineHeight: 18,
@@ -1422,12 +1495,12 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'center' as const,
     },
     warriorFastCount: {
-      fontSize: 24,
+      fontSize: fs(24),
       fontWeight: '700' as const,
       color: colors.text,
     },
     warriorFastLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
     },
     section: {
@@ -1440,19 +1513,19 @@ function makeStyles(colors: ColorScheme) {
       marginBottom: 4,
     },
     sectionTitleInline: {
-      fontSize: 17,
+      fontSize: fs(17),
       fontWeight: '600' as const,
       color: colors.text,
       flex: 1,
     },
     sectionSubtext: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textMuted,
       marginBottom: 14,
       marginTop: 2,
     },
     sectionTitle: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '600' as const,
       color: colors.text,
       marginBottom: 12,
@@ -1473,14 +1546,14 @@ function makeStyles(colors: ColorScheme) {
       backgroundColor: '#4CAF50',
     },
     liveText: {
-      fontSize: 9,
+      fontSize: fs(9),
       fontWeight: '700' as const,
       color: '#4CAF50',
       letterSpacing: 0.8,
     },
     zonesCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 12,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1507,13 +1580,13 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
     },
     impactHeroValue: {
-      fontSize: 32,
+      fontSize: fs(32),
       fontWeight: '800' as const,
       color: colors.primary,
       letterSpacing: -1,
     },
     impactHeroLabel: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textSecondary,
       marginTop: 2,
     },
@@ -1523,7 +1596,7 @@ function makeStyles(colors: ColorScheme) {
       marginVertical: 12,
     },
     impactHeroEquiv: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textSecondary,
       lineHeight: 18,
       textAlign: 'center' as const,
@@ -1531,49 +1604,49 @@ function makeStyles(colors: ColorScheme) {
     impactGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
+      alignItems: 'stretch' as const,
       gap: 10,
       marginBottom: 12,
     },
     advancedGrid: {
       flexDirection: 'row' as const,
+      alignItems: 'stretch' as const,
       gap: 10,
       marginBottom: 12,
     },
     advancedCard: {
       flex: 1,
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 14,
       borderWidth: 1,
       borderColor: colors.borderLight,
       alignItems: 'center' as const,
     },
-    advancedEmoji: {
-      fontSize: 28,
+    advancedIconCircle: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginBottom: 6,
     },
-    advancedValue: {
-      fontSize: 22,
-      fontWeight: '700' as const,
-      color: colors.text,
-      letterSpacing: -0.5,
-    },
     advancedLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       color: colors.textSecondary,
       marginTop: 2,
       textAlign: 'center' as const,
     },
     advancedSub: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       marginTop: 2,
       textAlign: 'center' as const,
     },
     savingsCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1586,17 +1659,21 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
       alignItems: 'center' as const,
     },
-    savingsEmoji: {
-      fontSize: 24,
+    savingsIconCircle: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginBottom: 6,
     },
     savingsValue: {
-      fontSize: 20,
+      fontSize: fs(20),
       fontWeight: '700' as const,
       color: colors.text,
     },
     savingsLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       marginTop: 2,
     },
@@ -1623,13 +1700,13 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'baseline' as const,
     },
     sattvicScoreValue: {
-      fontSize: 42,
+      fontSize: fs(42),
       fontWeight: '800' as const,
       color: '#7B68AE',
       letterSpacing: -2,
     },
     sattvicScoreMax: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '500' as const,
       color: colors.textMuted,
     },
@@ -1637,13 +1714,13 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
     },
     sattvicLevel: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '700' as const,
       color: colors.text,
       marginBottom: 2,
     },
     sattvicDesc: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       lineHeight: 16,
     },
@@ -1668,12 +1745,12 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'center' as const,
     },
     sattvicBreakdownLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       marginBottom: 2,
     },
     sattvicBreakdownValue: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontWeight: '700' as const,
       color: colors.text,
     },
@@ -1684,7 +1761,7 @@ function makeStyles(colors: ColorScheme) {
     },
     pranaCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1697,23 +1774,27 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
       alignItems: 'center' as const,
     },
-    pranaEmoji: {
-      fontSize: 28,
+    pranaIconCircle: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginBottom: 6,
     },
     pranaValue: {
-      fontSize: 20,
+      fontSize: fs(20),
       fontWeight: '700' as const,
       color: colors.text,
     },
     pranaLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       marginTop: 2,
     },
     milestoneCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1726,13 +1807,13 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 10,
     },
     milestoneBadgeText: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       color: colors.primary,
     },
     chartCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1740,7 +1821,7 @@ function makeStyles(colors: ColorScheme) {
     },
     summaryCard: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1752,11 +1833,11 @@ function makeStyles(colors: ColorScheme) {
       paddingVertical: 8,
     },
     summaryLabel: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
     },
     summaryValue: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '600' as const,
       color: colors.text,
     },
@@ -1766,7 +1847,7 @@ function makeStyles(colors: ColorScheme) {
     },
     typeList: {
       backgroundColor: colors.card,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.borderLight,
@@ -1784,11 +1865,11 @@ function makeStyles(colors: ColorScheme) {
     },
     typeName: {
       flex: 1,
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.text,
     },
     typeCount: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '600' as const,
       color: colors.textSecondary,
     },
@@ -1796,18 +1877,23 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'center' as const,
       paddingVertical: 48,
     },
-    emptyIcon: {
-      fontSize: 48,
+    emptyIconCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.surface,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginBottom: 16,
     },
     emptyTitle: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontWeight: '600' as const,
       color: colors.text,
       marginBottom: 8,
     },
     emptyText: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       textAlign: 'center' as const,
       lineHeight: 20,
@@ -1837,7 +1923,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 8,
     },
     tapHintText: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
@@ -1851,7 +1937,7 @@ function makeStyles(colors: ColorScheme) {
       backgroundColor: colors.surface,
     },
     learnMoreText: {
-      fontSize: 11,
+      fontSize: fs(11),
       fontWeight: '600' as const,
     },
     scoreGaugeTouchable: {

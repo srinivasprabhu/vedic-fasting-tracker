@@ -10,12 +10,11 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
+import { hexAlpha } from '@/constants/colors';
 
 const ITEM_H  = 48;
-const VISIBLE = 5;
-const RULER_H = ITEM_H * VISIBLE;
-const HALF    = Math.floor(VISIBLE / 2);
+const DEFAULT_VISIBLE = 5;
 
 export interface RulerPickerProps {
   value:            number;
@@ -28,16 +27,20 @@ export interface RulerPickerProps {
   decimal?:         string;
   onDecimalChange?: (d: string) => void;
   accentColor?:     string;
+  /** Shorter ruler for tight screens (e.g. current weight + BMI). Default 5 rows (~240pt). */
+  visibleRows?:     3 | 4 | 5;
+  /** Smaller readout + nudges to fit above bottom CTA on small devices. */
+  compact?:         boolean;
 }
 
 const RulerRow: React.FC<{
-  v: number; selected: boolean; isDark: boolean; accent: string;
-}> = React.memo(({ v, selected, isDark, accent }) => {
+  v: number; selected: boolean; isDark: boolean; accent: string; primary: string; trackLt: string;
+}> = React.memo(({ v, selected, isDark, accent, primary, trackLt }) => {
   const major = v % 5 === 0;
   return (
     <View style={[
       rr.row,
-      selected && { backgroundColor: isDark ? 'rgba(200,135,42,.12)' : 'rgba(200,135,42,.08)' },
+      selected && { backgroundColor: isDark ? hexAlpha(primary, 0.12) : hexAlpha(primary, 0.08) },
     ]}>
       <Text style={[rr.num, {
         color:      selected ? accent : major ? (isDark ? 'rgba(240,224,192,.6)' : 'rgba(30,16,4,.55)') : (isDark ? 'rgba(240,224,192,.3)' : 'rgba(30,16,4,.25)'),
@@ -49,7 +52,7 @@ const RulerRow: React.FC<{
       <View style={[rr.tick, {
         width:           selected ? 28 : major ? 18 : 10,
         height:          selected ? 2.5 : major ? 1.5 : 1,
-        backgroundColor: selected ? accent : major ? (isDark ? 'rgba(200,135,42,.5)' : 'rgba(160,104,32,.4)') : (isDark ? 'rgba(200,135,42,.2)' : 'rgba(160,104,32,.15)'),
+        backgroundColor: selected ? accent : major ? (isDark ? hexAlpha(primary, 0.5) : hexAlpha(trackLt, 0.4)) : (isDark ? hexAlpha(primary, 0.2) : hexAlpha(trackLt, 0.15)),
       }]} />
     </View>
   );
@@ -64,10 +67,17 @@ const rr = StyleSheet.create({
 export const RulerPicker: React.FC<RulerPickerProps> = ({
   value, min, max, onChange, unit, hint,
   showDecimal = false, decimal = '', onDecimalChange, accentColor,
+  visibleRows: visibleRowsProp, compact = false,
 }) => {
-  const { isDark } = useTheme();
-  const accent  = accentColor ?? (isDark ? '#e8a84c' : '#a06820');
-  const cream   = isDark ? '#f0e0c0' : '#1e1004';
+  const { isDark, colors } = useTheme();
+  const visibleRows = visibleRowsProp ?? DEFAULT_VISIBLE;
+  const halfPad     = Math.floor(visibleRows / 2);
+  const rulerH      = ITEM_H * visibleRows;
+
+  const accent  = accentColor ?? colors.primary;
+  const primary = colors.primary;
+  const trackLt = colors.trackWeight;
+  const cream   = isDark ? colors.text : '#1e1004';
   const mutedCl = isDark ? '#7a6040' : '#7a5028';
   const surfBg  = isDark ? '#0a0703' : '#fdf3e3';
 
@@ -141,17 +151,18 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
 
   return (
     <View style={s.wrap}>
-      <View style={s.row}>
+      <View style={[s.row, compact && s.rowCompact]}>
 
         {/* Ruler */}
         <View style={[s.rulerOuter, {
-          backgroundColor: isDark ? 'rgba(200,135,42,.03)' : 'rgba(200,135,42,.04)',
-          borderColor:     isDark ? 'rgba(200,135,42,.16)' : 'rgba(200,135,42,.2)',
+          height: rulerH,
+          backgroundColor: isDark ? hexAlpha(primary, 0.03) : hexAlpha(primary, 0.04),
+          borderColor:     isDark ? hexAlpha(primary, 0.16) : hexAlpha(primary, 0.2),
         }]}>
           {/* Centre highlight band */}
           <View pointerEvents="none" style={[s.selBand, {
-            top:             HALF * ITEM_H,
-            backgroundColor: isDark ? 'rgba(200,135,42,.1)' : 'rgba(200,135,42,.07)',
+            top:             halfPad * ITEM_H,
+            backgroundColor: isDark ? hexAlpha(primary, 0.1) : hexAlpha(primary, 0.07),
             borderTopColor:    `${accent}60`,
             borderBottomColor: `${accent}60`,
           }]} />
@@ -170,12 +181,12 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
             bounces={Platform.OS === 'ios'}
             nestedScrollEnabled
             contentContainerStyle={{
-              paddingTop:    HALF * ITEM_H,
-              paddingBottom: HALF * ITEM_H,
+              paddingTop:    halfPad * ITEM_H,
+              paddingBottom: halfPad * ITEM_H,
             }}
           >
             {values.map(v => (
-              <RulerRow key={v} v={v} selected={v === value} isDark={isDark} accent={accent} />
+              <RulerRow key={v} v={v} selected={v === value} isDark={isDark} accent={accent} primary={primary} trackLt={trackLt} />
             ))}
           </ScrollView>
 
@@ -187,8 +198,8 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
         {/* Display */}
         <View style={s.display}>
           <View style={s.bigValRow}>
-            <Text style={[s.bigVal, { color: cream }]}>{value}</Text>
-            <Text style={[s.bigUnit, { color: mutedCl }]}>{unit}</Text>
+            <Text style={[s.bigVal, compact && s.bigValCompact, { color: cream }]}>{value}</Text>
+            <Text style={[s.bigUnit, compact && s.bigUnitCompact, { color: mutedCl }]}>{unit}</Text>
           </View>
 
           {hint ? (
@@ -197,8 +208,8 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
 
           {showDecimal && (
             <View style={[s.decimalWrap, {
-              borderColor:     isDark ? 'rgba(200,135,42,.22)' : 'rgba(200,135,42,.28)',
-              backgroundColor: isDark ? 'rgba(200,135,42,.05)' : 'rgba(200,135,42,.04)',
+              borderColor:     isDark ? hexAlpha(primary, 0.22) : hexAlpha(primary, 0.28),
+              backgroundColor: isDark ? hexAlpha(primary, 0.05) : hexAlpha(primary, 0.04),
             }]}>
               <Text style={[s.decDot,   { color: mutedCl }]}>.</Text>
               <TextInput
@@ -207,10 +218,10 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
                 keyboardType="number-pad"
                 maxLength={1}
                 placeholder="0"
-                placeholderTextColor={isDark ? 'rgba(200,135,42,.25)' : 'rgba(160,104,32,.3)'}
+                placeholderTextColor={isDark ? hexAlpha(primary, 0.25) : hexAlpha(trackLt, 0.3)}
                 style={[s.decInput, { color: cream }]}
               />
-              <Text style={[s.decUnit, { color: isDark ? 'rgba(200,135,42,.4)' : 'rgba(160,104,32,.45)' }]}>{unit}</Text>
+              <Text style={[s.decUnit, { color: isDark ? hexAlpha(primary, 0.4) : hexAlpha(trackLt, 0.45) }]}>{unit}</Text>
             </View>
           )}
         </View>
@@ -223,12 +234,12 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
             key={label}
             onPress={() => nudge(delta)}
             activeOpacity={0.7}
-            style={[s.nudgeBtn, {
-              backgroundColor: isDark ? 'rgba(200,135,42,.08)' : 'rgba(200,135,42,.06)',
-              borderColor:     isDark ? 'rgba(200,135,42,.2)'  : 'rgba(200,135,42,.22)',
+            style={[s.nudgeBtn, compact && s.nudgeBtnCompact, {
+              backgroundColor: isDark ? hexAlpha(primary, 0.08) : hexAlpha(primary, 0.06),
+              borderColor:     isDark ? hexAlpha(primary, 0.2)  : hexAlpha(primary, 0.22),
             }]}
           >
-            <Text style={[s.nudgeTxt, { color: accent }]}>{label}</Text>
+            <Text style={[s.nudgeTxt, compact && s.nudgeTxtCompact, { color: accent }]}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -239,21 +250,26 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
 const s = StyleSheet.create({
   wrap:        { width: '100%' as any }                                                as ViewStyle,
   row:         { flexDirection: 'row' as const, gap: 16, alignItems: 'center' as const, marginBottom: SPACING.sm } as ViewStyle,
-  rulerOuter:  { width: 110, height: RULER_H, borderRadius: RADIUS.lg, borderWidth: 1, overflow: 'hidden' as const, position: 'relative' as const, flexShrink: 0 } as ViewStyle,
+  rowCompact:  { gap: 12, marginBottom: 6 }                                            as ViewStyle,
+  rulerOuter:  { width: 110, borderRadius: RADIUS.lg, borderWidth: 1, overflow: 'hidden' as const, position: 'relative' as const, flexShrink: 0 } as ViewStyle,
   selBand:     { position: 'absolute' as const, left: 0, right: 0, height: ITEM_H, borderTopWidth: 1.5, borderBottomWidth: 1.5, zIndex: 1 } as ViewStyle,
   fade:        { position: 'absolute' as const, left: 0, right: 0, height: ITEM_H * 1.6, zIndex: 2, opacity: 0.9 } as ViewStyle,
   fadeTop:     { top: 0 }                                                              as ViewStyle,
   fadeBottom:  { bottom: 0 }                                                           as ViewStyle,
   display:     { flex: 1 }                                                             as ViewStyle,
   bigValRow:   { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 5, marginBottom: 4 } as ViewStyle,
-  bigVal:      { fontFamily: FONTS.displayLight, fontSize: 58, fontWeight: '300' as const, lineHeight: 64, letterSpacing: -1.5 } as TextStyle,
-  bigUnit:     { fontFamily: FONTS.bodyMedium, fontSize: 16, fontWeight: '500' as const } as TextStyle,
-  hint:        { fontFamily: FONTS.bodyRegular, fontSize: 12, marginBottom: 10 }      as TextStyle,
+  bigVal:      { fontFamily: FONTS.displayLight, fontSize: fs(58), fontWeight: '300' as const, lineHeight: lh(58), letterSpacing: -1.5 } as TextStyle,
+  bigValCompact: { fontSize: fs(44), lineHeight: lh(44), letterSpacing: -1, fontWeight: '300' as const } as TextStyle,
+  bigUnit:     { fontFamily: FONTS.bodyMedium, fontSize: fs(16), fontWeight: '500' as const, lineHeight: lh(16) } as TextStyle,
+  bigUnitCompact: { fontSize: fs(14), lineHeight: lh(14) } as TextStyle,
+  hint:        { fontFamily: FONTS.bodyRegular, fontSize: fs(12), marginBottom: 10 }      as TextStyle,
   decimalWrap: { flexDirection: 'row' as const, alignItems: 'center' as const, borderRadius: RADIUS.md, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, alignSelf: 'flex-start' as const, gap: 2, marginTop: 6 } as ViewStyle,
-  decDot:      { fontFamily: FONTS.displayLight, fontSize: 22, fontWeight: '300' as const } as TextStyle,
-  decInput:    { fontFamily: FONTS.displayLight, fontSize: 22, fontWeight: '300' as const, minWidth: 18, padding: 0 } as TextStyle,
-  decUnit:     { fontFamily: FONTS.bodyMedium, fontSize: 11, fontWeight: '500' as const, marginLeft: 2 } as TextStyle,
+  decDot:      { fontFamily: FONTS.displayLight, fontSize: fs(22), fontWeight: '300' as const, lineHeight: lh(22) } as TextStyle,
+  decInput:    { fontFamily: FONTS.displayLight, fontSize: fs(22), fontWeight: '300' as const, lineHeight: lh(22), minWidth: 18, padding: 0 } as TextStyle,
+  decUnit:     { fontFamily: FONTS.bodyMedium, fontSize: fs(11), fontWeight: '500' as const, marginLeft: 2 } as TextStyle,
   nudgeRow:    { flexDirection: 'row' as const, gap: SPACING.sm }                     as ViewStyle,
   nudgeBtn:    { flex: 1, paddingVertical: 13, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-  nudgeTxt:    { fontFamily: FONTS.bodyMedium, fontSize: 22, fontWeight: '400' as const, lineHeight: 26 } as TextStyle,
+  nudgeBtnCompact: { paddingVertical: 9 } as ViewStyle,
+  nudgeTxt:    { fontFamily: FONTS.bodyMedium, fontSize: fs(22), fontWeight: '400' as const, lineHeight: lh(22) } as TextStyle,
+  nudgeTxtCompact: { fontSize: fs(18), lineHeight: lh(18) } as TextStyle,
 });

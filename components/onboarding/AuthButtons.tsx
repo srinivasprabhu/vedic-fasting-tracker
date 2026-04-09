@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
   ViewStyle,
   TextStyle,
   Platform,
+  AccessibilityState,
 } from 'react-native';
-import { COLORS, RADIUS, SPACING } from '@/constants/theme';
+import { RADIUS, SPACING, fs } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface AuthButtonsProps {
   onGoogleSignIn: () => void;
@@ -27,7 +29,18 @@ const PressableButton: React.FC<{
   style: ViewStyle | ViewStyle[];
   children: React.ReactNode;
   disabled?: boolean;
-}> = ({ onPress, style, children, disabled }) => {
+  accessibilityLabel: string;
+  accessibilityHint?: string;
+  accessibilityState?: AccessibilityState;
+}> = ({
+  onPress,
+  style,
+  children,
+  disabled,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityState,
+}) => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () =>
@@ -42,6 +55,10 @@ const PressableButton: React.FC<{
       onPressOut={pressOut}
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={accessibilityState}
     >
       <Animated.View style={[style, { transform: [{ scale }] }]}>
         {children}
@@ -50,7 +67,9 @@ const PressableButton: React.FC<{
   );
 };
 
-const GoogleIcon = () => <Text style={styles.providerIcon}>G</Text>;
+const GoogleIcon = ({ color }: { color: string }) => (
+  <Text style={[styles.providerIcon, { color }]}>G</Text>
+);
 
 const AppleIcon = () => <Text style={styles.appleIcon}>{'\uF8FF'}</Text>;
 
@@ -62,6 +81,29 @@ export const AuthButtons: React.FC<AuthButtonsProps> = ({
   appleLoading,
   accentColor,
 }) => {
+  const { colors, isDark } = useTheme();
+  const themed = useMemo(
+    () => ({
+      dividerLine: {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.border,
+      },
+      dividerText: { color: colors.textMuted },
+      socialBtn: {
+        backgroundColor: isDark ? 'rgba(240,224,192,0.07)' : colors.surface,
+        borderColor: isDark ? 'rgba(240,224,192,0.14)' : colors.border,
+      },
+      appleBtn: {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.92)' : '#FFFFFF',
+        borderColor: isDark ? 'rgba(255,255,255,0.92)' : colors.border,
+      },
+      socialBtnText: { color: colors.text },
+      guestText: { color: colors.textSecondary },
+      guestSubText: { color: colors.textMuted },
+      legal: { color: colors.textMuted },
+    }),
+    [colors, isDark]
+  );
+
   const anim1 = useRef(new Animated.Value(0)).current;
   const anim2 = useRef(new Animated.Value(0)).current;
   const anim3 = useRef(new Animated.Value(0)).current;
@@ -98,25 +140,28 @@ export const AuthButtons: React.FC<AuthButtonsProps> = ({
   return (
     <View style={styles.wrap}>
       <View style={styles.dividerRow}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>sign in to save your journey</Text>
-        <View style={styles.dividerLine} />
+        <View style={[styles.dividerLine, themed.dividerLine]} />
+        <Text style={[styles.dividerText, themed.dividerText]}>sign in to save your journey</Text>
+        <View style={[styles.dividerLine, themed.dividerLine]} />
       </View>
 
       <Animated.View style={{ opacity: anim1, transform: [{ translateY: slide1 }] }}>
         <PressableButton
           onPress={onGoogleSignIn}
           disabled={googleLoading || appleLoading}
-          style={styles.socialBtn}
+          style={[styles.socialBtn, themed.socialBtn]}
+          accessibilityLabel="Continue with Google"
+          accessibilityHint="Opens Google sign-in"
+          accessibilityState={{ busy: googleLoading, disabled: googleLoading || appleLoading }}
         >
           {googleLoading ? (
-            <ActivityIndicator color={COLORS.cream} size="small" />
+            <ActivityIndicator color={colors.text} size="small" />
           ) : (
             <>
               <View style={styles.providerIconWrap}>
-                <GoogleIcon />
+                <GoogleIcon color={colors.text} />
               </View>
-              <Text style={styles.socialBtnText}>Continue with Google</Text>
+              <Text style={[styles.socialBtnText, themed.socialBtnText]}>Continue with Google</Text>
               <View style={{ width: 32 }} />
             </>
           )}
@@ -128,7 +173,10 @@ export const AuthButtons: React.FC<AuthButtonsProps> = ({
           <PressableButton
             onPress={onAppleSignIn}
             disabled={googleLoading || appleLoading}
-            style={[styles.socialBtn, styles.appleBtn]}
+            style={[styles.socialBtn, styles.appleBtn, themed.socialBtn, themed.appleBtn]}
+            accessibilityLabel="Continue with Apple"
+            accessibilityHint="Opens Apple sign-in"
+            accessibilityState={{ busy: appleLoading, disabled: googleLoading || appleLoading }}
           >
             {appleLoading ? (
               <ActivityIndicator color="#000" size="small" />
@@ -137,7 +185,7 @@ export const AuthButtons: React.FC<AuthButtonsProps> = ({
                 <View style={styles.providerIconWrap}>
                   <AppleIcon />
                 </View>
-                <Text style={[styles.socialBtnText, styles.appleBtnText]}>
+                <Text style={[styles.socialBtnText, styles.appleBtnText, themed.socialBtnText]}>
                   Continue with Apple
                 </Text>
                 <View style={{ width: 32 }} />
@@ -153,13 +201,17 @@ export const AuthButtons: React.FC<AuthButtonsProps> = ({
           disabled={googleLoading || appleLoading}
           style={styles.guestBtn}
           activeOpacity={0.6}
+          accessibilityRole="button"
+          accessibilityLabel="Continue as guest"
+          accessibilityHint="Proceed without an account. Your data will only be stored on this device."
+          accessibilityState={{ disabled: googleLoading || appleLoading }}
         >
-          <Text style={styles.guestText}>Continue as guest</Text>
-          <Text style={styles.guestSubText}> · data won't be saved</Text>
+          <Text style={[styles.guestText, themed.guestText]}>Continue as guest</Text>
+          <Text style={[styles.guestSubText, themed.guestSubText]}> · data won't be saved</Text>
         </TouchableOpacity>
       </Animated.View>
 
-      <Text style={styles.legal}>
+      <Text style={[styles.legal, themed.legal]}>
         By continuing you agree to our{' '}
         <Text style={[styles.legalLink, { color: accentColor }]}>Terms</Text>
         {' & '}
@@ -184,12 +236,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
   } as ViewStyle,
 
   dividerText: {
-    fontSize: 10,
-    color: 'rgba(240,224,192,0.3)',
+    fontSize: fs(10),
     letterSpacing: 0.1,
     textTransform: 'lowercase',
   } as TextStyle,
@@ -198,19 +248,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(240,224,192,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(240,224,192,0.12)',
     borderRadius: RADIUS.lg,
     paddingVertical: SPACING.md + 2,
     paddingHorizontal: SPACING.lg,
     minHeight: 54,
   } as ViewStyle,
 
-  appleBtn: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderColor: 'rgba(255,255,255,0.92)',
-  } as ViewStyle,
+  appleBtn: {} as ViewStyle,
 
   providerIconWrap: {
     width: 32,
@@ -220,19 +265,17 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   providerIcon: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '700',
-    color: COLORS.cream,
   } as TextStyle,
 
   appleIcon: {
-    fontSize: 20,
+    fontSize: fs(20),
     color: '#1a1a1a',
   } as TextStyle,
 
   socialBtnText: {
-    fontSize: 15,
-    color: COLORS.cream,
+    fontSize: fs(15),
     fontWeight: '500',
     flex: 1,
     textAlign: 'center',
@@ -250,18 +293,15 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   guestText: {
-    fontSize: 13,
-    color: 'rgba(240,224,192,0.45)',
+    fontSize: fs(13),
   } as TextStyle,
 
   guestSubText: {
-    fontSize: 13,
-    color: 'rgba(240,224,192,0.25)',
+    fontSize: fs(13),
   } as TextStyle,
 
   legal: {
-    fontSize: 10,
-    color: 'rgba(240,224,192,0.2)',
+    fontSize: fs(10),
     textAlign: 'center',
     lineHeight: 16,
     marginTop: SPACING.xs,

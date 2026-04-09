@@ -3,6 +3,7 @@
 // Displays the Aayu mandala rotating with a gentle pulse and fade-out.
 // Mounts OVER the app content, then fades away to reveal the app beneath.
 
+import { fs } from '@/constants/theme';
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, Animated, Easing, StyleSheet,
@@ -144,7 +145,7 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   brand: {
-    fontSize: 36,
+    fontSize: fs(36),
     fontWeight: '300',
     color: '#f0e0c0',
     letterSpacing: 8,
@@ -155,7 +156,7 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   tagline: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '400',
     color: 'rgba(200,135,42,0.45)',
     letterSpacing: 2,

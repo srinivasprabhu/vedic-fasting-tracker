@@ -2,13 +2,14 @@
 // Compact plan summary + tracker rows shown on home screen.
 // Taps on each row navigate to the full tracker screen.
 
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Droplets, Footprints, Scale, ChevronRight } from 'lucide-react-native';
+import { Droplets, Footprints, Scale, ChevronRight, Check, Clock } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { formatWater, formatSteps } from '@/utils/calculatePlan';
@@ -74,8 +75,8 @@ const TrackerRow: React.FC<{
     ]).start();
   }, []);
 
-  const pctLabel = pct >= 100 ? '✓' : `${Math.round(pct)}%`;
-  const pctColor = pct >= 100 ? colors.success : pct >= 60 ? colors.warning : colors.textMuted;
+  const isComplete = pct >= 100;
+  const pctColor = isComplete ? colors.success : pct >= 60 ? colors.warning : colors.textMuted;
 
   return (
     <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }] }}>
@@ -95,7 +96,10 @@ const TrackerRow: React.FC<{
         <View style={row.middle}>
           <View style={row.topLine}>
             <Text style={[row.label, { color: colors.textSecondary }]}>{label}</Text>
-            <Text style={[row.pct, { color: pctColor }]}>{pctLabel}</Text>
+            {isComplete
+              ? <Check size={14} color={pctColor} strokeWidth={3} />
+              : <Text style={[row.pct, { color: pctColor }]}>{Math.round(pct)}%</Text>
+            }
           </View>
           <View style={row.barRow}>
             <ProgressBar pct={pct} color={color} bg={trackBg} />
@@ -123,29 +127,28 @@ const row = StyleSheet.create({
   iconWrap:{ width: 32, height: 32, borderRadius: 10, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
   middle:  { flex: 1, gap: 5 }                                  as ViewStyle,
   topLine: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const } as ViewStyle,
-  label:   { fontSize: 12, fontWeight: '500' as const }          as TextStyle,
-  pct:     { fontSize: 11, fontWeight: '600' as const }          as TextStyle,
+  label:   { fontSize: fs(12), fontWeight: '500' as const }          as TextStyle,
+  pct:     { fontSize: fs(11), fontWeight: '600' as const }          as TextStyle,
   barRow:  { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 } as ViewStyle,
-  values:  { fontSize: 10, minWidth: 60, textAlign: 'right' as const } as TextStyle,
+  values:  { fontSize: fs(10), minWidth: 60, textAlign: 'right' as const } as TextStyle,
 });
 
 // ─── Plan summary pill row ────────────────────────────────────────────────────
 
 const PlanPill: React.FC<{
-  emoji: string;
+  icon: React.ReactNode;
   label: string;
   colors: ColorScheme;
-}> = ({ emoji, label, colors }) => (
+}> = ({ icon, label, colors }) => (
   <View style={[pill.wrap, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-    <Text style={pill.emoji}>{emoji}</Text>
+    {icon}
     <Text style={[pill.label, { color: colors.textSecondary }]}>{label}</Text>
   </View>
 );
 
 const pill = StyleSheet.create({
   wrap:  { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 } as ViewStyle,
-  emoji: { fontSize: 12 }                                        as TextStyle,
-  label: { fontSize: 11, fontWeight: '500' as const }            as TextStyle,
+  label: { fontSize: fs(11), fontWeight: '500' as const }            as TextStyle,
 });
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -188,9 +191,9 @@ export const DailyDashboardCard: React.FC<DailyDashboardCardProps> = ({
     : 0;
 
   // Color tokens
-  const waterColor = '#5b8dd9';
+  const waterColor = colors.hydration;
   const stepsColor = colors.success;
-  const weightColor = isDark ? '#e8a84c' : '#a06820';
+  const weightColor = colors.trackWeight;
   const trackBg    = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
 
   const cardAnim = useRef(new Animated.Value(0)).current;
@@ -209,7 +212,7 @@ export const DailyDashboardCard: React.FC<DailyDashboardCardProps> = ({
           <Text style={[card.title, { color: colors.text }]}>Today's targets</Text>
           {plan?.fastLabel && (
             <View style={card.pills}>
-              <PlanPill emoji="⏱️" label={plan.fastLabel} colors={colors} />
+              <PlanPill icon={<Clock size={12} color={colors.textSecondary} />} label={plan.fastLabel} colors={colors} />
             </View>
           )}
         </View>
@@ -267,6 +270,6 @@ const card = StyleSheet.create({
     flexDirection: 'row' as const, alignItems: 'center' as const,
     justifyContent: 'space-between' as const, marginBottom: 4,
   }                                                              as ViewStyle,
-  title:  { fontSize: 14, fontWeight: '600' as const }          as TextStyle,
+  title:  { fontSize: fs(14), fontWeight: '600' as const }          as TextStyle,
   pills:  { flexDirection: 'row' as const, gap: 6 }             as ViewStyle,
 });

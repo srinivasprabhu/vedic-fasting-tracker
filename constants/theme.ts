@@ -3,16 +3,19 @@
  * Uses system fonts for broad compatibility.
  */
 
+import { darkColors, hexAlpha } from './colors';
+
+/** Legacy onboarding palette — derived from dark ColorScheme so hex cannot drift. */
 export const COLORS = {
-  bg: '#0a0604',
-  cream: '#f0e0c0',
-  gold: '#c8872a',
-  goldLight: '#e8a84c',
-  goldPale: '#f2e5d0',
-  green: '#5b8c5a',
-  muted: 'rgba(240,224,192,0.4)',
-  text: 'rgba(240,224,192,0.65)',
-};
+  bg: darkColors.background,
+  cream: darkColors.text,
+  gold: darkColors.primaryDark,
+  goldLight: darkColors.primary,
+  goldPale: darkColors.textSecondary,
+  green: darkColors.success,
+  muted: hexAlpha(darkColors.text, 0.4),
+  text: hexAlpha(darkColors.text, 0.65),
+} as const;
 
 export const FONTS = {
   displayLight: undefined as string | undefined,
@@ -22,12 +25,19 @@ export const FONTS = {
 };
 
 export const RADIUS = {
-  xl: 20,
-  lg: 16,
-  md: 12,
+  xs: 4,
   sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 28,
   pill: 100,
-};
+  round: 9999,
+} as const;
+
+/** Standardized border-radius tokens for consistent design */
+export const RADII = RADIUS; // Alias for convenience
 
 export const SPACING = {
   xs: 4,
@@ -39,27 +49,49 @@ export const SPACING = {
 };
 
 /**
- * Typography scale — single source of truth for font sizes.
- * Use these when defining styles: fontSize: FONT_SIZES.body
- * FONT_SCALE in _layout.tsx is applied to all Text/TextInput at render time.
+ * Typography scale — semantic steps (pair with `fs()` for the runtime size, see below).
  */
 export const FONT_SIZES = {
-  xs: 8,
-  caption: 10,
-  label: 11,
+  /** Use sparingly - only for decorative/non-essential text */
+  xs: 10,
+  /** Minimum readable size for labels and captions */
+  caption: 11,
+  /** Labels, eyebrows, small UI text */
+  label: 12,
+  /** Small body text - minimum for readable content */
   bodySmall: 12,
+  /** Default body text */
   body: 14,
+  /** Large body text */
   bodyLarge: 15,
+  /** Subheadings */
   subheading: 16,
+  /** Section headings */
   heading: 18,
+  /** Screen titles */
   title: 20,
+  /** Large titles */
   titleLarge: 22,
+  /** Display text */
   display: 26,
+  /** Medium display */
   displayMd: 32,
+  /** Large display */
   displayLg: 36,
+  /** Extra large display */
   displayXl: 46,
+  /** Hero display */
   displayHero: 58,
 } as const;
+
+/** Font weights as React Native string values */
+export const FONT_WEIGHTS = {
+  regular: '400' as const,
+  medium: '500' as const,
+  semibold: '600' as const,
+  bold: '700' as const,
+  extrabold: '800' as const,
+};
 
 /**
  * Line heights — pair with FONT_SIZES for typography.
@@ -120,13 +152,19 @@ export const BORDER_WIDTHS = {
 } as const;
 
 /**
- * Global font scale factor.
- * Change this single value to scale ALL font sizes across the app.
- * 1.0 = default, 1.2 = 20% larger, 1.5 = 50% larger
+ * Global font scale factor — applied by `fs()` (Option A: no Text/TextInput monkey-patch).
  */
 export const FONT_SCALE = 1.2;
 
-/** Apply font scale to a size value. Use this for all fontSize values. */
+/** Apply design-token font size; use for `fontSize` so it matches the former global scale. */
 export function fs(size: number): number {
   return Math.round(size * FONT_SCALE);
+}
+
+/**
+ * Line height for the same design size as `fs(n)` — keeps ascenders/descenders from clipping
+ * when font sizes are scaled (pair: fontSize: fs(n), lineHeight: lh(n)).
+ */
+export function lh(designFontSize: number, ratio = 1.3): number {
+  return Math.round(fs(designFontSize) * ratio);
 }

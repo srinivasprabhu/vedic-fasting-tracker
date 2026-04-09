@@ -1,6 +1,7 @@
 // app/(tabs)/(home)/weight.tsx
 // Weight tracker screen — log today's weight, see trend toward goal.
 
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -102,10 +103,10 @@ const WeightRing: React.FC<{
 };
 
 const wr = StyleSheet.create({
-  val:  { fontSize: 34, fontWeight: '700' as const, letterSpacing: -1 } as TextStyle,
-  unit: { fontSize: 12, fontWeight: '500' as const, marginTop: 2 }      as TextStyle,
-  goal: { fontSize: 11, marginTop: 3 }                                   as TextStyle,
-  pct:  { fontSize: 12, fontWeight: '600' as const, marginTop: 2 }      as TextStyle,
+  val:  { fontSize: fs(34), fontWeight: '700' as const, letterSpacing: -1 } as TextStyle,
+  unit: { fontSize: fs(12), fontWeight: '500' as const, marginTop: 2 }      as TextStyle,
+  goal: { fontSize: fs(11), marginTop: 3 }                                   as TextStyle,
+  pct:  { fontSize: fs(12), fontWeight: '600' as const, marginTop: 2 }      as TextStyle,
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -356,7 +357,9 @@ export default function WeightScreen() {
 
             {!latestKg && !loading && (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>⚖️</Text>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: `${isDark ? '#e8a84c' : '#a06820'}15`, alignItems: 'center' as const, justifyContent: 'center' as const }}>
+                  <Scale size={28} color={isDark ? '#e8a84c' : '#a06820'} />
+                </View>
                 <Text style={[styles.emptyText, { color: colors.textMuted }]}>No weight logged yet</Text>
                 <Text style={[styles.emptySub, { color: colors.textMuted }]}>Log your first weight above</Text>
               </View>
@@ -378,50 +381,50 @@ function makeStyles(colors: ColorScheme) {
     content:     { paddingHorizontal: 20, paddingBottom: 40 }     as ViewStyle,
     header:      { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, marginTop: 12, marginBottom: 8 } as ViewStyle,
     backBtn:     { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    title:       { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.3 } as TextStyle,
+    title:       { fontSize: fs(22), fontWeight: '700' as const, letterSpacing: -0.3 } as TextStyle,
     journeyCard:   { borderRadius: 14, borderWidth: 1, padding: 16, marginBottom: 14 } as ViewStyle,
     journeyRow:    { flexDirection: 'row' as const, alignItems: 'center' as const } as ViewStyle,
     journeyPoint:  { alignItems: 'flex-start' as const } as ViewStyle,
-    journeyLabel:  { fontSize: 11, fontWeight: '500' as const, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
-    journeyWeight: { fontSize: 18, fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
+    journeyLabel:  { fontSize: fs(11), fontWeight: '500' as const, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
+    journeyWeight: { fontSize: fs(18), fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
     journeyTrack:  { height: 6, borderRadius: 3, overflow: 'hidden' as const, marginBottom: 4 } as ViewStyle,
     journeyFill:   { height: '100%' as any, borderRadius: 3 } as ViewStyle,
-    journeyPctText:{ fontSize: 11, fontWeight: '600' as const, textAlign: 'center' as const } as TextStyle,
+    journeyPctText:{ fontSize: fs(11), fontWeight: '600' as const, textAlign: 'center' as const } as TextStyle,
     bmiCard:       { borderRadius: 14, borderWidth: 1, padding: 16, marginBottom: 14 } as ViewStyle,
-    bmiTitle:      { fontSize: 10, fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' as const } as TextStyle,
+    bmiTitle:      { fontSize: fs(10), fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' as const } as TextStyle,
     bmiRow:        { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginBottom: 10 } as ViewStyle,
-    bmiValue:      { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
-    bmiUnit:       { fontSize: 13, fontWeight: '500' as const } as TextStyle,
+    bmiValue:      { fontSize: fs(28), fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
+    bmiUnit:       { fontSize: fs(13), fontWeight: '500' as const } as TextStyle,
     bmiBadge:      { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, marginLeft: 'auto' as any } as ViewStyle,
-    bmiBadgeText:  { fontSize: 12, fontWeight: '600' as const } as TextStyle,
+    bmiBadgeText:  { fontSize: fs(12), fontWeight: '600' as const } as TextStyle,
     bmiBar:        { flexDirection: 'row' as const, height: 8, borderRadius: 4, overflow: 'hidden' as const, marginBottom: 6 } as ViewStyle,
     bmiSeg:        { height: '100%' as any } as ViewStyle,
     bmiPointer:    { position: 'absolute' as const, top: -4, marginLeft: -6 } as ViewStyle,
     bmiPointerDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#fff' } as ViewStyle,
     bmiLabels:     { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginTop: 4 } as ViewStyle,
-    bmiLabelText:  { fontSize: 10, fontWeight: '500' as const } as TextStyle,
+    bmiLabelText:  { fontSize: fs(10), fontWeight: '500' as const } as TextStyle,
     statsRow:    { flexDirection: 'row' as const, gap: 8, marginBottom: 14 }       as ViewStyle,
     statBox:     { flex: 1, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center' as const } as ViewStyle,
-    statVal:     { fontSize: 18, fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
-    statLbl:     { fontSize: 11, fontWeight: '500' as const, marginTop: 2, textAlign: 'center' as const } as TextStyle,
-    sectionTitle:{ fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 10 } as TextStyle,
+    statVal:     { fontSize: fs(18), fontWeight: '700' as const, letterSpacing: -0.5 } as TextStyle,
+    statLbl:     { fontSize: fs(11), fontWeight: '500' as const, marginTop: 2, textAlign: 'center' as const } as TextStyle,
+    sectionTitle:{ fontSize: fs(11), fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 10 } as TextStyle,
     inputCard:   { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 20 } as ViewStyle,
     inputRow:    { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 } as ViewStyle,
-    input:       { flex: 1, fontSize: 24, fontWeight: '600' as const, padding: 0 } as TextStyle,
-    inputUnit:   { fontSize: 14, fontWeight: '500' as const }                      as TextStyle,
+    input:       { flex: 1, fontSize: fs(24), fontWeight: '600' as const, padding: 0 } as TextStyle,
+    inputUnit:   { fontSize: fs(14), fontWeight: '500' as const }                      as TextStyle,
     logBtn:      { borderRadius: 10, paddingHorizontal: 18, paddingVertical: 10 }  as ViewStyle,
-    logBtnText:  { fontSize: 14, fontWeight: '600' as const }                      as TextStyle,
+    logBtnText:  { fontSize: fs(14), fontWeight: '600' as const }                      as TextStyle,
     logCard:     { borderRadius: 14, borderWidth: 1, overflow: 'hidden' as const, marginBottom: 16 } as ViewStyle,
     logRow:      { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, padding: 12 } as ViewStyle,
     logDot:      { width: 8, height: 8, borderRadius: 4 }                         as ViewStyle,
     logInfo:     { flex: 1 }                                                       as ViewStyle,
-    logWeight:   { fontSize: 15, fontWeight: '600' as const }                     as TextStyle,
-    logDate:     { fontSize: 12, marginTop: 1 }                                   as TextStyle,
+    logWeight:   { fontSize: fs(15), fontWeight: '600' as const }                     as TextStyle,
+    logDate:     { fontSize: fs(12), marginTop: 1 }                                   as TextStyle,
     todayBadge:  { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }    as ViewStyle,
-    todayText:   { fontSize: 11, fontWeight: '600' as const }                     as TextStyle,
+    todayText:   { fontSize: fs(11), fontWeight: '600' as const }                     as TextStyle,
     emptyState:  { alignItems: 'center' as const, paddingVertical: 32 }           as ViewStyle,
-    emptyEmoji:  { fontSize: 40, marginBottom: 10 }                               as TextStyle,
-    emptyText:   { fontSize: 15, fontWeight: '600' as const }                     as TextStyle,
-    emptySub:    { fontSize: 13, marginTop: 4 }                                   as TextStyle,
+    emptyEmoji:  { fontSize: fs(40), marginBottom: 10 }                               as TextStyle,
+    emptyText:   { fontSize: fs(15), fontWeight: '600' as const }                     as TextStyle,
+    emptySub:    { fontSize: fs(13), marginTop: 4 }                                   as TextStyle,
   });
 }

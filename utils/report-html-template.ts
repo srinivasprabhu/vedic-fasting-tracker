@@ -6,6 +6,24 @@
 
 import type { MonthlyReportData } from '@/utils/monthly-report';
 
+/** Inline mandala mark for PDF headers (matches assets/brand/logo-mark-mono-dark.svg) */
+const REPORT_HEADER_MARK_SVG = `<svg width="44" height="44" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g transform="translate(48,48)"><circle cx="0" cy="0" r="44" fill="none" stroke="#c8872a" stroke-width="1" stroke-opacity="0.35"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(45)"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(90)"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(135)"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(180)"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(225)"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(270)"/><path d="M0,-36 C-10,-24 -10,-14 0,-11 C10,-14 10,-24 0,-36Z" fill="none" stroke="#c8872a" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round" transform="rotate(315)"/><polygon points="0,-6 4.3,0 0,6 -4.3,0" fill="#c8872a"/></g></svg>`;
+
+function reportPageHeader(monthTitle: string, subMeta: string): string {
+  return `
+  <div class="header">
+    <div class="brand-row">
+      <span class="brand-mark">${REPORT_HEADER_MARK_SVG}</span>
+      <div class="brand-text-col">
+        <div class="brand-word">Aayu</div>
+        <div class="brand-tag">Intermittent fasting</div>
+      </div>
+    </div>
+    <div class="month-title">${monthTitle}</div>
+    <div class="sub-meta">${subMeta}</div>
+  </div>`;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function delta(current: number, previous: number | null | undefined, unit: string = '', decimals: number = 1): string {
@@ -147,7 +165,11 @@ export function buildReportHTML(data: MonthlyReportData): string {
 
   /* Header */
   .header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #2a1a0a; }
-  .brand { font-size: 13px; letter-spacing: 3px; color: #e8a84c; margin-bottom: 4px; }
+  .brand-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
+  .brand-mark { display: inline-flex; line-height: 0; }
+  .brand-text-col { text-align: left; }
+  .brand-word { font-size: 22px; font-weight: 700; letter-spacing: 0.04em; color: #e8a84c; line-height: 1.1; }
+  .brand-tag { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(232,168,76,0.55); margin-top: 2px; }
   .month-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
   .sub-meta { font-size: 12px; color: #7a6040; }
 
@@ -215,11 +237,7 @@ export function buildReportHTML(data: MonthlyReportData): string {
 
 <!-- ═══════════════ PAGE 1: SUMMARY ═══════════════ -->
 <div class="page">
-  <div class="header">
-    <div class="brand">✦ A A Y U</div>
-    <div class="month-title">${data.monthLabel}</div>
-    <div class="sub-meta">${data.userName} · ${data.planLabel} · Month ${data.monthNumber}</div>
-  </div>
+  ${reportPageHeader(data.monthLabel, `${data.userName} · ${data.planLabel} · Month ${data.monthNumber}`)}
 
   <!-- Metabolic Score -->
   <div class="card">
@@ -292,11 +310,7 @@ export function buildReportHTML(data: MonthlyReportData): string {
 
 <!-- ═══════════════ PAGE 2: FASTING ANALYSIS ═══════════════ -->
 <div class="page">
-  <div class="header">
-    <div class="brand">✦ A A Y U</div>
-    <div class="month-title">Fasting Analysis</div>
-    <div class="sub-meta">${data.monthLabel}</div>
-  </div>
+  ${reportPageHeader('Fasting Analysis', data.monthLabel)}
 
   <!-- Heatmap -->
   <div class="card">
@@ -351,11 +365,7 @@ export function buildReportHTML(data: MonthlyReportData): string {
 
 <!-- ═══════════════ PAGE 3: DAILY HABITS ═══════════════ -->
 <div class="page">
-  <div class="header">
-    <div class="brand">✦ A A Y U</div>
-    <div class="month-title">Daily Habits</div>
-    <div class="sub-meta">${data.monthLabel}</div>
-  </div>
+  ${reportPageHeader('Daily Habits', data.monthLabel)}
 
   <div class="two-col">
     <div class="card">
@@ -420,11 +430,7 @@ export function buildReportHTML(data: MonthlyReportData): string {
 
 <!-- ═══════════════ PAGE 4: INSIGHTS ═══════════════ -->
 <div class="page">
-  <div class="header">
-    <div class="brand">✦ A A Y U</div>
-    <div class="month-title">Insights & Recommendations</div>
-    <div class="sub-meta">${data.monthLabel}</div>
-  </div>
+  ${reportPageHeader('Insights & Recommendations', data.monthLabel)}
 
   ${data.insights.length > 0 ? `
   <div class="card">
@@ -484,7 +490,7 @@ export function buildReportHTML(data: MonthlyReportData): string {
   </div>
   ` : `
   <div class="card" style="margin-top:12px;text-align:center;padding:24px;">
-    <div style="font-size:32px;margin-bottom:8px;">🎉</div>
+    <div style="font-size:32px;margin-bottom:8px;">✦</div>
     <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Your first month with Aayu!</div>
     <div style="font-size:12px;color:#7a6040;">Next month's report will show your progress compared to this baseline.</div>
   </div>

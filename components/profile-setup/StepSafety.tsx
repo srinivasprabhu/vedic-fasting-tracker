@@ -1,13 +1,13 @@
 // StepSafety — combined safety screening: pregnancy, eating disorders, medications
-// Shown as a warm, non-clinical "keeping you safe" screen.
 import React, { useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Shield, AlertTriangle, Brain, Pill, ShieldCheck } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import type { SafetyFlags, UserSex } from '@/types/user';
 
 interface Props {
@@ -19,14 +19,14 @@ interface Props {
 // ─── Toggle row ───────────────────────────────────────────────────────────────
 
 const ToggleRow: React.FC<{
-  emoji:   string;
+  Icon:    typeof Shield;
   label:   string;
   desc:    string;
   active:  boolean;
   onPress: () => void;
   isDark:  boolean;
   accent?: string;
-}> = ({ emoji, label, desc, active, onPress, isDark, accent }) => {
+}> = ({ Icon, label, desc, active, onPress, isDark, accent }) => {
   const gold  = accent ?? (isDark ? '#e8a84c' : '#a06820');
   const cream = isDark ? '#f0e0c0' : '#1e1004';
   const warn  = isDark ? '#D46060' : '#c05050';
@@ -44,7 +44,9 @@ const ToggleRow: React.FC<{
           : (isDark ? 'rgba(200,135,42,.12)' : 'rgba(200,135,42,.18)'),
       }]}
     >
-      <Text style={s.cardEmoji}>{emoji}</Text>
+      <View style={[s.iconCircle, { backgroundColor: active ? 'rgba(212,96,96,.12)' : (isDark ? 'rgba(200,135,42,.08)' : 'rgba(200,135,42,.06)') }]}>
+        <Icon size={16} color={active ? warn : gold} />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={[s.cardName, { color: active ? warn : cream }]}>{label}</Text>
         <Text style={[s.cardDesc, { color: isDark ? 'rgba(240,224,192,.38)' : 'rgba(60,35,10,.42)' }]}>
@@ -93,7 +95,9 @@ const DisclaimerBanner: React.FC<{ message: string; isDark: boolean }> = ({ mess
         borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)',
       },
     ]}>
-      <Text style={s.disclaimerIcon}>⚕️</Text>
+      <View style={{ marginTop: 1 }}>
+        <ShieldCheck size={16} color={isDark ? 'rgba(212,96,96,.6)' : 'rgba(212,96,96,.55)'} />
+      </View>
       <Text style={[s.disclaimerText, { color: isDark ? 'rgba(240,224,192,.6)' : 'rgba(60,35,10,.6)' }]}>
         {message}
       </Text>
@@ -132,7 +136,7 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
         backgroundColor: 'rgba(200,135,42,.1)',
         borderColor: isDark ? 'rgba(200,135,42,.2)' : 'rgba(200,135,42,.28)',
       }]}>
-        <Text style={{ fontSize: 20 }}>🛡️</Text>
+        <Shield size={20} color={goldLt} />
       </View>
 
       <Text style={[s.heading, { color: cream }]}>
@@ -144,11 +148,10 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
       </Text>
 
       <View style={s.list}>
-        {/* Pregnancy / breastfeeding — only for female users */}
         {showFemaleQuestions && (
           <>
             <ToggleRow
-              emoji="🤰"
+              Icon={AlertTriangle}
               label="I'm currently pregnant"
               desc="Fasting isn't recommended during pregnancy"
               active={!!value.pregnant}
@@ -156,7 +159,7 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
               isDark={isDark}
             />
             <ToggleRow
-              emoji="🤱"
+              Icon={AlertTriangle}
               label="I'm currently breastfeeding"
               desc="Your body needs extra calories right now"
               active={!!value.breastfeeding}
@@ -166,9 +169,8 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
           </>
         )}
 
-        {/* Universal questions */}
         <ToggleRow
-          emoji="🧠"
+          Icon={Brain}
           label="History of disordered eating"
           desc="Fasting can sometimes trigger unhealthy patterns"
           active={!!value.eatingDisorder}
@@ -176,7 +178,7 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
           isDark={isDark}
         />
         <ToggleRow
-          emoji="💊"
+          Icon={Pill}
           label="On diabetes or blood pressure medication"
           desc="Fasting may affect how your medication works"
           active={!!value.fastingMedications}
@@ -185,7 +187,6 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
         />
       </View>
 
-      {/* Context-sensitive disclaimer */}
       {(value.pregnant || value.breastfeeding) && (
         <DisclaimerBanner
           message="We recommend consulting your doctor before starting any fasting plan during pregnancy or breastfeeding. Your plan will be adjusted to a gentle schedule."
@@ -205,7 +206,6 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
         />
       )}
 
-      {/* Reassurance if nothing selected */}
       {!hasAnyFlag && (
         <Text style={[s.noneNote, { color: isDark ? 'rgba(122,174,121,.5)' : 'rgba(24,112,64,.5)' }]}>
           None of these apply? Great — you're all set to continue!
@@ -219,18 +219,17 @@ export const StepSafety: React.FC<Props> = ({ value, onChange, sex }) => {
 
 const s = StyleSheet.create({
   iconWrap:       { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg } as ViewStyle,
-  heading:        { fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 42, letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
-  accent:         { fontFamily: FONTS.displayItalic, fontSize: 36 } as TextStyle,
-  sub:            { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 20, marginBottom: SPACING.xl } as TextStyle,
+  heading:        { fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36), letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
+  accent:         { fontFamily: FONTS.displayItalic, fontSize: fs(36), lineHeight: lh(36) } as TextStyle,
+  sub:            { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.xl } as TextStyle,
   list:           { gap: SPACING.sm } as ViewStyle,
   card:           { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12, borderRadius: RADIUS.lg, borderWidth: 1.5 } as ViewStyle,
-  cardEmoji:      { fontSize: 22, width: 36, textAlign: 'center' as const, flexShrink: 0 } as TextStyle,
-  cardName:       { fontFamily: FONTS.bodyMedium, fontSize: 14, fontWeight: '600' as const, marginBottom: 1 } as TextStyle,
-  cardDesc:       { fontFamily: FONTS.bodyRegular, fontSize: 12, lineHeight: 17 } as TextStyle,
+  iconCircle:     { width: 36, height: 36, borderRadius: 18, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0 } as ViewStyle,
+  cardName:       { fontFamily: FONTS.bodyMedium, fontSize: fs(14), fontWeight: '600' as const, marginBottom: 1 } as TextStyle,
+  cardDesc:       { fontFamily: FONTS.bodyRegular, fontSize: fs(12), lineHeight: lh(12, 1.35) } as TextStyle,
   toggle:         { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, borderWidth: 1, flexShrink: 0 } as ViewStyle,
-  toggleText:     { fontFamily: FONTS.bodyMedium, fontSize: 11, fontWeight: '600' as const } as TextStyle,
+  toggleText:     { fontFamily: FONTS.bodyMedium, fontSize: fs(11), fontWeight: '600' as const } as TextStyle,
   disclaimer:     { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 10, padding: SPACING.md, borderRadius: RADIUS.lg, borderWidth: 1, marginTop: SPACING.md } as ViewStyle,
-  disclaimerIcon: { fontSize: 16, marginTop: 1 } as TextStyle,
-  disclaimerText: { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 19, flex: 1 } as TextStyle,
-  noneNote:       { fontFamily: FONTS.bodyRegular, fontSize: 13, textAlign: 'center' as const, marginTop: SPACING.lg } as TextStyle,
+  disclaimerText: { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), flex: 1 } as TextStyle,
+  noneNote:       { fontFamily: FONTS.bodyRegular, fontSize: fs(13), textAlign: 'center' as const, marginTop: SPACING.lg } as TextStyle,
 });

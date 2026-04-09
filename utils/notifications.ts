@@ -246,7 +246,7 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
   if (waterOn) {
     const ids: string[] = [];
     const bodies = [
-      'Hydration supports your fast — take a sip. 💧',
+      'Hydration supports your fast — take a sip.',
       'Water break — your cells will thank you.',
       'Stay light and clear. Time for some water.',
     ];
@@ -255,7 +255,7 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
       try {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Water reminder 💧',
+            title: 'Water reminder',
             body: bodies[i % bodies.length],
             sound: true,
             data: { type: 'water_reminder' },
@@ -327,12 +327,12 @@ async function cancelStoredIds(key: string): Promise<void> {
 const MILESTONES = [
   {
     hours: 12,
-    title: 'Fat Burn Activated 🔥',
+    title: 'Fat Burn Activated',
     body: 'Your glycogen stores are depleting. Your body is switching to fat for fuel.',
   },
   {
     hours: 16,
-    title: 'Ketosis Mode ⚡',
+    title: 'Ketosis Mode',
     body: 'Your body is now primarily burning fat and ketones for energy. Mental clarity rising.',
   },
   {
@@ -342,7 +342,7 @@ const MILESTONES = [
   },
   {
     hours: 48,
-    title: 'Deep Renewal 💪',
+    title: 'Deep Renewal',
     body: '48 hours in! Deep autophagy active, immune cells regenerating, peak cellular repair.',
   },
 ];
@@ -374,7 +374,7 @@ export async function scheduleActiveFastMilestones(
     const beforeEndDelayMs = eatingWindowSoonAt - now;
     if (beforeEndDelayMs > 1000) {
       const id = await schedule(
-        'Eating window soon 🍽️',
+        'Eating window soon',
         `About 1 hour until you can break your ${fastLabel} fast.`,
         beforeEndDelayMs / 1000,
         { type: 'before_fast_end' },
@@ -391,7 +391,7 @@ export async function scheduleActiveFastMilestones(
   const targetDelay = targetFireAt - now;
   if (targetDelay > 1000) {
     const id = await schedule(
-      'Goal Reached! 🎉',
+      'Goal Reached!',
       `You've hit your ${fastLabel} target! End your fast when you're ready.`,
       targetDelay / 1000,
       { type: 'target_reached' },
@@ -422,7 +422,7 @@ export async function schedulePostFastNotifications(streak: number): Promise<voi
   const ids: string[] = [];
 
   const refuelId = await schedule(
-    'Refuel Smart 🥗',
+    'Refuel Smart',
     'Break your fast gently — start with water, then light protein. Your gut will thank you.',
     REFUEL_DELAY_SECONDS,
     { type: 'refuel_tip' },
@@ -431,7 +431,7 @@ export async function schedulePostFastNotifications(streak: number): Promise<voi
 
   if (streak >= 2) {
     const streakId = await schedule(
-      'Protect Your Streak 🔥',
+      'Protect Your Streak',
       `You have a ${streak}-fast streak going! Start a fast soon to keep it alive.`,
       STREAK_PROTECTION_SECONDS,
       { type: 'streak_protection' },
@@ -469,7 +469,7 @@ export async function scheduleDailyReminder(): Promise<void> {
     const msg = DAILY_MESSAGES[new Date().getDay() % DAILY_MESSAGES.length];
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Ready to Fast? 💪',
+        title: 'Ready to Fast?',
         body: msg,
         sound: true,
         data: { type: 'daily_reminder' },
@@ -506,7 +506,7 @@ export async function scheduleWeeklySummary(): Promise<void> {
   try {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Your Week in Review 📊',
+        title: 'Your Week in Review',
         body: 'Open the app to see your weekly fasting insights.',
         sound: true,
         data: { type: 'weekly_summary' },

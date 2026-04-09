@@ -1,13 +1,14 @@
 // components/FastPlanPickerModal.tsx
 // Bottom sheet modal for changing fasting plan — with Pro tier upsell.
 
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Modal, Animated, Easing, ViewStyle, TextStyle, Dimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { X, Lock, Check } from 'lucide-react-native';
+import { X, Lock, Check, AlertTriangle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { ColorScheme } from '@/constants/colors';
 
@@ -134,7 +135,7 @@ const PlanCard: React.FC<{
         {/* Pro badge or safety badge */}
         {blocked ? (
           <View style={[s.proBadge, { backgroundColor: isDark ? 'rgba(212,96,96,.8)' : '#c05050' }]}>
-            <Text style={s.proBadgeText}>⚠️</Text>
+            <AlertTriangle size={12} color="#fff" />
           </View>
         ) : plan.isPro ? (
           <View style={[s.proBadge, { backgroundColor: isDark ? 'rgba(232,168,76,.9)' : '#E8913A' }]}>
@@ -305,7 +306,9 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
                 backgroundColor: isDark ? 'rgba(212,96,96,.08)' : 'rgba(212,96,96,.06)',
                 borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)',
               }]}>
-                <Text style={{ fontSize: 14 }}>⚠️</Text>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(212,96,96,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertTriangle size={18} color={isDark ? '#e07b7b' : '#c05050'} />
+                </View>
                 <Text style={[s.restrictText, { color: isDark ? 'rgba(240,224,192,.65)' : 'rgba(60,35,10,.65)' }]}>
                   {restrictionReason}
                 </Text>
@@ -384,13 +387,13 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   title: {
-    fontSize: 24,
+    fontSize: fs(24),
     fontWeight: '700',
     letterSpacing: -0.5,
   } as TextStyle,
 
   subtitle: {
-    fontSize: 14,
+    fontSize: fs(14),
     marginTop: 3,
   } as TextStyle,
 
@@ -412,13 +415,13 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   catTitle: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '700',
     marginBottom: 3,
   } as TextStyle,
 
   catSubtitle: {
-    fontSize: 13,
+    fontSize: fs(13),
     marginBottom: 10,
   } as TextStyle,
 
@@ -437,14 +440,14 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   planLabel: {
-    fontSize: 28,
+    fontSize: fs(28),
     fontWeight: '800',
     letterSpacing: -1,
     marginBottom: 6,
   } as TextStyle,
 
   planDesc: {
-    fontSize: 13,
+    fontSize: fs(13),
     lineHeight: 18,
   } as TextStyle,
 
@@ -469,7 +472,7 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   proBadgeText: {
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.5,
@@ -493,22 +496,22 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   upsellEmoji: {
-    fontSize: 22,
+    fontSize: fs(22),
   } as TextStyle,
 
   upsellTitle: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '700',
     marginBottom: 2,
   } as TextStyle,
 
   upsellDesc: {
-    fontSize: 12,
+    fontSize: fs(12),
     lineHeight: 17,
   } as TextStyle,
 
   upsellArrow: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '300',
   } as TextStyle,
 
@@ -523,7 +526,7 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   restrictText: {
-    fontSize: 13,
+    fontSize: fs(13),
     lineHeight: 19,
     flex: 1,
   } as TextStyle,

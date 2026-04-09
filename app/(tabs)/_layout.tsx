@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import { Tabs } from 'expo-router';
 import { Clock, BarChart3, Lightbulb, BookOpen } from 'lucide-react-native';
 import React from 'react';
@@ -26,7 +27,7 @@ export default function TabLayout() {
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: fs(10),
           fontWeight: '500',
           letterSpacing: 0.2,
         },

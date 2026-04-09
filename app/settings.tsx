@@ -1,17 +1,20 @@
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Platform, Animated, Switch, Linking,
-  ViewStyle, TextStyle,
+  ViewStyle, TextStyle, DevSettings,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack, useFocusEffect } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
   User, Bell, Info, ChevronRight, Moon, Sun, X, Check,
   Edit3, LogOut, LogIn, Scale, Ruler, Target, Flame,
   Droplets, Activity, Clock, Heart, Star, Mail, Shield,
-  FileText,
+  FileText, Calendar, Flag, RotateCcw, LineChart,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getNotificationsEnabled } from '@/utils/notifications';
@@ -21,6 +24,9 @@ import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import { getAge, calcBMI, getBMICategory, bmiCategoryLabel, kgToLbs, cmToFtIn, formatWater, formatSteps, purposeLabel, activityLabel } from '@/utils/calculatePlan';
 import type { WeightUnit } from '@/types/user';
 import type { ColorScheme } from '@/constants/colors';
+import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY, TRADITIONAL_INSIGHTS_KEY } from '@/constants/storageKeys';
+import { uploadLocalRecords } from '@/lib/sync';
+import { applyDevFastingSeed } from '@/utils/dev-seed-fasting-history';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -112,11 +118,11 @@ const InfoRow: React.FC<{
 
 const r = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 } as ViewStyle,
-  iconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
+  iconWrap: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
   content: { flex: 1 } as ViewStyle,
-  label: { fontSize: 11, fontWeight: '500', letterSpacing: 0.3, marginBottom: 1 } as TextStyle,
-  value: { fontSize: 15, fontWeight: '600' } as TextStyle,
-  sublabel: { fontSize: 11, marginTop: 1 } as TextStyle,
+  label: { fontSize: fs(11), fontWeight: '500', letterSpacing: 0.3, marginBottom: 1 } as TextStyle,
+  value: { fontSize: fs(15), fontWeight: '600' } as TextStyle,
+  sublabel: { fontSize: fs(11), marginTop: 1 } as TextStyle,
 });
 
 const Divider: React.FC<{ colors: ColorScheme }> = ({ colors }) => (
@@ -126,7 +132,8 @@ const Divider: React.FC<{ colors: ColorScheme }> = ({ colors }) => (
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const queryClient = useQueryClient();
+  const { colors, isDark, toggleTheme, followsSystem } = useTheme();
   const { user, isAuthenticated, signOut } = useAuth();
   const { profile, updateProfile, getInitial, isProUser, toggleProUser } = useUserProfile();
   const {
@@ -138,11 +145,77 @@ export default function SettingsScreen() {
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState(profile?.name ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [traditionalInsights, setTraditionalInsights] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   React.useEffect(() => { Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start(); }, []);
   React.useEffect(() => { getNotificationsEnabled().then(setNotificationsEnabled); }, []);
   useFocusEffect(useCallback(() => { getNotificationsEnabled().then(setNotificationsEnabled); }, []));
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem(TRADITIONAL_INSIGHTS_KEY).then((v) => {
+      setTraditionalInsights(v === '1' || v === 'true');
+    });
+  }, []));
+
+  const replaySplashAndOnboarding = useCallback(() => {
+    Alert.alert(
+      'Replay splash + onboarding',
+      'Clears onboarding completion on this device and reloads the app. You will see the branded splash, then onboarding. Your profile and account stay on this device unless you use full new-user flow below.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reload',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY);
+            DevSettings.reload();
+          },
+        },
+      ],
+    );
+  }, []);
+
+  const replayFullNewUserFlow = useCallback(() => {
+    Alert.alert(
+      'Replay full new-user flow',
+      'Clears onboarding completion and local profile data, then reloads. After onboarding you will go to profile setup. Supabase session may still be active—sign out first for a fully clean test.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reload',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.multiRemove([ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY]);
+            DevSettings.reload();
+          },
+        },
+      ],
+    );
+  }, []);
+
+  const seedDevFastingHistory = useCallback(() => {
+    Alert.alert(
+      'Seed ~4 months of fasting data',
+      'Adds about 120 days of completed fasts: oldest ~2 weeks 5:2 (Mon/Thu 24h), next ~2 weeks daily 16:8, then daily 18:6. Replaces any previous dev seed rows; your current in-progress fast is kept. Supabase upload runs in the background if you are signed in.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Seed',
+          onPress: async () => {
+            try {
+              const n = await applyDevFastingSeed();
+              queryClient.invalidateQueries({ queryKey: ['fasting-records'] });
+              if (isAuthenticated && user?.id) void uploadLocalRecords(user.id);
+              Alert.alert('Done', `Added ${n} synthetic fast records.`);
+            } catch (e) {
+              console.warn('dev seed fasting', e);
+              Alert.alert('Seed failed', String(e));
+            }
+          },
+        },
+      ],
+    );
+  }, [queryClient, isAuthenticated, user?.id]);
 
   const plan = profile?.plan;
   const weightUnit = profile?.weightUnit ?? 'kg';
@@ -219,7 +292,7 @@ export default function SettingsScreen() {
           <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
             <InfoRow icon={<User size={15} color={colors.primary} />} iconBg={colors.primaryLight} label="Sex" value={displaySex(profile?.sex)} colors={colors} />
             <Divider colors={colors} />
-            <InfoRow icon={<Text style={{ fontSize: 13 }}>🎂</Text>} iconBg={colors.warningLight} label="Age" value={displayAge(profile)} colors={colors} />
+            <InfoRow icon={<Calendar size={15} color="#E8913A" />} iconBg={colors.warningLight} label="Age" value={displayAge(profile)} colors={colors} />
             <Divider colors={colors} />
             <InfoRow icon={<Ruler size={15} color="#5b8dd9" />} iconBg="rgba(91,141,217,0.12)" label="Height" value={displayHeight(profile?.heightCm)} colors={colors} />
             <Divider colors={colors} />
@@ -282,9 +355,37 @@ export default function SettingsScreen() {
               <View style={r.content}>
                 <Text style={[r.label, { color: colors.textMuted }]}>Appearance</Text>
                 <Text style={[r.value, { color: colors.text }]}>{isDark ? 'Dark' : 'Light'}</Text>
+                {followsSystem && (
+                  <Text style={[r.sublabel, { color: colors.textMuted }]}>
+                    Following device appearance
+                  </Text>
+                )}
               </View>
               <Switch value={isDark} onValueChange={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleTheme(); }}
                 trackColor={{ false: colors.border, true: colors.primary }} thumbColor="#fff" />
+            </View>
+            <Divider colors={colors} />
+            <View style={r.row}>
+              <View style={[r.iconWrap, { backgroundColor: 'rgba(232,168,76,0.12)' }]}>
+                <Flame size={15} color={goldColor} />
+              </View>
+              <View style={r.content}>
+                <Text style={[r.label, { color: colors.textMuted }]}>Traditional daily quotes</Text>
+                <Text style={[r.value, { color: colors.text }]}>{traditionalInsights ? 'On' : 'Off'}</Text>
+                <Text style={[r.sublabel, { color: colors.textMuted }]}>
+                  Classical inspiration on Today (neutral quotes by default)
+                </Text>
+              </View>
+              <Switch
+                value={traditionalInsights}
+                onValueChange={(v) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setTraditionalInsights(v);
+                  void AsyncStorage.setItem(TRADITIONAL_INSIGHTS_KEY, v ? 'true' : 'false');
+                }}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#fff"
+              />
             </View>
             <Divider colors={colors} />
             <InfoRow icon={<Bell size={15} color={colors.accent} />} iconBg={colors.accentLight} label="Notifications" value={notificationsEnabled ? 'On' : 'Off'}
@@ -327,9 +428,9 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </>
             ) : __DEV__ && devProOverride ? (
-              <InfoRow icon={<Text style={{ fontSize: 13 }}>✦</Text>} iconBg="rgba(232,168,76,0.12)" label="Pro (dev override)" value="Active via developer toggle" colors={colors} />
+              <InfoRow icon={<Text style={{ fontSize: fs(13) }}>✦</Text>} iconBg="rgba(232,168,76,0.12)" label="Pro (dev override)" value="Active via developer toggle" colors={colors} />
             ) : (
-              <InfoRow icon={<Text style={{ fontSize: 13 }}>✦</Text>} iconBg="rgba(232,168,76,0.12)" label="Aayu Pro" value="Unlock advanced features"
+              <InfoRow icon={<Text style={{ fontSize: fs(13) }}>✦</Text>} iconBg="rgba(232,168,76,0.12)" label="Aayu Pro" value="Unlock advanced features"
                 sublabel="Insights, reports, advanced plans" colors={colors} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); void presentPaywall(); }} />
             )}
             <Divider colors={colors} />
@@ -386,7 +487,7 @@ export default function SettingsScreen() {
               <View style={[s.card, { backgroundColor: colors.card, borderColor: 'rgba(196,72,72,0.4)' }]}>
                 <View style={r.row}>
                   <View style={[r.iconWrap, { backgroundColor: 'rgba(196,72,72,0.12)' }]}>
-                    <Text style={{ fontSize: 13 }}>⚑</Text>
+                    <Flag size={15} color="#c44848" />
                   </View>
                   <View style={r.content}>
                     <Text style={[r.label, { color: colors.textMuted }]}>DEV: Override Pro</Text>
@@ -395,6 +496,42 @@ export default function SettingsScreen() {
                   <Switch value={devProOverride} onValueChange={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); void toggleProUser(); }}
                     trackColor={{ false: colors.border, true: '#c44848' }} thumbColor="#fff" />
                 </View>
+                <Divider colors={colors} />
+                <InfoRow
+                  icon={<RotateCcw size={15} color="#c44848" />}
+                  iconBg="rgba(196,72,72,0.12)"
+                  label="Replay splash + onboarding"
+                  value="Clears onboarding flag & reloads"
+                  colors={colors}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    replaySplashAndOnboarding();
+                  }}
+                />
+                <Divider colors={colors} />
+                <InfoRow
+                  icon={<RotateCcw size={15} color="#c44848" />}
+                  iconBg="rgba(196,72,72,0.12)"
+                  label="Replay full new-user flow"
+                  value="Clears onboarding + local profile & reloads"
+                  colors={colors}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    replayFullNewUserFlow();
+                  }}
+                />
+                <Divider colors={colors} />
+                <InfoRow
+                  icon={<LineChart size={15} color="#c44848" />}
+                  iconBg="rgba(196,72,72,0.12)"
+                  label="Seed ~4 months fasting data"
+                  value="5:2 → 16:8 → 18:6 (synthetic)"
+                  colors={colors}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    seedDevFastingHistory();
+                  }}
+                />
               </View>
             </>
           )}
@@ -414,17 +551,17 @@ function makeStyles(colors: ColorScheme) {
     scroll: { paddingHorizontal: 20, paddingBottom: 40 } as ViewStyle,
     header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 24 } as ViewStyle,
     avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
-    avatarText: { fontSize: 22, fontWeight: '700', color: '#fff' } as TextStyle,
+    avatarText: { fontSize: fs(22), fontWeight: '700', color: '#fff' } as TextStyle,
     headerMeta: { flex: 1 } as ViewStyle,
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 } as ViewStyle,
-    profileName: { fontSize: 20, fontWeight: '700' } as TextStyle,
-    profileSub: { fontSize: 12, marginTop: 2 } as TextStyle,
+    profileName: { fontSize: fs(20), fontWeight: '700' } as TextStyle,
+    profileSub: { fontSize: fs(12), marginTop: 2 } as TextStyle,
     nameEditRow: { flexDirection: 'row', alignItems: 'center', gap: 8 } as ViewStyle,
-    nameInput: { flex: 1, fontSize: 18, fontWeight: '600', borderBottomWidth: 1.5, paddingVertical: 4 } as TextStyle,
+    nameInput: { flex: 1, fontSize: fs(18), fontWeight: '600', borderBottomWidth: 1.5, paddingVertical: 4 } as TextStyle,
     nameBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
-    sectionTitle: { fontSize: 11, fontWeight: '600', letterSpacing: 1.2, marginBottom: 8, marginTop: 20, marginLeft: 4 } as TextStyle,
-    card: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' } as ViewStyle,
+    sectionTitle: { fontSize: fs(11), fontWeight: '600', letterSpacing: 1.2, marginBottom: 8, marginTop: 20, marginLeft: 4 } as TextStyle,
+    card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' } as ViewStyle,
     actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 4 } as ViewStyle,
-    actionText: { fontSize: 14, fontWeight: '600' } as TextStyle,
+    actionText: { fontSize: fs(14), fontWeight: '600' } as TextStyle,
   });
 }

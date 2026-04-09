@@ -1,286 +1,428 @@
-# Aayu — Website Prompt for Lovable
+# Aayu — Company Website Prompt for Lovable (V2)
 
 ## Overview
 
-Build a marketing website for **Aayu**, an intermittent fasting app designed and built in the United Kingdom for users worldwide. The website serves as the app's public face — it needs to convert visitors into app downloads and clearly communicate what makes Aayu different from competitors like Zero, Fastic, and Simple.
+Build a premium, single-page company website for **Aayu** — a preventive health technology company building app-based wellness tools. The first product is the **Aayu Fasting App** (live), with more products coming.
 
-**Important positioning:** Aayu is NOT a Vedic or spiritual fasting app. It is a science-backed, modern intermittent fasting app that combines fasting tracking with body metrics (weight, water, steps) to give users a complete picture of their metabolic health. Vedic fasting traditions exist as an optional feature within the app — they are not the brand identity.
+**Inspiration reference:** https://home.medvi.org/ — study its layout: company-level hero → product sections with visuals → product lineup → values → footer. Adapt this structure for Aayu, but with our own aesthetic (dark, warm, gold-accented, calm — NOT clinical/white like Medvi).
 
-**Domain:** aayu.health (or aayufast.com — placeholder, replace with actual domain)
-**Tagline:** "Fast smarter. Live longer."
-**Secondary tagline:** "Science-backed intermittent fasting with real-time metabolic tracking."
+**Critical framing:** Aayu is a health technology company, not just a fasting app. The website should position the company as building a suite of preventive health tools. Fasting is the first and current product, but the vision is much larger — metabolic health tracking, sleep, stress, movement, and more. The website should feel like visiting the homepage of a serious health company, not a single app's landing page.
+
+**Platform:** Aayu products are purely app-based (iOS + Android). There is no web dashboard. The website exists to explain the vision, showcase the fasting app, and drive app store downloads.
+
+**Domain:** aayu.health (placeholder)
+**Company tagline:** "Preventive health for the modern world"
+**App tagline:** "Fast smarter. Live longer."
 
 ---
 
-## Brand Identity
+## Brand identity
 
 ### Colours
-- **Primary accent:** Gold `#c8872a` (dark contexts), `#a06820` (light contexts)
-- **Dark background:** `#0e0703` (used in app, hero sections)
-- **Light background:** `#fdf8f0` (warm off-white for website body)
+- **Primary background (dark sections):** `#0a0604` (near-black, warm)
+- **Card backgrounds:** `#141008`
+- **Brand gold:** `#c8872a` (logo, brand mark, links, accents)
+- **Gold light:** `#e8a84c` (highlights, badges)
+- **CTA salmon:** `#d4956a` (primary action buttons ONLY — "Download", "Join Waitlist")
 - **Cream text (on dark):** `#f0e0c0`
-- **Success green:** `#7AAE79` (dark), `#3a7a39` (light)
-- **Error/warning:** `#D46060`
+- **Muted text (on dark):** `rgba(240,224,192,0.5)`
+- **Light section background:** `#fdf3e3` (warm parchment — NOT white)
 - **Text on light:** `#1e1004` (heading), `rgba(30,16,4,0.6)` (body)
+- **Success green:** `#3aaa6e` / `#7AAE79`
+- **Info blue:** `#5b8dd9`
+
+**Rule:** Gold `#c8872a` is the brand identity colour — logo, ✦ mark, accents, links. Salmon `#d4956a` is ONLY for tappable action buttons. Never use salmon for branding.
 
 ### Typography
-- **Headings:** System font stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`), weight 300-400 for hero headings (elegant, light), weight 600-700 for section headings
-- **Body:** Same font stack, weight 400, 17-18px, generous line-height (1.6-1.7)
-- **Brand mark:** "✦ Aayu" with letter-spacing: 2px on the ✦ symbol
+- **Display / headings:** Cormorant Garamond (Light 300, Light Italic) — from Google Fonts. Elegant, editorial, premium.
+- **Body / UI:** DM Sans (Regular 400, Medium 500) — clean, modern, readable.
+- **Brand mark:** "✦ Aayu" — Cormorant Garamond, gold, generous letter-spacing.
+- **NEVER** use generic fonts (Inter, Roboto, Arial, system fonts). The typography must feel intentional and premium.
 
-### Logo assets (available in `/assets/brand/`)
-- **Full logo (dark bg):** `logo-full-dark.svg` — mandala + "Aayu" wordmark + "INTERMITTENT FASTING" descriptor (640×128)
-- **Full logo (light bg):** `logo-full-light.svg` — same layout, brown tones for light backgrounds
-- **Compact logo (dark bg):** `logo-compact-dark.svg` — mandala + "Aayu" only, for nav bars (320×72)
-- **Compact logo (light bg):** `logo-compact-light.svg` — same, for light nav bars
-- **Favicon:** `logo-mark-mono-dark.svg` — mandala mark only, gold on transparent (96×96)
-- **App icon:** `logo-icon-dark-512.svg` — full mandala on dark bg with rounded corners (512×512)
+### Logo assets (in `/assets/brand/`)
+- **Full logo (dark):** `logo-full-dark.svg` — mandala + "Aayu" + "INTERMITTENT FASTING" (640×128)
+- **Full logo (light):** `logo-full-light.svg` — same, brown tones
+- **Compact (dark):** `logo-compact-dark.svg` — mandala + "Aayu" only (320×72)
+- **Compact (light):** `logo-compact-light.svg`
+- **Favicon:** `logo-mark-mono-dark.svg` — mandala mark only, gold (96×96)
+- **App icon:** `logo-icon-dark-512.svg` — full mandala, dark bg, rounded (512×512)
 
-Use these SVGs directly in the website. The mandala mark is an 8-petal lotus with concentric rings and a centre diamond. All strokes are semi-transparent gold, giving it an elegant "drawn" quality.
+The mandala mark is an 8-petal lotus with concentric rings and a centre diamond. All strokes are semi-transparent gold — it feels "drawn" not "filled."
 
-### Design Tone
-Premium but approachable. Think Oura Ring's website meets Headspace's warmth. Clean whitespace, large typography, subtle animations on scroll. No clutter, no aggressive CTAs. The design should feel like the app itself — thoughtful, calm, and intelligent.
-
----
-
-## Pages to Build
-
-### 1. Home / Landing Page
-
-**Hero Section (full viewport height)**
-- Dark background (#0e0703) with subtle radial gold glow
-- "✦ Aayu" brand mark centred top
-- Large headline: "Fast smarter. Live longer." (48-56px, weight 300, cream text)
-- Subheadline: "Science-backed intermittent fasting with real-time metabolic tracking. Designed in the UK for the world." (18px, muted cream)
-- Two CTA buttons side by side:
-  - "Download for iOS" (Apple icon, gold button)
-  - "Download for Android" (Play icon, outlined button)
-- Below CTAs: "Free to start · No credit card required"
-- Subtle scroll indicator arrow at bottom
-
-**Social Proof Bar (light background)**
-- "Trusted by fasters in 40+ countries"
-- Star rating: "4.8 ★★★★★ on the App Store"
-- (Placeholder — replace with real numbers once available)
-
-**Feature Section: "Everything you need to fast with confidence"**
-Three feature cards in a row (responsive — stacks on mobile):
-
-Card 1: **Track Your Fasts**
-- Icon: Timer/clock
-- "Start a fast with one tap. Track 16:8, 18:6, 20:4, OMAD, 5:2, or custom durations. See real-time metabolic zones — from fat burning to deep autophagy."
-
-Card 2: **See Your Progress**
-- Icon: Chart/trending up
-- "Metabolic Discipline Score, fasting consistency, circadian alignment, and deep fast tracking. Watch your health metrics improve week over week."
-
-Card 3: **Complete Health Picture**
-- Icon: Heart/pulse
-- "Beyond fasting — track your weight, water intake, and daily steps. See how they all connect to your metabolic health in one place."
-
-**Metabolic Intelligence Section (dark background)**
-- Headline: "Your personal metabolic intelligence"
-- Subheadline: "Aayu doesn't just count hours. It understands your body."
-- Feature list (with icons, alternating left-right layout with app screenshots):
-  - **Metabolic Discipline Score** — "A single 0-100 score that captures your fasting quality — duration, consistency, circadian alignment, and deep fast depth."
-  - **Smart Weight Projection** — "Based on your actual logged data — not generic formulas. Gets more accurate as you track more."
-  - **Monthly PDF Reports** — "Beautiful, detailed health reports you can share with your doctor. Metabolic score trends, weight progress, personalised insights."
-  - **Safety First** — "Built-in safeguards for under-18 users, underweight users, pregnancy, and medication interactions. Your health comes first."
-
-**How It Works Section (light background)**
-Three steps, horizontal on desktop, vertical on mobile:
-1. "Set your goal" — "Weight loss, energy, metabolic health, or spiritual practice. Aayu builds a personalised plan in under 2 minutes."
-2. "Fast with confidence" — "One-tap timer with real-time metabolic zone tracking. Smart notifications when you hit milestones."
-3. "See real results" — "Track your progress with metabolic scores, weight trends, and AI-powered insights that get smarter over time."
-
-**Designed in the UK Section**
-- Small section with Union Jack icon or subtle UK reference
-- "Designed and built in London, United Kingdom"
-- "Available worldwide on iOS and Android"
-- "Data stored securely on EU-compliant infrastructure (Supabase)"
-
-**Final CTA Section (dark background)**
-- Headline: "Your fasting journey starts here"
-- Subheadline: "Join thousands of people transforming their health with science-backed intermittent fasting."
-- Download buttons (same as hero)
-- "Free forever · Pro available for advanced features"
-
-**Footer**
-- ✦ Aayu brand mark
-- Links: Home, Features, Pricing, About, Blog (placeholder), Support
-- Links: Privacy Policy, Terms of Service, Cookie Policy
-- Social: Twitter/X, Instagram (placeholder links)
-- "© 2026 Aayu Health Ltd. All rights reserved."
-- "Designed and built in the United Kingdom 🇬🇧"
-- Small disclaimer: "Aayu is not a medical device and does not provide medical advice. Consult your healthcare provider before starting any fasting programme."
+### Design tone
+Premium, calm, aspirational. Think: Oura Ring's scientific credibility + Headspace's calm + luxury wellness brand's soul. Clean whitespace, large editorial typography, subtle scroll animations. Nothing aggressive, bouncy, or salesy. The feeling: "This is a serious, beautiful company that knows what it's doing."
 
 ---
 
-### 2. Pricing Page
+## Site structure — single page, 8 sections
 
-**URL:** /pricing
+1. Navigation (sticky)
+2. Hero
+3. First Product — Aayu Fasting App
+4. The science — why fasting works
+5. Product lineup — what's coming
+6. Company vision
+7. Pricing
+8. Footer
 
-**Headline:** "Simple, transparent pricing"
-**Subheadline:** "Start for free. Upgrade when you're ready."
+---
+
+## Section 1 — Navigation (sticky)
+
+Dark background, transparent on scroll until user scrolls past hero.
+
+**Layout:**
+- Left: `✦ Aayu` (Cormorant Garamond, gold, letter-spacing)
+- Centre: Product · Science · Vision · Pricing (DM Sans, cream, subtle)
+- Right: "Download App" button (gold outlined pill, on hover fills gold)
+
+On mobile: hamburger menu with slide-in drawer.
+
+---
+
+## Section 2 — Hero
+
+Full viewport height. Dark background `#0a0604`.
+Subtle radial gold glow from top-centre. Large mandala watermark at 3-5% opacity behind text.
+
+**Content (centred):**
+
+Eyebrow tag: `PREVENTIVE HEALTH · EST. 2025` (DM Sans, gold, 12px, letter-spacing 2px)
+
+Main headline (very large, Cormorant Garamond Light 300, cream):
+```
+"Health is not the absence
+ of disease.
+ It is the art of living well."
+```
+
+Sub-headline (DM Sans, muted, max-width 600px):
+```
+"Aayu builds tools that help you understand your body —
+ combining modern metabolic science with preventive
+ health practices trusted for thousands of years."
+```
+
+Two CTA buttons side by side:
+- Primary: "Download for iOS" (Apple icon, salmon filled `#d4956a`, dark text)
+- Secondary: "Download for Android" (Play icon, gold outlined)
+
+Below buttons: `"Free to start · No credit card required"` (muted, 13px)
+
+Social proof line: `"★★★★★ Trusted by early fasters across 40+ countries"` (14px, muted)
+
+Right side (desktop) / below (mobile): Phone mockup showing the Aayu fasting timer screen with ambient gold glow behind it. Use placeholder phone frame.
+
+---
+
+## Section 3 — First product: Aayu Fasting App
+
+Dark section with slightly lighter card background.
+
+Section eyebrow: `OUR FIRST PRODUCT` (gold, small caps, letter-spacing)
+Headline (Cormorant Garamond): `"Aayu — Fasting & Metabolic Health"`
+Sub: `"The most thoughtfully designed fasting app. Built for people who take their health seriously."` (DM Sans)
+
+**Layout:** Left side phone mockups (2-3 fanned/stacked) + Right side feature list.
+
+**Feature list** (icon + title + description, vertically stacked):
+
+1. **Icon:** Timer/clock SVG
+   **Title:** "Intermittent fasting, beautifully tracked"
+   **Desc:** "16:8, 18:6, 20:4, OMAD, 5:2, and custom plans. A timer that shows your real-time metabolic zones — from fat burning to deep autophagy."
+
+2. **Icon:** BarChart SVG
+   **Title:** "Metabolic Discipline Score"
+   **Desc:** "A single 0-100 score that captures your fasting quality. Duration, consistency, circadian alignment, and deep fast depth — all in one number."
+
+3. **Icon:** TrendingDown SVG
+   **Title:** "Smart Weight Projection"
+   **Desc:** "Based on your actual logged data — not generic formulas. Gets more accurate the more you track. See when you'll hit your goal."
+
+4. **Icon:** FileText SVG
+   **Title:** "Monthly health reports"
+   **Desc:** "Beautiful PDF reports you can share with your doctor. Metabolic score trends, weight progress, behaviour intelligence, and personalised coaching."
+
+5. **Icon:** Droplets SVG + Activity SVG
+   **Title:** "Complete health picture"
+   **Desc:** "Beyond fasting — track your weight, water intake, and daily steps. See how they all connect to your metabolic health in one place."
+
+6. **Icon:** Shield SVG
+   **Title:** "Safety first"
+   **Desc:** "Built-in safeguards for under-18 users, underweight individuals, and pregnancy. Your health always comes first."
+
+Below features: Two download buttons (App Store + Google Play, gold-tinted badges).
+
+---
+
+## Section 4 — The science: why fasting works
+
+Light parchment background `#fdf3e3` for contrast shift.
+
+Section eyebrow: `THE SCIENCE` (gold on light)
+Headline (Cormorant Garamond, dark text): `"Why intermittent fasting is the most powerful free health intervention"`
+
+Three cards in a row (dark cards on light bg — creates beautiful contrast):
+
+**Card 1:** "Weight loss without calorie counting"
+Stat: `"3-8% body weight loss in 8-12 weeks"` (large, gold)
+Body: "Intermittent fasting reduces insulin, unlocks fat stores, and promotes sustainable weight loss without the misery of calorie restriction."
+Citation: "Ref: Varady et al., Annual Review of Nutrition, 2021"
+
+**Card 2:** "Metabolic age reversal"
+Stat: `"Up to 20x HGH increase during fasting"` (large, gold)
+Body: "Extended fasting triggers autophagy — your body's cellular cleanup process — and boosts growth hormone production, effectively turning back your metabolic clock."
+Citation: "Ref: de Cabo & Mattson, NEJM, 2019"
+
+**Card 3:** "Reduced disease risk"
+Stat: `"Significant improvement in insulin sensitivity"` (large, gold)
+Body: "Regular fasting improves blood sugar regulation, reduces inflammation markers, and is associated with lower risk of type 2 diabetes, heart disease, and certain cancers."
+Citation: "Ref: Patterson & Sears, Annual Review of Nutrition, 2017"
+
+Below cards — pull quote (large, Cormorant Garamond Italic, dark text):
+```
+"Fasting is the greatest remedy —
+ the physician within."
+ — Paracelsus
+```
+
+---
+
+## Section 5 — Product lineup: what's coming
+
+Dark section.
+
+Section eyebrow: `WHAT WE'RE BUILDING`
+Headline (Cormorant Garamond): `"A complete preventive health suite"`
+Sub: `"Fasting is just the beginning"` (DM Sans, muted)
+
+Horizontal scrollable card row (or 3-col grid on desktop). Each card has a status badge.
+
+**Card 1 — LIVE:**
+- Icon: Clock SVG (gold)
+- Name: "Fasting & Metabolic Health"
+- Desc: "Intermittent fasting tracker with metabolic analytics, weight projection, and monthly health reports."
+- Badge: `"Available Now"` (green badge `#3aaa6e`)
+- CTA: "Download →" (salmon button)
+
+**Card 2 — COMING:**
+- Icon: Activity SVG (blue)
+- Name: "Metabolic Health Tracker"
+- Desc: "Track glucose, HbA1c, and lipid panels over time. Upload your lab reports — AI reads and trends them."
+- Badge: `"Coming 2026"` (gold badge)
+
+**Card 3 — COMING:**
+- Icon: Moon SVG (purple)
+- Name: "Sleep & Recovery"
+- Desc: "Correlate your fasting windows with sleep quality. Find your optimal eating cutoff time."
+- Badge: `"Coming 2026"` (blue badge)
+
+**Card 4 — COMING:**
+- Icon: Brain SVG (purple)
+- Name: "Stress & HRV"
+- Desc: "HRV tracking reveals why you fast better in low-stress weeks. Breathing exercises built in."
+- Badge: `"2027"` (muted badge)
+
+**Card 5 — COMING:**
+- Icon: Zap SVG (green)
+- Name: "Movement & VO₂ Max"
+- Desc: "The strongest longevity predictor, tracked alongside your fasting and metabolic data."
+- Badge: `"2027"` (muted badge)
+
+Below cards — waitlist strip (subtle gold gradient border or glow):
+```
+"Be the first to know when new products launch"
+[Join Waitlist →] button (salmon)
+```
+
+---
+
+## Section 6 — Company vision
+
+Dark section. Full width. Centred text. Very generous padding.
+Faint mandala pattern tiled in background at 3% opacity.
+
+Eyebrow: `OUR VISION`
+
+Large headline (Cormorant Garamond Light, cream):
+```
+"We are building the preventive
+ health platform for the world"
+```
+
+Body paragraphs (DM Sans, muted, max-width 600px, centred):
+```
+"Chronic disease is the defining health crisis of our generation.
+ And yet the most effective preventive practice known to science
+ — fasting — has been almost entirely ignored by modern health
+ technology."
+
+"Aayu exists to change that."
+
+"We build tools grounded in what works — combining the rigour
+ of modern metabolic science with preventive health practices
+ that have helped humans thrive for thousands of years."
+```
+
+Three value cards below (light parchment background section):
+
+**Value 1:**
+Mark: `✦`
+Title: "Science-led"
+Body: "Every feature is grounded in peer-reviewed metabolic research. We don't guess. We verify."
+
+**Value 2:**
+Mark: `✦`
+Title: "Privacy-first"
+Body: "Your health data is yours. EU-compliant infrastructure, no data selling, full deletion rights."
+
+**Value 3:**
+Mark: `✦`
+Title: "Designed in the UK"
+Body: "Built in London for the world. Available on iOS and Android in 40+ countries."
+
+---
+
+## Section 7 — Pricing
+
+Light parchment background.
+
+Headline: `"Simple, transparent pricing"`
+Sub: `"Start for free. Upgrade when you're ready."`
+
+**Monthly / Yearly toggle** at top.
 
 **Two pricing tiers side by side:**
 
-#### Free Tier
-- **Price:** "Free forever"
-- **Description:** "Everything you need to get started with intermittent fasting"
-- Features (with checkmarks):
-  - Unlimited fasting tracking (all basic plans: 12:12, 13:11, 14:10, 16:8, 17:7, 18:6)
+### Free tier
+- Price: "Free forever"
+- Description: "Everything you need to start fasting with confidence"
+- Features:
+  - Unlimited fasting tracking (12:12 through 18:6)
   - Real-time metabolic zone tracking
   - 7-day Metabolic Discipline Score
   - Weight, water, and steps tracking
   - Fasting consistency insights
-  - Insulin sensitivity & autophagy depth metrics
-  - Basic health metrics
+  - Insulin sensitivity & autophagy metrics
   - Circadian alignment score
-  - Notifications and reminders
+  - Smart notifications
 - CTA: "Download Free" (links to app stores)
 
-#### Pro Tier (highlighted/recommended)
-- **Price:** Show localised pricing based on visitor location:
-  - **UK/Europe:** "£3.99/month" or "£24.99/year (save 48%)"
-  - **US:** "$4.99/month" or "$29.99/year (save 50%)"
-  - **India:** "₹449/month" or "₹2,499/year (save 54%)"
-  - Default to USD if location cannot be determined
-- **Badge:** "Most Popular" or "Best Value" on the yearly option
-- **Description:** "Advanced metabolic intelligence for serious fasters"
+### Pro tier (highlighted, "Most Popular" badge)
+- Price: Show location-aware pricing:
+  - UK/Europe: £3.99/month or £24.99/year (save 48%)
+  - US: $4.99/month or $29.99/year (save 50%)
+  - India: ₹449/month or ₹2,499/year (save 54%)
+  - Default: USD
+- Description: "Advanced metabolic intelligence for serious fasters"
 - Everything in Free, plus:
   - 30-day and 90-day metabolic insights
-  - Smart Weight Projection (AI-powered forecast)
-  - Monthly PDF health reports (shareable with your doctor)
-  - Advanced fasting plans (20:4, 21:3, 22:2, OMAD, 36h)
-  - Weekly schedules (5:2, 4:3) with custom fasting days
-  - Fat burned estimates
-  - Inflammation reduction tracking
-  - Cellular age reduction estimates
-  - Growth hormone (HGH) boost tracking
+  - Smart Weight Projection (AI-powered)
+  - Monthly PDF health reports
+  - Advanced fasting plans (20:4, OMAD, 36h, 5:2, 4:3)
+  - Fat burned, inflammation, cellular age estimates
+  - HGH boost tracking
   - Deep autophagy hours
-  - Gut rest (digestive recovery) tracking
-- CTA: "Start 7-Day Free Trial" (yearly) / "Subscribe Monthly"
-- Fine print: "Cancel anytime. 7-day free trial on yearly plan only. Subscription managed through Apple App Store or Google Play."
+  - Gut rest tracking
+  - Behaviour intelligence (weekday/weekend patterns)
+- CTA: "Start 7-Day Free Trial" (salmon button)
+- Fine print: "Cancel anytime. Trial on yearly only. Managed via App Store / Google Play."
 
-**Pricing toggle:** Monthly / Yearly switch at the top. When yearly is selected, show the per-month equivalent and savings percentage.
+**FAQ accordion below:**
 
-**FAQ Section below pricing:**
+Q: "Is the free version really free?" → Yes, unlimited fasting tracking with no trial period or hidden limits.
 
-Q: "Is the free version really free?"
-A: "Yes, completely. You can track unlimited fasts, log your weight, water, and steps, and see your 7-day Metabolic Discipline Score — all without paying anything. No trial period, no hidden limits."
+Q: "What's the 7-day free trial?" → Full Pro access for 7 days on the yearly plan. Cancel before it ends to avoid charges.
 
-Q: "What's included in the 7-day free trial?"
-A: "The free trial gives you full access to all Pro features for 7 days. It's only available on the yearly plan. If you don't cancel before the trial ends, you'll be charged for the first year."
+Q: "Can I cancel?" → Yes, anytime via App Store or Google Play settings.
 
-Q: "Can I cancel my subscription?"
-A: "Yes, anytime. Manage your subscription through your Apple App Store or Google Play settings. Your Pro features remain active until the end of your billing period."
-
-Q: "Is my data safe?"
-A: "Your data is stored securely using Supabase, hosted on EU-compliant infrastructure. Fasting records sync across devices when you sign in. We never sell or share your personal data."
-
-Q: "Do you offer a lifetime plan?"
-A: "Not yet, but we're considering it. Join our newsletter to be the first to know."
+Q: "Is my data safe?" → EU-compliant infrastructure (Supabase). No data selling. Full deletion available.
 
 ---
 
-### 3. Privacy Policy Page
+## Section 8 — Footer
 
-**URL:** /privacy
+Dark background. 4-column layout.
 
-Standard privacy policy covering:
-- What data we collect (fasting records, weight logs, water/steps data, profile information)
-- What we DON'T collect (we don't store medication data, medical diagnoses, or any PHI)
-- How data is stored (Supabase, EU-compliant)
-- Third-party services (Supabase for database, RevenueCat for subscriptions, Apple/Google for auth)
-- Data retention and deletion (user can delete account and all data)
-- Cookie policy (minimal — analytics only)
-- GDPR compliance (right to access, right to erasure, data portability)
-- Contact: privacy@aayu.health (placeholder)
-- Company: Aayu Health Ltd, United Kingdom
+**Col 1:**
+`✦ Aayu` logo mark
+"Preventive health for the modern world"
+© 2026 Aayu Health Ltd. All rights reserved.
 
----
+**Col 2: Products**
+- Fasting & Metabolic Health
+- Metabolic Tracker (Coming)
+- Sleep & Recovery (Coming)
+- Aayu Pro
 
-### 4. Terms of Service Page
+**Col 3: Company**
+- Our Vision
+- Privacy Policy
+- Terms of Service
+- Support (support@aayu.health)
 
-**URL:** /terms
+**Col 4: Download**
+- App Store badge (gold-tinted)
+- Google Play badge (gold-tinted)
+- "Join Waitlist →"
 
-Standard terms covering:
-- App usage terms
-- Subscription terms (auto-renewal, cancellation)
-- Medical disclaimer: "Aayu is a wellness tracking tool and does not provide medical advice. Fasting may not be suitable for everyone. Consult your healthcare provider before starting any fasting programme, especially if you are under 18, pregnant, breastfeeding, have diabetes, or take medication."
-- Under-18 policy: "Users under 18 should only use Aayu under parental guidance. Weight loss features are restricted for users under 18."
-- Intellectual property
-- Limitation of liability
-- Governing law: England and Wales
-- Company: Aayu Health Ltd, United Kingdom
-
----
-
-### 5. Support / Contact Page
-
-**URL:** /support
-
-- Email: support@aayu.health (placeholder)
-- FAQ section (can reuse pricing FAQ plus additional):
-  - "How do I start a fast?"
-  - "How do I change my fasting plan?"
-  - "How do I log my weight?"
-  - "How do I sync my data across devices?"
-  - "How do I cancel my subscription?"
-  - "How do I delete my account?"
-- Link to app store review pages
-- "We typically respond within 24 hours"
+**Bottom bar:**
+"Designed and built in the United Kingdom 🇬🇧"
+Social: Twitter/X · Instagram
+Medical disclaimer: "Aayu is not a medical device. Consult your healthcare provider before starting any fasting programme."
 
 ---
 
-## Technical Requirements
+## Design requirements
 
-- **Framework:** Use whatever Lovable supports best (likely React/Next.js)
-- **Responsive:** Must work beautifully on mobile (many visitors will come from app store links), tablet, and desktop
-- **Performance:** Fast loading, optimised images, minimal JS bundle
-- **SEO:** Proper meta tags, Open Graph tags for social sharing, structured data
-  - Title: "Aayu — Smart Intermittent Fasting App"
-  - Description: "Track your fasts, monitor your metabolic health, and lose weight with science-backed intermittent fasting. Free on iOS and Android."
-  - OG Image: App screenshot or hero visual (create a placeholder)
-- **Analytics:** Google Analytics 4 (or Plausible/Simple Analytics for privacy-friendly alternative)
-- **App Store Links:**
-  - iOS: `https://apps.apple.com/app/aayu-intermittent-fasting/id[APP_ID]` (placeholder)
-  - Android: `https://play.google.com/store/apps/details?id=com.vedicintermittentfasting.app`
-- **Animations:** Subtle scroll-triggered fade-in animations for sections. No heavy animations. Use Framer Motion or CSS transitions.
-- **Dark/light sections:** Alternate between dark (#0e0703) and light (#fdf8f0) sections for visual rhythm
-- **App screenshots:** Use placeholder phone mockups with app screenshots (I will provide these later). For now, use elegant placeholder boxes with the Aayu colour scheme.
+- **Single page**, smooth scroll between sections with anchor links
+- **Fully responsive** — mobile-first (many visitors come from app store links)
+- **Subtle scroll-triggered fade-in animations** for each section (Framer Motion or CSS). Nothing bouncy or playful. Calm, breathing transitions.
+- **No stock photos** — use geometric/mandala illustrations and phone mockup frames only
+- **Hover states** on all interactive elements
+- **Gold glow effect** on primary CTA buttons (subtle box-shadow with gold)
+- **Font loading:** Google Fonts (Cormorant Garamond + DM Sans)
+- **CSS custom properties** for all colours
+- **Dark/light section alternation** creates visual rhythm: dark → dark → light → dark → dark → light → light → dark
+- **Phone mockup placeholders** — elegant dark frames with Aayu colour scheme. Real screenshots will be provided later.
+- **SEO:** Title "Aayu — Preventive Health Technology", Description "Build lasting health with science-backed intermittent fasting. Track fasts, monitor metabolic health, lose weight. Free on iOS and Android."
+- **OG Image:** Create a placeholder with dark bg, mandala mark, "Aayu" wordmark
 
 ---
 
-## Tone of Voice
+## App store links
 
-- **Professional but warm** — like a doctor who's also your friend
-- **Confident without being aggressive** — no "SIGN UP NOW!!!" energy
-- **Science-forward** — mention research, use terms like "metabolic health", "autophagy", "circadian rhythm"
-- **Inclusive** — "for everyone from beginners to experienced fasters"
-- **No medical claims** — always say "estimated", "may help", "research suggests". Never "cures", "treats", "guarantees"
+- iOS: `https://apps.apple.com/app/aayu-intermittent-fasting/id[APP_ID]` (placeholder)
+- Android: `https://play.google.com/store/apps/details?id=com.vedicintermittentfasting.app`
 
 ---
 
-## Pages Summary
+## Tone of voice
 
-| Page | URL | Purpose |
+- **Confident and calm** — not salesy or aggressive
+- **Science-forward** — "metabolic health", "autophagy", "circadian rhythm", "insulin sensitivity"
+- **Aspirational** — this is about living well, not just losing weight
+- **Inclusive** — for everyone from beginners to experienced fasters
+- **No medical claims** — always "may help", "research suggests", "estimated". Never "cures" or "guarantees"
+
+---
+
+## What NOT to include
+
+- No blog (v2)
+- No web dashboard (app-only product)
+- No sign-up form on website (sign-up is in-app)
+- No chatbot / live chat
+- No competitor comparison tables
+- No stock photography
+- No Vedic-specific branding on the homepage (Vedic calendar is an in-app discovery feature, not the brand identity)
+
+---
+
+## Legal pages (separate routes, minimal design)
+
+| Page | URL | Content |
 |------|-----|---------|
-| Home | / | Convert visitors → app downloads |
-| Pricing | /pricing | Explain Free vs Pro, show localised pricing |
-| Privacy | /privacy | GDPR-compliant privacy policy |
-| Terms | /terms | Terms of service, medical disclaimer |
-| Support | /support | FAQ + contact email |
-
----
-
-## What NOT to Include
-
-- No blog (v2 — will add later)
-- No user dashboard / web app (the app is mobile-only)
-- No sign-up form on the website (sign-up happens in the app)
-- No Vedic branding on the homepage (it's an in-app feature, not the brand identity)
-- No medical claims or health guarantees
-- No competitor comparison table (avoid legal issues)
-- No chatbot or live chat (too early)
+| Privacy Policy | /privacy | GDPR-compliant. Data: fasting records, weight, water, steps, profile. No PHI. Supabase EU. Right to erasure. Contact: privacy@aayu.health |
+| Terms of Service | /terms | England & Wales law. Medical disclaimer. Under-18 policy. Subscription terms. IP. Liability limits. |
+| Support | /support | FAQ + support@aayu.health. "We respond within 24 hours." |

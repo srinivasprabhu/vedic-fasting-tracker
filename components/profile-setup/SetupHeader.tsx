@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { AayuMandala } from '@/components/onboarding/AayuMandala';
-import { FONTS, SPACING } from '@/constants/theme';
+import { ChevronLeft } from 'lucide-react-native';
+import { FONTS, SPACING, fs, lh } from '@/constants/theme';
 
 interface SetupHeaderProps {
   step:    number;
@@ -17,10 +18,10 @@ interface SetupHeaderProps {
 export const SetupHeader: React.FC<SetupHeaderProps> = ({
   step, total, onBack, style,
 }) => {
-  const { isDark, colors } = useTheme();
-  const goldColor = isDark ? '#c8872a' : '#a06820';
-  const goldLight = isDark ? '#e8a84c' : '#a06820';
-  const muted = isDark ? 'rgba(240,224,192,0.4)' : '#7a5020';
+  const { colors } = useTheme();
+  const goldColor = colors.primary;
+  const goldLight = colors.trackWeight;
+  const muted = colors.textSecondary;
 
   return (
     <View style={[styles.container, style]}>
@@ -31,13 +32,15 @@ export const SetupHeader: React.FC<SetupHeaderProps> = ({
             style={[
               styles.backBtn,
               {
-                backgroundColor: isDark ? 'rgba(200,135,42,0.08)' : 'rgba(200,135,42,0.1)',
-                borderColor:     isDark ? 'rgba(200,135,42,0.2)'  : 'rgba(200,135,42,0.28)',
+                backgroundColor: `${colors.primary}14`,
+                borderColor: `${colors.primary}40`,
               },
             ]}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            <Text style={[styles.backArrow, { color: goldLight }]}>←</Text>
+            <ChevronLeft size={20} color={goldLight} />
           </TouchableOpacity>
         ) : (
           <AayuMandala size={30} color={goldColor} animated={false} />
@@ -45,7 +48,9 @@ export const SetupHeader: React.FC<SetupHeaderProps> = ({
       </View>
 
       <View style={styles.centre}>
-        <Text style={[styles.star, { color: goldColor }]}>✦</Text>
+        <Text style={[styles.star, { color: goldColor }]} accessible={false} importantForAccessibility="no">
+          ✦
+        </Text>
         <Text style={[styles.wordmark, { color: goldColor }]}>Aayu</Text>
       </View>
 
@@ -53,8 +58,8 @@ export const SetupHeader: React.FC<SetupHeaderProps> = ({
         <View style={[
           styles.stepPill,
           {
-            backgroundColor: isDark ? 'rgba(200,135,42,0.09)' : 'rgba(200,135,42,0.1)',
-            borderColor:     isDark ? 'rgba(200,135,42,0.18)' : 'rgba(200,135,42,0.25)',
+            backgroundColor: `${colors.primary}18`,
+            borderColor: `${colors.primary}40`,
           },
         ]}>
           <Text style={[styles.stepText, { color: muted }]}>
@@ -86,13 +91,13 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 44, height: 44, borderRadius: 22,
     borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   } as ViewStyle,
 
   backArrow: {
-    fontSize: 18, lineHeight: 20,
+    fontSize: fs(18), lineHeight: lh(18),
     fontFamily: FONTS.bodyRegular,
   } as TextStyle,
 
@@ -103,13 +108,13 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   star: {
-    fontSize: 11,
+    fontSize: fs(11),
     fontFamily: FONTS.bodyRegular,
   } as TextStyle,
 
   wordmark: {
     fontFamily: FONTS.displayLight,
-    fontSize: 14,
+    fontSize: fs(14),
     letterSpacing: 2.8,
   } as TextStyle,
 
@@ -122,7 +127,7 @@ const styles = StyleSheet.create({
 
   stepText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: '500',
   } as TextStyle,
 });

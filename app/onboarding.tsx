@@ -1,4 +1,5 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { fs } from '@/constants/theme';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,72 +26,65 @@ import { AayuMandala } from '@/components/onboarding/AayuMandala';
 import { OnboardingSlide } from '@/components/onboarding/OnboardingSlide';
 import { AuthButtons } from '@/components/onboarding/AuthButtons';
 import type { OnboardingSlideData } from '@/components/onboarding/types';
-import { COLORS } from '@/constants/theme';
-
-const ONBOARDING_KEY = 'vedic_onboarding_complete';
-const PROFILE_KEY = 'vedic_user_profile';
+import { Flame, Sparkles, ArrowRight } from 'lucide-react-native';
+import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY } from '@/constants/storageKeys';
+import type { ColorScheme } from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const { width: W, height: H } = Dimensions.get('window');
 
-const SLIDES: OnboardingSlideData[] = [
-  {
-    id: 'brand',
-    tag: 'SMART FASTING · REAL RESULTS',
-    title: 'Welcome to',
-    titleAccent: 'Aayu',
-    body: 'Your personal fasting companion — track, learn, and transform your health with science-backed intermittent fasting.',
-    icon: '✦',
-    bgColors: ['#1a0d04', '#0e0703', '#070402'],
-    accentColor: '#c8872a',
-    iconBg: 'rgba(200,135,42,0.12)',
-  },
-  {
-    id: 'tracking',
-    tag: 'EFFORTLESS TRACKING',
-    title: 'Track Your',
-    titleAccent: 'Fasts',
-    body: 'Start a fast with one tap. Track 16:8, 18:6, 20:4, OMAD, or custom durations. Your body, your rhythm.',
-    icon: '🔥',
-    bgColors: ['#1f0d02', '#130802', '#0a0501'],
-    accentColor: '#e07b30',
-    iconBg: 'rgba(224,123,48,0.12)',
-  },
-  {
-    id: 'progress',
-    tag: 'INSIGHTS THAT INSPIRE',
-    title: 'See Your',
-    titleAccent: 'Progress',
-    body: 'Watch your fasting patterns come alive — streaks, autophagy tracking, metabolic insights, and milestones unlocked.',
-    icon: '🌿',
-    bgColors: ['#041208', '#020d05', '#010803'],
-    accentColor: '#3aaa6e',
-    iconBg: 'rgba(58,170,110,0.12)',
-  },
-  {
-    id: 'vedic',
-    tag: 'ANCIENT WISDOM · OPTIONAL',
-    title: 'Vedic',
-    titleAccent: 'Tradition',
-    body: 'Explore the Vedic fasting calendar — Ekadashi, Pradosh Vrat, and more. Follow thousands of years of tradition, if you choose.',
-    icon: '🌙',
-    bgColors: ['#050f18', '#030b12', '#02070d'],
-    accentColor: '#5b8dd9',
-    iconBg: 'rgba(91,141,217,0.12)',
-  },
-  {
-    id: 'begin',
-    tag: 'YOUR JOURNEY STARTS NOW',
-    title: 'Begin Your',
-    titleAccent: 'Path',
-    body: 'Set your fasting path — intermittent, Vedic, or both. We\'ll personalise your experience from there.',
-    icon: '✨',
-    bgColors: ['#0e0905', '#0a0703', '#070502'],
-    accentColor: '#c8872a',
-    iconBg: 'rgba(200,135,42,0.1)',
-  },
-];
+function buildOnboardingSlides(colors: ColorScheme, isDark: boolean): OnboardingSlideData[] {
+  const iconBgPrimary = isDark ? `${colors.primary}1F` : `${colors.primary}24`;
+  const iconBgStreak = isDark ? `${colors.streakAccent}1F` : `${colors.streakAccent}24`;
+
+  return [
+    {
+      id: 'brand',
+      tag: 'SMART FASTING · REAL RESULTS',
+      title: 'Welcome to',
+      titleAccent: 'Aayu',
+      body: 'Your personal fasting companion — track, learn, and transform your health with science-backed intermittent fasting.',
+      icon: '✦',
+      bgColors: isDark
+        ? ([colors.surfaceWarm, colors.surface, colors.background] as const)
+        : ([colors.background, colors.surface, colors.surfaceWarm] as const),
+      accentColor: colors.primary,
+      iconBg: iconBgPrimary,
+    },
+    {
+      id: 'tracking',
+      tag: 'EFFORTLESS TRACKING',
+      title: 'Track Your',
+      titleAccent: 'Fasts',
+      body: 'Start a fast with one tap. Track your preferred protocol — 16:8, 18:6, OMAD, or custom. Watch streaks grow and unlock metabolic insights along the way.',
+      icon: '',
+      iconComponent: <Flame size={56} color={colors.streakAccent} strokeWidth={1.5} />,
+      bgColors: isDark
+        ? ([colors.surfaceWarm, colors.surface, colors.background] as const)
+        : ([colors.surfaceWarm, colors.surface, colors.background] as const),
+      accentColor: colors.streakAccent,
+      iconBg: iconBgStreak,
+    },
+    {
+      id: 'begin',
+      tag: 'YOUR JOURNEY STARTS NOW',
+      title: 'Begin Your',
+      titleAccent: 'Path',
+      body: 'Sign in to save your progress across devices, or start as a guest. Your transformation begins now.',
+      icon: '',
+      iconComponent: <Sparkles size={56} color={colors.primary} strokeWidth={1.5} />,
+      bgColors: isDark
+        ? ([colors.background, colors.surface, colors.surfaceWarm] as const)
+        : ([colors.background, colors.surface, colors.surfaceWarm] as const),
+      accentColor: colors.primary,
+      iconBg: iconBgPrimary,
+    },
+  ];
+}
 
 export default function OnboardingScreen() {
+  const { colors, isDark } = useTheme();
+  const slides = useMemo(() => buildOnboardingSlides(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
   const { signInWithGoogle, signInWithApple } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -102,7 +96,7 @@ export default function OnboardingScreen() {
   const iconScale = useRef(new Animated.Value(0.7)).current;
   const iconOpacity = useRef(new Animated.Value(0)).current;
 
-  const isLastSlide = activeIndex === SLIDES.length - 1;
+  const isLastSlide = activeIndex === slides.length - 1;
   const isBrandSlide = activeIndex === 0;
 
   const animateSlideIn = useCallback(() => {
@@ -148,18 +142,18 @@ export default function OnboardingScreen() {
   }, [activeIndex, animateSlideIn]);
 
   const goToNext = useCallback(() => {
-    if (activeIndex < SLIDES.length - 1) {
+    if (activeIndex < slides.length - 1) {
       const next = activeIndex + 1;
       flatListRef.current?.scrollToIndex({ index: next, animated: true });
       setActiveIndex(next);
     }
-  }, [activeIndex]);
+  }, [activeIndex, slides.length]);
 
   const handleSkip = useCallback(() => {
-    const last = SLIDES.length - 1;
+    const last = slides.length - 1;
     flatListRef.current?.scrollToIndex({ index: last, animated: true });
     setActiveIndex(last);
-  }, []);
+  }, [slides.length]);
 
   /** After sign-in: sync profile from Supabase, then go to tabs if profile exists, else profile-setup. */
   const completeOnboardingAfterSignIn = useCallback(async () => {
@@ -168,27 +162,27 @@ export default function OnboardingScreen() {
       const userId = session?.user?.id;
       if (userId) {
         await syncOnSignIn(userId);
-        const stored = await AsyncStorage.getItem(PROFILE_KEY);
+        const stored = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
         const profile = stored ? JSON.parse(stored) : null;
         const hasProfile = profile?.name && String(profile.name).trim().length > 0;
-        await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+        await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
         if (hasProfile) {
           router.replace('/(tabs)/(home)' as any);
           return;
         }
       }
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
       router.replace('/profile-setup' as any);
     } catch (e) {
       console.log('Failed to complete onboarding after sign-in:', e);
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
       router.replace('/profile-setup' as any);
     }
   }, []);
 
   const completeOnboarding = useCallback(async () => {
     try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
       router.replace('/profile-setup' as any);
     } catch (e) {
       console.log('Failed to save onboarding state:', e);
@@ -238,11 +232,16 @@ export default function OnboardingScreen() {
     }
   };
 
-  const currentSlide = SLIDES[activeIndex];
+  const currentSlide = slides[activeIndex];
+  const slideA11yLabel = `${currentSlide.tag}. ${currentSlide.title} ${currentSlide.titleAccent ?? ''}. ${currentSlide.body}`;
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
+      />
 
       <LinearGradient
         colors={currentSlide.bgColors as [string, string, string]}
@@ -271,7 +270,7 @@ export default function OnboardingScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={SLIDES}
+        data={slides}
         keyExtractor={(s) => s.id}
         horizontal
         pagingEnabled
@@ -304,12 +303,16 @@ export default function OnboardingScreen() {
           },
         ]}
         pointerEvents="none"
+        accessible
+        accessibilityRole="summary"
+        accessibilityLabel={slideA11yLabel}
+        accessibilityLiveRegion="polite"
       >
         <Text style={[styles.tag, { color: currentSlide.accentColor }]}>
           {currentSlide.tag}
         </Text>
 
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.text }]}>
           {currentSlide.title}{' '}
           {currentSlide.titleAccent && (
             <Text style={[styles.titleAccent, { color: currentSlide.accentColor }]}>
@@ -318,24 +321,35 @@ export default function OnboardingScreen() {
           )}
         </Text>
 
-        <Text style={styles.body}>{currentSlide.body}</Text>
+        <Text style={[styles.body, { color: colors.textSecondary }]}>{currentSlide.body}</Text>
       </Animated.View>
 
       <View style={[styles.dotsRow, { bottom: insets.bottom + (isLastSlide ? 255 : 92) }]}>
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <TouchableOpacity
             key={i}
             onPress={() => {
               flatListRef.current?.scrollToIndex({ index: i, animated: true });
               setActiveIndex(i);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={`Go to slide ${i + 1} of ${slides.length}`}
+            accessibilityState={{ selected: i === activeIndex }}
+            hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
           >
             <Animated.View
               style={[
                 styles.dot,
                 i === activeIndex
                   ? [styles.dotActive, { backgroundColor: currentSlide.accentColor }]
-                  : styles.dotInactive,
+                  : [
+                      styles.dotInactive,
+                      {
+                        backgroundColor: isDark
+                          ? 'rgba(255,255,255,0.22)'
+                          : 'rgba(44,24,16,0.22)',
+                      },
+                    ],
               ]}
             />
           </TouchableOpacity>
@@ -344,16 +358,27 @@ export default function OnboardingScreen() {
 
       {!isLastSlide ? (
         <View style={[styles.navRow, { bottom: insets.bottom + 32 }]}>
-          <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip</Text>
+          <TouchableOpacity
+            onPress={handleSkip}
+            style={styles.skipBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Skip introduction"
+            accessibilityHint="Jumps to sign-in on the last slide"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 12 }}
+          >
+            <Text style={[styles.skipText, { color: colors.textMuted }]}>Skip</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={goToNext}
             style={[styles.nextBtn, { backgroundColor: currentSlide.accentColor }]}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Next slide"
+            accessibilityHint={`Slide ${activeIndex + 1} of ${slides.length}`}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Text style={styles.nextArrow}>→</Text>
+            <ArrowRight size={22} color={colors.textLight} />
           </TouchableOpacity>
         </View>
       ) : (
@@ -375,7 +400,6 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   } as ViewStyle,
 
   ambientGlow: {
@@ -402,7 +426,7 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   brandName: {
-    fontSize: 20,
+    fontSize: fs(20),
     letterSpacing: 2,
     fontWeight: '300',
   } as TextStyle,
@@ -420,32 +444,30 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   tag: {
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0.18,
+    fontSize: fs(12),
+    fontWeight: '600',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 10,
   } as TextStyle,
 
   title: {
-    fontSize: 46,
+    fontSize: fs(46),
     fontWeight: '300',
-    color: COLORS.cream,
     lineHeight: 52,
     marginBottom: 16,
     letterSpacing: 0.3,
   } as TextStyle,
 
   titleAccent: {
-    fontSize: 46,
+    fontSize: fs(46),
     fontWeight: '300',
     lineHeight: 52,
   } as TextStyle,
 
   body: {
-    fontSize: 15,
-    color: 'rgba(240,224,192,0.65)',
-    lineHeight: 24,
+    fontSize: fs(17),
+    lineHeight: 26,
   } as TextStyle,
 
   dotsRow: {
@@ -467,7 +489,6 @@ const styles = StyleSheet.create({
 
   dotInactive: {
     width: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
   } as ViewStyle,
 
   navRow: {
@@ -480,13 +501,14 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   skipBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 12,
     paddingRight: 16,
   } as ViewStyle,
 
   skipText: {
-    fontSize: 15,
-    color: 'rgba(240,224,192,0.4)',
+    fontSize: fs(15),
   } as TextStyle,
 
   nextBtn: {
@@ -500,12 +522,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: Platform.OS === 'android' ? 4 : 8,
   } as ViewStyle,
-
-  nextArrow: {
-    fontSize: 20,
-    color: '#fff',
-    fontWeight: '500',
-  } as TextStyle,
 
   authWrap: {
     position: 'absolute',

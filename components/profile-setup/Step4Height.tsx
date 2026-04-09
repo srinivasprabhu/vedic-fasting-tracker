@@ -4,8 +4,9 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { Ruler } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import { cmToFtIn } from '@/utils/calculatePlan';
 
 type HeightUnit = 'cm' | 'ft';
@@ -73,7 +74,7 @@ export const Step4Height: React.FC<Props> = ({ valueCm, onChange }) => {
   return (
     <View style={s.wrap}>
       <Animated.View style={[s.iconWrap, { opacity: iconOpac, transform: [{ scale: iconScale }], backgroundColor: 'rgba(200,135,42,0.1)', borderColor: isDark ? 'rgba(200,135,42,0.2)' : 'rgba(200,135,42,0.28)' }]}>
-        <Text style={s.iconEmoji}>📏</Text>
+        <Ruler size={20} color={goldLt} />
       </Animated.View>
       <Text style={[s.heading, { color: cream }]}>
         How{'\n'}<Text style={[s.accent, { color: goldLt }]}>tall are you?</Text>
@@ -139,19 +140,18 @@ export const Step4Height: React.FC<Props> = ({ valueCm, onChange }) => {
 const s = StyleSheet.create({
   wrap:       { flex: 1, paddingTop: SPACING.xxl }                                                                                                                              as ViewStyle,
   iconWrap:   { width: 50, height: 50, borderRadius: 25, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.xl }          as ViewStyle,
-  iconEmoji:  { fontSize: 20 }                                                                                                                                                  as TextStyle,
-  heading:    { fontFamily: FONTS.displayLight, fontSize: 38, lineHeight: 44, letterSpacing: 0.2, marginBottom: SPACING.xs }                                                   as TextStyle,
-  accent:     { fontFamily: FONTS.displayItalic, fontSize: 38 }                                                                                                                as TextStyle,
-  sub:        { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 21, marginBottom: SPACING.lg }                                                                        as TextStyle,
+  heading:    { fontFamily: FONTS.displayLight, fontSize: fs(38), lineHeight: lh(38), letterSpacing: 0.2, marginBottom: SPACING.xs }                                                   as TextStyle,
+  accent:     { fontFamily: FONTS.displayItalic, fontSize: fs(38), lineHeight: lh(38) }                                                                                              as TextStyle,
+  sub:        { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.lg }                                                                as TextStyle,
   toggle:     { flexDirection: 'row' as const, borderRadius: RADIUS.md, overflow: 'hidden' as const, borderWidth: 1, marginBottom: SPACING.md }                                as ViewStyle,
   toggleBtn:  { flex: 1, paddingVertical: 8, alignItems: 'center' as const }                                                                                                   as ViewStyle,
-  toggleText: { fontFamily: FONTS.bodyMedium, fontSize: 12 }                                                                                                                   as TextStyle,
+  toggleText: { fontFamily: FONTS.bodyMedium, fontSize: fs(12) }                                                                                                                   as TextStyle,
   inputCard:  { borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACING.sm + 2, paddingTop: SPACING.sm, marginBottom: SPACING.sm }                                         as ViewStyle,
-  inputLabel: { fontFamily: FONTS.bodyMedium, fontSize: 8, letterSpacing: 0.15, fontWeight: '500' as const, marginBottom: 5, textTransform: 'uppercase' as const }             as TextStyle,
+  inputLabel: { fontFamily: FONTS.bodyMedium, fontSize: fs(8), letterSpacing: 0.15, fontWeight: '500' as const, marginBottom: 5, textTransform: 'uppercase' as const }             as TextStyle,
   inputRow:   { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 4 }                                                                                       as ViewStyle,
-  input:      { flex: 1, fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 40, padding: 0 }                                                                            as TextStyle,
-  unit:       { fontFamily: FONTS.bodyMedium, fontSize: 14, fontWeight: '500' as const }                                                                                       as TextStyle,
+  input:      { flex: 1, fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36), padding: 0 }                                                                            as TextStyle,
+  unit:       { fontFamily: FONTS.bodyMedium, fontSize: fs(14), fontWeight: '500' as const }                                                                                       as TextStyle,
   underline:  { height: 1.5, borderRadius: 1, marginTop: 6 }                                                                                                                   as ViewStyle,
   ftRow:      { flexDirection: 'row' as const }                                                                                                                                 as ViewStyle,
-  hint:       { fontFamily: FONTS.bodyRegular, fontSize: 11, marginTop: 4, textAlign: 'center' as const }                                                                      as TextStyle,
+  hint:       { fontFamily: FONTS.bodyRegular, fontSize: fs(11), marginTop: 4, textAlign: 'center' as const }                                                                      as TextStyle,
 });

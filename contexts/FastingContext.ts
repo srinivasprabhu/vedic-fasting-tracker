@@ -11,8 +11,9 @@ import {
   schedulePostFastNotifications,
   cancelPostFastNotifications,
 } from '@/utils/notifications';
+import { FASTING_RECORDS_STORAGE_KEY } from '@/constants/storageKeys';
 
-const STORAGE_KEY = 'vedic_fasting_records';
+const STORAGE_KEY = FASTING_RECORDS_STORAGE_KEY;
 
 async function loadRecords(): Promise<FastRecord[]> {
   try {

@@ -143,6 +143,49 @@ export function buildPlanScheduleInput(profile: UserProfile | null | undefined):
   return { ...base, mode: 'daily' };
 }
 
+/** Home timer eyebrow (third clause): when the next planned fast typically starts, local time. */
+export function formatNextFastTimingPhrase(
+  profile: UserProfile | null | undefined,
+  now: Date = new Date(),
+): string {
+  const input = buildPlanScheduleInput(profile);
+  if (!input) return 'starts tonight';
+
+  const todayDow = now.getDay();
+  const minutesNow = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = input.lastMealHour * 60;
+
+  const beforeFastStartToday = (): string => {
+    if (input.lastMealHour >= 17) {
+      return 'starts tonight';
+    }
+    return `starts today · ${formatReminderTimeLabel(input.lastMealHour)}`;
+  };
+
+  if (input.mode === 'daily') {
+    if (minutesNow < startMinutes) return beforeFastStartToday();
+    return 'tomorrow evening';
+  }
+
+  const days = input.weeklyFastDays;
+  if (!days?.length) return 'pick fasting days';
+
+  const daySet = new Set(days);
+  if (daySet.has(todayDow)) {
+    if (minutesNow < startMinutes) return beforeFastStartToday();
+    return 'fast day — begin when ready';
+  }
+
+  for (let offset = 1; offset <= 7; offset++) {
+    const d = (todayDow + offset) % 7;
+    if (!daySet.has(d)) continue;
+    if (offset === 1) return `tomorrow (${DAY_SHORT[d]})`;
+    return `next: ${DAY_SHORT[d]}`;
+  }
+
+  return 'pick fasting days';
+}
+
 export function profileUsesWeeklyFastDays(profile: UserProfile | null | undefined): boolean {
   return isWeeklyPlanTemplateId(profile?.plan?.planTemplateId ?? null);
 }

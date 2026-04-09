@@ -1,1168 +1,480 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { fs, RADIUS } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  LEARN_ARTICLE_SUMMARIES,
+  LEARN_IF_COMPARISON,
+  LEARN_QUIZ,
+  filterArticleSummaries,
+} from '@/mocks/learn-registry';
+import type { ArticleDifficulty, ArticleSummary, LearnSectionId } from '@/types/learn';
+import { useRouter } from 'expo-router';
+import {
+  Activity,
+  Bean,
+  BookOpen,
+  Brain,
+  ChevronRight,
+  CircleDot,
+  Clock,
+  Dna,
+  Droplets,
+  HelpCircle,
+  Moon,
+  Search,
+  Star,
+  Timer,
+  User,
+} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
   Animated,
   Easing,
-  Modal,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, X, ChevronRight, Zap, FlaskConical, Leaf } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useUserProfile } from '@/contexts/UserProfileContext';
-import {
-  FAST_TYPES,
-  INTERMITTENT_FAST_TYPES,
-  FAST_TYPE_COLORS,
-  AUTOPHAGY_STAGES,
-  AUTOPHAGY_BENEFITS,
-  IF_GUIDE_TIPS,
-} from '@/mocks/vedic-data';
-import { FastTypeInfo } from '@/types/fasting';
-import type { AutophagyStage } from '@/mocks/vedic-data';
+import type { ColorScheme } from '@/constants/colors';
 
-type TabKey = 'vedic' | 'intermittent' | 'autophagy' | 'fasting';
-
-const ALL_TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'autophagy', label: 'Autophagy', icon: '🧬' },
-  { key: 'intermittent', label: 'IF Methods', icon: '⏱️' },
-  { key: 'fasting', label: 'Food', icon: '🍃' },
-  { key: 'vedic', label: 'Vedic', icon: '🕉️' },
+const DIFFICULTY_OPTIONS: {
+  key: ArticleDifficulty | 'all';
+  label: string;
+  dot: string;
+  chipBgOff: string;
+  chipBorderOff: string;
+}[] = [
+  { key: 'all', label: 'All', dot: '#C97B2A', chipBgOff: 'transparent', chipBorderOff: '' },
+  { key: 'beginner', label: 'Beginner', dot: '#5B8C5A', chipBgOff: '#5B8C5A14', chipBorderOff: '#5B8C5A4D' },
+  { key: 'intermediate', label: 'Intermediate', dot: '#D4A03C', chipBgOff: '#D4A03C18', chipBorderOff: '#D4A03C55' },
+  { key: 'advanced', label: 'Advanced', dot: '#6C4F82', chipBgOff: '#6C4F8218', chipBorderOff: '#6C4F8255' },
 ];
 
+const HUB_SECTION_ORDER: LearnSectionId[] = ['on_a_fast', 'hormones_longevity', 'gut_brain', 'protocols'];
+
+const HUB_SECTION_CONFIG: Record<
+  LearnSectionId,
+  { title: string; Icon: LucideIcon; circle: string; iconColor: string }
+> = {
+  start_here: { title: 'Start here', Icon: Star, circle: '#C97B2A20', iconColor: '#C97B2A' },
+  on_a_fast: { title: 'Your body on a fast', Icon: User, circle: '#2E86AB20', iconColor: '#2E86AB' },
+  hormones_longevity: {
+    title: 'Hormones & longevity',
+    Icon: CircleDot,
+    circle: '#2A9D8F20',
+    iconColor: '#2A9D8F',
+  },
+  gut_brain: { title: 'Gut, brain & beyond', Icon: Brain, circle: '#D946A620', iconColor: '#D946A6' },
+  protocols: { title: 'IF methods compared', Icon: Timer, circle: '#C97B2A20', iconColor: '#C97B2A' },
+};
+
+const HUB_ROW_ICONS: Record<string, LucideIcon> = {
+  BookOpen,
+  Clock,
+  Droplets,
+  Timer,
+  Activity,
+  Moon,
+  Dna,
+  Brain,
+  Bean,
+};
+
+function difficultyLabel(d: ArticleDifficulty): string {
+  return d === 'beginner' ? 'Beginner' : d === 'intermediate' ? 'Intermediate' : 'Advanced';
+}
+
+function difficultyPillStyle(d: ArticleDifficulty): { bg: string; fg: string; border: string } {
+  if (d === 'beginner') return { bg: '#D8F0DC', fg: '#2F5232', border: '#5B8C5A66' };
+  if (d === 'intermediate') return { bg: '#FBF0D4', fg: '#7A5214', border: '#D4A03C6E' };
+  return { bg: '#EDE4F5', fg: '#4A3560', border: '#6C4F8288' };
+}
+
+function featureDifficultyBadge(d: ArticleDifficulty): { bg: string; fg: string } {
+  if (d === 'beginner') return { bg: '#5B8C5A', fg: '#FFFFFF' };
+  if (d === 'intermediate') return { bg: '#E8C96A', fg: '#4A3410' };
+  return { bg: '#6C4F82', fg: '#FFFFFF' };
+}
+
 export default function KnowledgeScreen() {
-  const { colors } = useTheme();
-  const { profile } = useUserProfile();
-  const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
-  const TABS = useMemo(
-    () => (showVedic ? ALL_TABS : ALL_TABS.filter(t => t.key !== 'vedic')),
-    [showVedic]
-  );
+  const { colors, isDark } = useTheme();
+  const router = useRouter();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-
-  const [activeTab, setActiveTab] = useState<TabKey>('autophagy');
-
-  useEffect(() => {
-    if (!showVedic && activeTab === 'vedic') {
-      setActiveTab('autophagy');
-    }
-  }, [showVedic, activeTab]);
-
-  const [selectedFast, setSelectedFast] = useState<FastTypeInfo | null>(null);
-  const [selectedStage, setSelectedStage] = useState<AutophagyStage | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [stageModalVisible, setStageModalVisible] = useState(false);
-  const [tabBarWidth, setTabBarWidth] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const tabIndicator = useRef(new Animated.Value(0)).current;
-  const contentFade = useRef(new Animated.Value(1)).current;
+  const [search, setSearch] = useState('');
+  const [difficulty, setDifficulty] = useState<ArticleDifficulty | 'all'>('all');
 
-  const tabWidth = tabBarWidth > 0 ? (tabBarWidth - 12) / TABS.length : 0;
-
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600,
+      duration: 500,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
 
-  const switchTab = useCallback((tab: TabKey) => {
-    const tabIndex = TABS.findIndex(t => t.key === tab);
-    const targetX = tabIndex * tabWidth;
+  const filtered = useMemo(
+    () => filterArticleSummaries(LEARN_ARTICLE_SUMMARIES, { query: search, difficulty }),
+    [search, difficulty],
+  );
 
-    Animated.spring(tabIndicator, {
-      toValue: targetX,
-      useNativeDriver: false,
-      tension: 70,
-      friction: 10,
-    }).start();
+  const featured = useMemo(() => filtered.filter((s) => s.featured), [filtered]);
 
-    Animated.sequence([
-      Animated.timing(contentFade, {
-        toValue: 0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentFade, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  const bySection = useCallback(
+    (sid: LearnSectionId) => filtered.filter((s) => s.sectionIds.includes(sid)),
+    [filtered],
+  );
 
-    setActiveTab(tab);
-  }, [tabIndicator, contentFade, tabWidth]);
+  const openArticle = (id: string) => {
+    router.push(`/knowledge/article/${id}` as any);
+  };
 
-  const openDetail = useCallback((fast: FastTypeInfo) => {
-    setSelectedFast(fast);
-    setModalVisible(true);
-  }, []);
-
-  const openStageDetail = useCallback((stage: AutophagyStage) => {
-    setSelectedStage(stage);
-    setStageModalVisible(true);
-  }, []);
-
-  const renderFastCard = useCallback((fast: FastTypeInfo, index: number) => {
+  const renderArticleRow = (item: ArticleSummary) => {
+    const dc = difficultyPillStyle(item.difficulty);
+    const RowIcon = (item.hubIcon && HUB_ROW_ICONS[item.hubIcon]) || BookOpen;
+    const tint = item.hubIconColor ?? colors.primary;
+    const iconBg = item.hubIconColor ? `${item.hubIconColor}24` : colors.surface;
     return (
-      <FastCard key={fast.type} fast={fast} index={index} onPress={openDetail} colors={colors} />
-    );
-  }, [openDetail, colors]);
-
-  const renderVedicTab = () => (
-    <>
-      <View style={styles.introCard}>
-        <BookOpen size={20} color={colors.primary} />
-        <Text style={styles.introText}>
-          Vedic fasting (Upvas/Vrat) is a sacred practice rooted in thousands of years of Indian spiritual tradition. Each fast is dedicated to a specific deity and carries unique spiritual and health benefits.
-        </Text>
-      </View>
-
-      <Text style={styles.sectionTitle}>Types of Vedic Fasts</Text>
-
-      {FAST_TYPES.map((fast, index) => renderFastCard(fast, index))}
-
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>General Guidelines</Text>
-        <View style={styles.guideCard}>
-          {[
-            { emoji: '🌅', title: 'Sankalp', text: 'Begin every fast with a clear intention (Sankalp). State your purpose and dedication before sunrise.' },
-            { emoji: '🧘', title: 'Meditation', text: 'Combine fasting with meditation and prayer for maximum spiritual benefit.' },
-            { emoji: '🍃', title: 'Satvic Diet', text: 'When eating during fasts, choose pure, satvic foods — fruits, milk, nuts, and specific grains.' },
-            { emoji: '🙏', title: 'Parana', text: 'Break your fast (Parana) at the prescribed time with gratitude and a small offering.' },
-            { emoji: '💧', title: 'Hydration', text: 'Unless observing Nirjala, stay hydrated with water, coconut water, or herbal teas.' },
-            { emoji: '🕉️', title: 'Mantra', text: 'Chanting the appropriate mantra during your fast amplifies its spiritual potency.' },
-          ].map((item, i) => (
-            <View key={i} style={styles.guideItem}>
-              <Text style={styles.guideEmoji}>{item.emoji}</Text>
-              <View style={styles.guideText}>
-                <Text style={styles.guideTitle}>{item.title}</Text>
-                <Text style={styles.guideDesc}>{item.text}</Text>
-              </View>
-            </View>
-          ))}
+      <TouchableOpacity
+        key={item.id}
+        style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
+        onPress={() => openArticle(item.id)}
+        activeOpacity={0.75}
+      >
+        <View style={[styles.listIcon, { backgroundColor: iconBg }]}>
+          <RowIcon size={18} color={tint} />
         </View>
-      </View>
-    </>
-  );
-
-  const renderIntermittentTab = () => (
-    <>
-      <View style={styles.introCard}>
-        <Zap size={20} color="#2E86AB" />
-        <Text style={styles.introText}>
-          Intermittent fasting (IF) is a time-restricted eating pattern backed by modern science. It aligns beautifully with Vedic fasting principles — both honor the body's natural rhythms of nourishment and rest.
-        </Text>
-      </View>
-
-      <Text style={styles.sectionTitle}>Fasting Protocols</Text>
-
-      {INTERMITTENT_FAST_TYPES.map((fast, index) => renderFastCard(fast, index))}
-
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>Getting Started with IF</Text>
-        <View style={styles.guideCard}>
-          {IF_GUIDE_TIPS.map((item, i) => (
-            <View key={i} style={styles.guideItem}>
-              <Text style={styles.guideEmoji}>{item.emoji}</Text>
-              <View style={styles.guideText}>
-                <Text style={styles.guideTitle}>{item.title}</Text>
-                <Text style={styles.guideDesc}>{item.text}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {showVedic && (
-        <View style={styles.guideSection}>
-          <Text style={styles.sectionTitle}>Vedic + IF Synergy</Text>
-          <View style={styles.synergyCard}>
-            <Text style={styles.synergyEmoji}>🕉️ + ⏱️</Text>
-            <Text style={styles.synergyTitle}>Ancient Wisdom Meets Modern Science</Text>
-            <Text style={styles.synergyText}>
-              Vedic sages practiced time-restricted eating millennia before science validated it. Ekadashi fasts align with 24-hour protocols. Somvar Vrat mirrors 16:8 fasting. The spiritual discipline of Vedic fasting combined with the metabolic science of IF creates a holistic approach to health and self-mastery.
-            </Text>
-          </View>
-        </View>
-      )}
-    </>
-  );
-
-  const renderAutophagyTab = () => (
-    <>
-      <View style={[styles.introCard, { borderColor: '#8B6DB520' }]}>
-        <FlaskConical size={20} color="#8B6DB5" />
-        <Text style={styles.introText}>
-          Autophagy (from Greek: "self-eating") is your body's cellular recycling system. Discovered by Yoshinori Ohsumi (2016 Nobel Prize), it's activated during fasting and is the key mechanism behind fasting's profound health benefits.
-        </Text>
-      </View>
-
-      <Text style={styles.sectionTitle}>Fasting Timeline</Text>
-      <Text style={styles.sectionSubtitle}>What happens to your body hour by hour</Text>
-
-      <View style={styles.timelineContainer}>
-        {AUTOPHAGY_STAGES.map((stage, index) => (
-          <TouchableOpacity
-            key={stage.hour}
-            style={styles.timelineItem}
-            onPress={() => openStageDetail(stage)}
-            activeOpacity={0.7}
-            testID={`autophagy-stage-${stage.hour}`}
-          >
-            <View style={styles.timelineLine}>
-              <View style={[
-                styles.timelineDot,
-                { backgroundColor: getStageColor(stage.hour) },
-              ]} />
-              {index < AUTOPHAGY_STAGES.length - 1 && (
-                <View style={[styles.timelineConnector, { backgroundColor: getStageColor(stage.hour) + '30' }]} />
-              )}
-            </View>
-            <View style={styles.timelineContent}>
-              <View style={styles.timelineHeader}>
-                <Text style={styles.timelineIcon}>{stage.icon}</Text>
-                <View style={styles.timelineInfo}>
-                  <View style={styles.timelineTopRow}>
-                    <Text style={[styles.timelineHour, { color: getStageColor(stage.hour) }]}>
-                      {stage.hour}h
-                    </Text>
-                    <Text style={styles.timelineTitle}>{stage.title}</Text>
-                  </View>
-                  <Text style={styles.timelineDesc} numberOfLines={2}>{stage.description}</Text>
-                </View>
-                <ChevronRight size={16} color={colors.textMuted} />
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>Benefits of Autophagy</Text>
-        <Text style={styles.sectionSubtitle}>Why your cells need this deep clean</Text>
-
-        {AUTOPHAGY_BENEFITS.map((benefit, index) => (
-          <View key={index} style={styles.autophagyBenefitCard}>
-            <View style={styles.benefitCardHeader}>
-              <View style={[styles.benefitIconCircle, { backgroundColor: benefit.color + '15' }]}>
-                <Text style={styles.benefitCardIcon}>{benefit.icon}</Text>
-              </View>
-              <Text style={[styles.benefitCardTitle, { color: benefit.color }]}>{benefit.title}</Text>
-            </View>
-            <Text style={styles.benefitCardDesc}>{benefit.description}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>The Science</Text>
-        <View style={styles.scienceCard}>
-          <View style={styles.scienceItem}>
-            <Text style={styles.scienceEmoji}>🏆</Text>
-            <View style={styles.scienceTextWrap}>
-              <Text style={styles.scienceTitle}>Nobel Prize 2016</Text>
-              <Text style={styles.scienceDesc}>Yoshinori Ohsumi won the Nobel Prize in Physiology for discovering the mechanisms of autophagy, validating what Vedic traditions practiced for millennia.</Text>
-            </View>
-          </View>
-          <View style={styles.scienceDivider} />
-          <View style={styles.scienceItem}>
-            <Text style={styles.scienceEmoji}>🔬</Text>
-            <View style={styles.scienceTextWrap}>
-              <Text style={styles.scienceTitle}>mTOR Pathway</Text>
-              <Text style={styles.scienceDesc}>Fasting inhibits the mTOR pathway (growth signaling), which activates autophagy. This is the cellular switch between "growth mode" and "repair mode."</Text>
-            </View>
-          </View>
-          <View style={styles.scienceDivider} />
-          <View style={styles.scienceItem}>
-            <Text style={styles.scienceEmoji}>⚡</Text>
-            <View style={styles.scienceTextWrap}>
-              <Text style={styles.scienceTitle}>AMPK Activation</Text>
-              <Text style={styles.scienceDesc}>Low energy during fasting activates AMPK, a master energy sensor that triggers autophagy and improves mitochondrial function.</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    </>
-  );
-
-  const FASTING_FRIENDLY_ITEMS = [
-    {
-      emoji: '💧',
-      title: 'Water',
-      desc: 'Plain still or sparkling water. Zero calories, no insulin response. Essential for hydration and electrolyte balance.',
-      science: 'No metabolic impact.',
-    },
-    {
-      emoji: '☕',
-      title: 'Black Coffee',
-      desc: 'No sugar, cream, or milk. Coffee alone has ~2–5 calories per cup and does not trigger insulin or break autophagy.',
-      science: 'Studies show caffeine may enhance fat oxidation and ketone production during fasting.',
-    },
-    {
-      emoji: '🍵',
-      title: 'Plain Tea',
-      desc: 'Green, black, white, or herbal tea — no milk, honey, or sugar. Zero calories.',
-      science: 'Green tea catechins may support autophagy; polyphenols have no metabolic impact.',
-    },
-    {
-      emoji: '🧂',
-      title: 'Salt',
-      desc: 'A pinch of salt in water helps maintain electrolytes. Especially useful during longer fasts.',
-      science: 'Sodium has no calories; prevents hyponatremia.',
-    },
-    {
-      emoji: '🫧',
-      title: 'Sparkling Water',
-      desc: 'Unflavored or naturally flavored (no sweeteners). Same as still water.',
-      science: 'No calories; no insulin response.',
-    },
-    {
-      emoji: '⚡',
-      title: 'Electrolytes (No Sugar)',
-      desc: 'Sodium, potassium, magnesium in water — without sweeteners or calories.',
-      science: 'Replenishes minerals lost during fasting; no metabolic impact.',
-    },
-  ];
-
-  const BREAKS_FAST_ITEMS = [
-    { emoji: '🥛', label: 'Milk, cream, butter' },
-    { emoji: '🍯', label: 'Honey, sugar, syrup' },
-    { emoji: '🥤', label: 'Juice, soda, sweetened drinks' },
-    { emoji: '🍲', label: 'Bone broth, soup' },
-    { emoji: '🥜', label: 'Nuts, seeds, coconut oil' },
-    { emoji: '🍋', label: 'Lemon juice (if > 1 tbsp)' },
-  ];
-
-  const renderFastingFriendlyTab = () => (
-    <>
-      <View style={[styles.introCard, { borderColor: '#1B7A6E30' }]}>
-        <Leaf size={20} color="#1B7A6E" />
-        <Text style={styles.introText}>
-          During a fast, anything with calories triggers a metabolic response. The items below are scientifically accepted as not breaking a fast — they have negligible or zero calories and do not trigger insulin.
-        </Text>
-      </View>
-
-      <Text style={styles.sectionTitle}>Safe During Fast</Text>
-      <Text style={styles.sectionSubtitle}>Zero or negligible calories</Text>
-
-      {FASTING_FRIENDLY_ITEMS.map((item, i) => (
-        <View key={i} style={[styles.guideCard, { marginBottom: 10 }]}>
-          <View style={styles.guideItem}>
-            <Text style={styles.guideEmoji}>{item.emoji}</Text>
-            <View style={styles.guideText}>
-              <Text style={styles.guideTitle}>{item.title}</Text>
-              <Text style={styles.guideDesc}>{item.desc}</Text>
-              <View style={[styles.scienceBadge, { backgroundColor: '#1B7A6E15' }]}>
-                <Text style={[styles.scienceBadgeText, { color: '#1B7A6E' }]}>{item.science}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      ))}
-
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>What Breaks a Fast</Text>
-        <Text style={styles.sectionSubtitle}>Avoid these during your fasting window</Text>
-        <View style={styles.breaksCard}>
-          {BREAKS_FAST_ITEMS.map((item, i) => (
-            <View key={i} style={styles.breakItem}>
-              <Text style={styles.breakEmoji}>{item.emoji}</Text>
-              <Text style={styles.breakLabel}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.guideSection}>
-        <Text style={styles.sectionTitle}>Gray Area</Text>
-        <View style={styles.grayCard}>
-          <Text style={styles.grayText}>
-            Some debate exists around artificial sweeteners (e.g. stevia, aspartame) and small amounts of lemon or ACV. Research is mixed — some studies show minimal insulin response; others suggest caution. For strict autophagy, stick to water, black coffee, and plain tea.
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.listTitle, { color: colors.text }]} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={[styles.listSub, { color: colors.textSecondary }]} numberOfLines={2}>
+            {item.subtitle}
           </Text>
         </View>
+        <View style={[styles.levelPill, { backgroundColor: dc.bg, borderColor: dc.border }]}>
+          <Text style={[styles.levelPillText, { color: dc.fg }]}>{difficultyLabel(item.difficulty)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const darkCardBg = isDark ? colors.surfaceWarm : colors.text;
+  const onDarkCard = isDark ? colors.text : colors.textLight;
+
+  const renderFeatured = ({ item }: { item: ArticleSummary }) => {
+    const fb = featureDifficultyBadge(item.difficulty);
+    return (
+    <TouchableOpacity
+      style={[styles.featureCard, { backgroundColor: darkCardBg }]}
+      onPress={() => openArticle(item.id)}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.featureBadge, { backgroundColor: fb.bg }]}>
+        <Text style={[styles.featureBadgeText, { color: fb.fg }]}>{difficultyLabel(item.difficulty)}</Text>
       </View>
-    </>
+      <Text style={[styles.featureTitle, { color: onDarkCard }]} numberOfLines={3}>
+        {item.title}
+      </Text>
+      <View style={styles.featureMeta}>
+        <Clock size={14} color={onDarkCard} style={{ opacity: 0.9 }} />
+        <Text style={[styles.featureMetaText, { color: onDarkCard }]}>{item.readMinutes} min read</Text>
+      </View>
+    </TouchableOpacity>
   );
+  };
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <Animated.View style={[styles.headerArea, { opacity: fadeAnim }]}>
-          <Text style={styles.screenTitle}>Learn</Text>
-          <Text style={styles.screenSubtitle}>Wisdom for body, mind & spirit</Text>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.headRow}>
+            <View>
+              <Text style={[styles.screenTitle, { color: colors.text }]}>Learn</Text>
+              <Text style={[styles.screenSub, { color: colors.textSecondary }]}>Wisdom for body, mind & spirit.</Text>
+            </View>
+          </View>
 
-          <View
-            style={styles.tabBar}
-            onLayout={(e) => setTabBarWidth(e.nativeEvent.layout.width)}
-          >
-            {tabBarWidth > 0 && (
-              <Animated.View
-                style={[
-                  styles.tabIndicator,
-                  {
-                    width: tabWidth,
-                    transform: [{ translateX: tabIndicator }],
-                  },
-                ]}
-              />
-            )}
-            {TABS.map((tab) => (
-              <TouchableOpacity
-                key={tab.key}
-                style={styles.tabItem}
-                onPress={() => switchTab(tab.key)}
-                activeOpacity={0.7}
-                testID={`knowledge-tab-${tab.key}`}
-              >
-                <Text style={styles.tabIcon}>{tab.icon}</Text>
-                <Text
+          <View style={[styles.searchRow, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+            <Search size={18} color={colors.textMuted} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search articles, topics..."
+              placeholderTextColor={colors.textMuted}
+              style={[styles.searchInput, { color: colors.text }]}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+            {DIFFICULTY_OPTIONS.map((opt) => {
+              const on = difficulty === opt.key;
+              const offBg = opt.key === 'all' ? 'transparent' : opt.chipBgOff;
+              const offBorder = opt.key === 'all' ? colors.border : opt.chipBorderOff;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  onPress={() => setDifficulty(opt.key)}
                   style={[
-                    styles.tabLabel,
-                    activeTab === tab.key && styles.tabLabelActive,
+                    styles.chip,
+                    {
+                      backgroundColor: on ? colors.text : offBg,
+                      borderColor: on ? colors.text : offBorder,
+                    },
                   ]}
-                  numberOfLines={1}
+                  activeOpacity={0.75}
                 >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Animated.View>
-
-        <Animated.ScrollView
-          style={[styles.scroll, { opacity: contentFade }]}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {activeTab === 'vedic' && renderVedicTab()}
-          {activeTab === 'intermittent' && renderIntermittentTab()}
-          {activeTab === 'autophagy' && renderAutophagyTab()}
-          {activeTab === 'fasting' && renderFastingFriendlyTab()}
-          <View style={{ height: 32 }} />
-        </Animated.ScrollView>
-
-        <Modal
-          visible={modalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHandle} />
-              <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() => setModalVisible(false)}
-              >
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-              {selectedFast && (
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  <Text style={styles.modalIcon}>{selectedFast.icon}</Text>
-                  <Text style={styles.modalTitle}>{selectedFast.name}</Text>
-                  {selectedFast.category === 'vedic' ? (
-                    <Text style={styles.modalDeity}>Dedicated to {selectedFast.deity}</Text>
-                  ) : (
-                    <Text style={[styles.modalDeity, { color: '#2E86AB' }]}>Intermittent Fasting</Text>
-                  )}
-                  <Text style={styles.modalDuration}>Recommended duration: {selectedFast.duration} hours</Text>
-
-                  <Text style={styles.modalDesc}>{selectedFast.description}</Text>
-
-                  <Text style={styles.modalSectionTitle}>Benefits</Text>
-                  {selectedFast.benefits.map((benefit, i) => (
-                    <View key={i} style={styles.modalBullet}>
-                      <View style={[styles.bulletDot, { backgroundColor: FAST_TYPE_COLORS[selectedFast.type] || colors.primary }]} />
-                      <Text style={styles.modalBulletText}>{benefit}</Text>
-                    </View>
-                  ))}
-
-                  <Text style={styles.modalSectionTitle}>Rules & Guidelines</Text>
-                  {selectedFast.rules.map((rule, i) => (
-                    <View key={i} style={styles.modalBullet}>
-                      <Text style={styles.modalBulletNum}>{i + 1}</Text>
-                      <Text style={styles.modalBulletText}>{rule}</Text>
-                    </View>
-                  ))}
-                  <View style={{ height: 24 }} />
-                </ScrollView>
-              )}
-            </View>
-          </View>
-        </Modal>
-
-        <Modal
-          visible={stageModalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setStageModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHandle} />
-              <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() => setStageModalVisible(false)}
-              >
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-              {selectedStage && (
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  <Text style={styles.modalIcon}>{selectedStage.icon}</Text>
-                  <Text style={styles.modalTitle}>{selectedStage.title}</Text>
-                  <Text style={[styles.modalDeity, { color: getStageColor(selectedStage.hour) }]}>
-                    {selectedStage.hour} hours into fast
+                  <View style={[styles.chipDot, { backgroundColor: opt.dot }]} />
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      { color: on ? colors.textLight : colors.textSecondary },
+                    ]}
+                  >
+                    {opt.label}
                   </Text>
-                  <Text style={[styles.modalDesc, { marginTop: 16 }]}>{selectedStage.description}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </Animated.View>
+      </SafeAreaView>
 
-                  <Text style={styles.modalSectionTitle}>What's Happening</Text>
-                  {getStageDetails(selectedStage.hour).map((detail, i) => (
-                    <View key={i} style={styles.modalBullet}>
-                      <View style={[styles.bulletDot, { backgroundColor: getStageColor(selectedStage.hour) }]} />
-                      <Text style={styles.modalBulletText}>{detail}</Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {featured.length > 0 ? (
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHead}>
+              <View style={styles.sectionHeadLeft}>
+                <View
+                  style={[
+                    styles.sectionIconWrap,
+                    { backgroundColor: HUB_SECTION_CONFIG.start_here.circle },
+                  ]}
+                >
+                  <Star size={18} color={HUB_SECTION_CONFIG.start_here.iconColor} />
+                </View>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  {HUB_SECTION_CONFIG.start_here.title}
+                </Text>
+              </View>
+            </View>
+            <FlatList
+              horizontal
+              data={featured}
+              keyExtractor={(x) => x.id}
+              renderItem={renderFeatured}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingRight: 8 }}
+            />
+          </View>
+        ) : null}
+
+        {HUB_SECTION_ORDER.map((sid) => {
+          const items = bySection(sid);
+          const cfg = HUB_SECTION_CONFIG[sid];
+          const SectionIcon = cfg.Icon;
+          if (sid === 'protocols') {
+            return (
+              <View key={sid} style={styles.sectionBlock}>
+                <View style={styles.sectionHead}>
+                  <View style={styles.sectionHeadLeft}>
+                    <View style={[styles.sectionIconWrap, { backgroundColor: cfg.circle }]}>
+                      <SectionIcon size={18} color={cfg.iconColor} />
+                    </View>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{cfg.title}</Text>
+                  </View>
+                </View>
+                {items.map((item) => renderArticleRow(item))}                
+                <View style={[styles.compareCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+                  <View style={styles.compareHead}>
+                    <Text style={[styles.compareHeadTitle, { color: colors.text }]}>
+                      Which protocol is right for you?
+                    </Text>
+                    {(() => {
+                      const b = difficultyPillStyle('beginner');
+                      return (
+                        <View
+                          style={[
+                            styles.compareBadge,
+                            { backgroundColor: b.bg, borderColor: b.border },
+                          ]}
+                        >
+                          <Text style={[styles.compareBadgeText, { color: b.fg }]}>BEGINNER</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                  {LEARN_IF_COMPARISON.map((row) => (
+                    <View key={row.key} style={styles.compareRow}>
+                      <View style={[styles.compareDot, { backgroundColor: row.dot }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.compareRowTitle, { color: colors.text }]}>{row.title}</Text>
+                        <Text style={[styles.compareRowBody, { color: colors.textSecondary }]}>{row.body}</Text>
+                      </View>
                     </View>
                   ))}
-                  <View style={{ height: 24 }} />
-                </ScrollView>
-              )}
+                </View>
+              </View>
+            );
+          }
+          if (items.length === 0) return null;
+          return (
+            <View key={sid} style={styles.sectionBlock}>
+              <View style={styles.sectionHead}>
+                <View style={styles.sectionHeadLeft}>
+                  <View style={[styles.sectionIconWrap, { backgroundColor: cfg.circle }]}>
+                    <SectionIcon size={18} color={cfg.iconColor} />
+                  </View>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>{cfg.title}</Text>
+                </View>
+              </View>
+              {items.map((item) => renderArticleRow(item))}
             </View>
+          );
+        })}
+
+        <TouchableOpacity
+          style={[styles.quizBanner, { backgroundColor: darkCardBg }]}
+          onPress={() => router.push('/knowledge/quiz' as any)}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.quizIcon, { backgroundColor: '#FFFFFF22' }]}>
+            <HelpCircle size={26} color={onDarkCard} />
           </View>
-        </Modal>
-      </SafeAreaView>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.quizTitle, { color: onDarkCard }]}>{LEARN_QUIZ.title}</Text>
+            <Text style={[styles.quizSub, { color: onDarkCard, opacity: 0.9 }]}>
+              {LEARN_QUIZ.questions.length} questions · ~{LEARN_QUIZ.estimatedMinutes} min
+            </Text>
+          </View>
+          <ChevronRight size={22} color={onDarkCard} />
+        </TouchableOpacity>
+
+        <View style={{ height: 28 }} />
+      </ScrollView>
     </View>
   );
 }
 
-const FastCard = React.memo(({ fast, index, onPress, colors }: { fast: FastTypeInfo; index: number; onPress: (f: FastTypeInfo) => void; colors: ReturnType<typeof import('@/contexts/ThemeContext').useTheme>['colors'] }) => {
-  const styles = useMemo(() => makeStyles(colors), [colors]);
-  const animValue = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(animValue, {
-      toValue: 1,
-      duration: 500,
-      delay: index * 60,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [animValue, index]);
-
-  return (
-    <Animated.View
-      style={{
-        opacity: animValue,
-        transform: [{
-          translateY: animValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [20, 0],
-          }),
-        }],
-      }}
-    >
-      <TouchableOpacity
-        style={styles.fastCard}
-        onPress={() => onPress(fast)}
-        activeOpacity={0.7}
-        testID={`knowledge-${fast.type}`}
-      >
-        <View style={styles.fastCardTop}>
-          <View style={styles.fastCardLeft}>
-            <Text style={styles.fastIconText}>{fast.icon}</Text>
-            <View style={styles.fastInfo}>
-              <Text style={styles.fastName}>{fast.name}</Text>
-              <Text style={styles.fastDeity}>
-                {fast.category === 'vedic' ? `${fast.deity} · ` : ''}{fast.duration}h
-              </Text>
-            </View>
-          </View>
-          <ChevronRight size={18} color={colors.textMuted} />
-        </View>
-        <Text style={styles.fastDesc} numberOfLines={2}>{fast.description}</Text>
-        <View style={styles.benefitTags}>
-          {fast.benefits.slice(0, 2).map((b, i) => (
-            <View
-              key={i}
-              style={[
-                styles.benefitTag,
-                { backgroundColor: (FAST_TYPE_COLORS[fast.type] || colors.primary) + '15' },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.benefitTagText,
-                  { color: FAST_TYPE_COLORS[fast.type] || colors.primary },
-                ]}
-                numberOfLines={1}
-              >
-                {b}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
-
-function getStageColor(hour: number): string {
-  if (hour <= 4) return '#8B7355';
-  if (hour <= 12) return '#C97B2A';
-  if (hour <= 16) return '#E05A33';
-  if (hour <= 18) return '#1B7A6E';
-  if (hour <= 24) return '#2E86AB';
-  if (hour <= 36) return '#8B6DB5';
-  return '#6C4F82';
-}
-
-function getStageDetails(hour: number): string[] {
-  const details: Record<number, string[]> = {
-    0: [
-      'Insulin levels rise to process incoming nutrients',
-      'Glucose is the primary energy source',
-      'mTOR pathway is active (growth mode)',
-      'No autophagy occurring — cells are in building mode',
-    ],
-    4: [
-      'Insulin begins to drop as digestion completes',
-      'Body transitions to using stored glycogen',
-      'Blood sugar stabilizes',
-      'Digestive system begins to rest',
-    ],
-    12: [
-      'Glycogen stores are being depleted',
-      'Body begins shifting to fat metabolism',
-      'Growth hormone starts to increase',
-      'Mild cellular stress triggers early repair signals',
-    ],
-    16: [
-      'Significant fat oxidation — body burning stored fat',
-      'Ketone body production begins in the liver',
-      'mTOR pathway is inhibited, switching to repair mode',
-      'Early autophagy activation in some tissues',
-    ],
-    18: [
-      'Autophagy is significantly upregulated across tissues',
-      'Cells actively identify and tag damaged proteins',
-      'Lysosomes break down cellular waste for recycling',
-      'Anti-inflammatory pathways are strongly activated',
-    ],
-    24: [
-      'Full autophagy mode — deep cellular cleaning underway',
-      'Damaged mitochondria are recycled (mitophagy)',
-      'Misfolded proteins and aggregates are cleared',
-      'Stem cell regeneration pathways begin activating',
-      'Growth hormone surges to preserve lean muscle mass',
-    ],
-    36: [
-      'Peak autophagy levels — maximum cellular renewal',
-      'Immune system regeneration is underway',
-      'Growth hormone elevated up to 300% above baseline',
-      'Old immune cells broken down and replaced',
-      'Profound improvements in insulin sensitivity',
-    ],
-    48: [
-      'Significant immune system reset and renewal',
-      'New white blood cells generated from stem cells',
-      'Deep tissue repair across all organ systems',
-      'Maximum metabolic flexibility achieved',
-      'Cognitive clarity and neuroplasticity enhanced',
-    ],
-  };
-  return details[hour] || [];
-}
-
-import type { ColorScheme } from '@/constants/colors';
-
 function makeStyles(colors: ColorScheme) {
   return StyleSheet.create({
-    root: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    headerArea: {
-      paddingHorizontal: 20,
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: 20,
-    },
-    screenTitle: {
-      fontSize: 28,
-      fontWeight: '700' as const,
-      color: colors.text,
-      marginTop: 12,
-      letterSpacing: -0.5,
-    },
-    screenSubtitle: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginBottom: 16,
-      marginTop: 2,
-    },
-    tabBar: {
+    root: { flex: 1 },
+    safe: { paddingHorizontal: 20, paddingBottom: 8 },
+    headRow: {
       flexDirection: 'row' as const,
-      backgroundColor: colors.surface,
-      borderRadius: 14,
-      padding: 6,
-      marginBottom: 18,
-      position: 'relative' as const,
-    },
-    tabIndicator: {
-      position: 'absolute' as const,
-      top: 6,
-      left: 6,
-      height: 40,
-      borderRadius: 10,
-      backgroundColor: colors.card,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    tabItem: {
-      flex: 1,
-      height: 40,
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      gap: 4,
-      paddingHorizontal: 4,
-      zIndex: 1,
-    },
-    tabIcon: {
-      fontSize: 12,
-    },
-    tabLabel: {
-      fontSize: 12,
-      fontWeight: '500' as const,
-      color: colors.textMuted,
-    },
-    tabLabelActive: {
-      color: colors.text,
-      fontWeight: '600' as const,
-    },
-    introCard: {
-      backgroundColor: colors.surfaceWarm,
-      borderRadius: 14,
-      padding: 16,
-      marginBottom: 24,
-      flexDirection: 'row' as const,
-      gap: 12,
       alignItems: 'flex-start' as const,
-      borderWidth: 1,
-      borderColor: colors.primaryLight,
-    },
-    introText: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.textSecondary,
-      lineHeight: 20,
-    },
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
-      color: colors.text,
-      marginBottom: 4,
-    },
-    sectionSubtitle: {
-      fontSize: 13,
-      color: colors.textMuted,
+      justifyContent: 'space-between' as const,
       marginBottom: 14,
     },
-    fastCard: {
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 16,
-      marginBottom: 10,
+    screenTitle: { fontSize: fs(28), fontWeight: '700' as const, letterSpacing: -0.5 },
+    screenSub: { fontSize: fs(14), marginTop: 4 },
+    searchRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: colors.borderLight,
+      marginBottom: 12,
     },
-    fastCardTop: {
+    searchInput: { flex: 1, fontSize: fs(15), padding: 0 },
+    chipsRow: { flexDirection: 'row' as const, gap: 10, paddingVertical: 4 },
+    chip: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+    },
+    chipDot: { width: 7, height: 7, borderRadius: 4 },
+    chipLabel: { fontSize: fs(12), fontWeight: '600' as const },
+    scroll: { paddingHorizontal: 20, paddingTop: 8 },
+    sectionBlock: { marginBottom: 22 },
+    sectionHead: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      marginBottom: 8,
+      marginBottom: 12,
     },
-    fastCardLeft: {
+    sectionHeadLeft: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
-    },
-    fastIconText: {
-      fontSize: 28,
-    },
-    fastInfo: {
-      gap: 2,
-    },
-    fastName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
-      color: colors.text,
-    },
-    fastDeity: {
-      fontSize: 12,
-      color: colors.textSecondary,
-    },
-    fastDesc: {
-      fontSize: 13,
-      color: colors.textMuted,
-      lineHeight: 18,
-      marginBottom: 10,
-    },
-    benefitTags: {
-      flexDirection: 'row' as const,
-      gap: 6,
-      flexWrap: 'wrap' as const,
-    },
-    benefitTag: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 8,
-    },
-    benefitTagText: {
-      fontSize: 11,
-      fontWeight: '500' as const,
-    },
-    guideSection: {
-      marginTop: 16,
-    },
-    guideCard: {
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      marginTop: 8,
-    },
-    guideItem: {
-      flexDirection: 'row' as const,
-      gap: 12,
-      marginBottom: 16,
-    },
-    guideEmoji: {
-      fontSize: 24,
-      marginTop: 2,
-    },
-    guideText: {
+      gap: 10,
       flex: 1,
     },
-    guideTitle: {
-      fontSize: 15,
-      fontWeight: '600' as const,
-      color: colors.text,
-      marginBottom: 2,
-    },
-    guideDesc: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 18,
-    },
-    synergyCard: {
-      backgroundColor: colors.surfaceWarm,
-      borderRadius: 14,
-      padding: 20,
-      borderWidth: 1,
-      borderColor: colors.primaryLight,
+    sectionIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center' as const,
-      marginTop: 8,
+      justifyContent: 'center' as const,
     },
-    synergyEmoji: {
-      fontSize: 28,
+    sectionTitle: { fontSize: fs(17), fontWeight: '700' as const },
+    featureCard: {
+      width: 280,
+      padding: 18,
+      borderRadius: RADIUS.xl,
+      minHeight: 140,
+      justifyContent: 'space-between' as const,
+    },
+    featureBadge: { alignSelf: 'flex-start' as const, paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.pill },
+    featureBadgeText: { fontSize: fs(10), fontWeight: '700' as const, letterSpacing: 0.6 },
+    featureTitle: { fontSize: fs(18), fontWeight: '700' as const, lineHeight: 24, marginTop: 12 },
+    featureMeta: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginTop: 12 },
+    featureMetaText: { fontSize: fs(12), fontWeight: '500' as const },
+    listCard: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+      padding: 14,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
       marginBottom: 10,
     },
-    synergyTitle: {
-      fontSize: 16,
-      fontWeight: '700' as const,
-      color: colors.text,
-      textAlign: 'center' as const,
-      marginBottom: 8,
-    },
-    synergyText: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 20,
-      textAlign: 'center' as const,
-    },
-    timelineContainer: {
-      marginBottom: 8,
-    },
-    timelineItem: {
-      flexDirection: 'row' as const,
-      minHeight: 72,
-    },
-    timelineLine: {
-      width: 28,
+    listIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
       alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
-    timelineDot: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
+    listTitle: { fontSize: fs(15), fontWeight: '600' as const },
+    listSub: { fontSize: fs(12), marginTop: 4, lineHeight: 16 },
+    levelPill: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+    },
+    levelPillText: { fontSize: fs(10), fontWeight: '700' as const },
+    compareCard: { padding: 16, borderRadius: RADIUS.xl, borderWidth: 1 },
+    compareHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginBottom: 14 },
+    compareHeadTitle: { fontSize: fs(16), fontWeight: '700' as const, flex: 1, marginRight: 12 },
+    compareBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.pill, borderWidth: 1 },
+    compareBadgeText: { fontSize: fs(10), fontWeight: '700' as const },
+    compareRow: { flexDirection: 'row' as const, gap: 12, marginBottom: 12 },
+    compareDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5 },
+    compareRowTitle: { fontSize: fs(14), fontWeight: '700' as const },
+    compareRowBody: { fontSize: fs(13), lineHeight: 18, marginTop: 2 },
+    quizBanner: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 14,
+      padding: 18,
+      borderRadius: RADIUS.xl,
       marginTop: 4,
-      zIndex: 1,
     },
-    timelineConnector: {
-      width: 2,
-      flex: 1,
-      marginTop: 2,
-      marginBottom: -4,
-    },
-    timelineContent: {
-      flex: 1,
-      paddingLeft: 10,
-      paddingBottom: 14,
-    },
-    timelineHeader: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      gap: 10,
-    },
-    timelineIcon: {
-      fontSize: 22,
-      marginTop: -2,
-    },
-    timelineInfo: {
-      flex: 1,
-    },
-    timelineTopRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 8,
-      marginBottom: 4,
-    },
-    timelineHour: {
-      fontSize: 14,
-      fontWeight: '700' as const,
-      minWidth: 28,
-    },
-    timelineTitle: {
-      fontSize: 15,
-      fontWeight: '600' as const,
-      color: colors.text,
-    },
-    timelineDesc: {
-      fontSize: 13,
-      color: colors.textMuted,
-      lineHeight: 18,
-    },
-    autophagyBenefitCard: {
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 16,
-      marginBottom: 10,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    benefitCardHeader: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 12,
-      marginBottom: 8,
-    },
-    benefitIconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    benefitCardIcon: {
-      fontSize: 20,
-    },
-    benefitCardTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
-    },
-    benefitCardDesc: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 19,
-    },
-    scienceCard: {
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      marginTop: 8,
-    },
-    scienceItem: {
-      flexDirection: 'row' as const,
-      gap: 12,
-      paddingVertical: 4,
-    },
-    scienceEmoji: {
-      fontSize: 24,
-      marginTop: 2,
-    },
-    scienceTextWrap: {
-      flex: 1,
-    },
-    scienceTitle: {
-      fontSize: 15,
-      fontWeight: '600' as const,
-      color: colors.text,
-      marginBottom: 4,
-    },
-    scienceDesc: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 19,
-    },
-    scienceDivider: {
-      height: 1,
-      backgroundColor: colors.borderLight,
-      marginVertical: 12,
-    },
-    scienceBadge: {
-      marginTop: 8,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 8,
-      alignSelf: 'flex-start' as const,
-    },
-    scienceBadgeText: {
-      fontSize: 12,
-      fontWeight: '600' as const,
-    },
-    breaksCard: {
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      marginTop: 8,
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      gap: 12,
-    },
-    breakItem: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 8,
-      minWidth: '45%' as any,
-    },
-    breakEmoji: {
-      fontSize: 18,
-    },
-    breakLabel: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      flex: 1,
-    },
-    grayCard: {
-      backgroundColor: colors.surfaceWarm,
-      borderRadius: 14,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      marginTop: 8,
-    },
-    grayText: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 20,
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'flex-end' as const,
-    },
-    modalContent: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 24,
-      maxHeight: '85%' as any,
-    },
-    modalHandle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.border,
-      alignSelf: 'center' as const,
-      marginBottom: 16,
-    },
-    modalClose: {
-      position: 'absolute' as const,
-      top: 20,
-      right: 20,
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: colors.surface,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      zIndex: 1,
-    },
-    modalIcon: {
-      fontSize: 40,
-      marginBottom: 8,
-    },
-    modalTitle: {
-      fontSize: 24,
-      fontWeight: '700' as const,
-      color: colors.text,
-      marginBottom: 4,
-    },
-    modalDeity: {
-      fontSize: 15,
-      color: colors.primary,
-      fontWeight: '500' as const,
-      marginBottom: 2,
-    },
-    modalDuration: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      marginBottom: 16,
-    },
-    modalDesc: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      lineHeight: 21,
-      marginBottom: 20,
-    },
-    modalSectionTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
-      color: colors.text,
-      marginBottom: 10,
-      marginTop: 8,
-    },
-    modalBullet: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      marginBottom: 8,
-      gap: 10,
-    },
-    bulletDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      marginTop: 7,
-    },
-    modalBulletNum: {
-      fontSize: 13,
-      color: colors.primary,
-      fontWeight: '700' as const,
-      minWidth: 18,
-      lineHeight: 20,
-    },
-    modalBulletText: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.textSecondary,
-      lineHeight: 20,
-    },
+    quizIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center' as const, justifyContent: 'center' as const },
+    quizTitle: { fontSize: fs(17), fontWeight: '700' as const },
+    quizSub: { fontSize: fs(13), marginTop: 6 },
   });
 }

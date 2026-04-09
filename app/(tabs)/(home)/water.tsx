@@ -1,6 +1,7 @@
 // app/(tabs)/(home)/water.tsx
 // Full water tracker screen — manual logging, ring progress, quick-add, log history.
 
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -8,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ChevronLeft, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Trash2, Coffee, Droplet, Droplets, Check, Edit3, Sparkles } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle } from 'react-native-svg';
@@ -47,19 +48,19 @@ async function saveEntries(entries: WaterEntry[]): Promise<void> {
 // ─── Quick-add options ────────────────────────────────────────────────────────
 
 const QUICK_ADD = [
-  { ml: 150,  label: 'Cup',    emoji: '☕' },
-  { ml: 250,  label: 'Glass',  emoji: '🥤' },
-  { ml: 500,  label: 'Bottle', emoji: '💧' },
-  { ml: 750,  label: 'Large',  emoji: '🏺' },
+  { ml: 150,  label: 'Cup' },
+  { ml: 250,  label: 'Glass' },
+  { ml: 500,  label: 'Bottle' },
+  { ml: 750,  label: 'Large' },
 ];
 
 // ─── Ring styles (module-level so WaterRing can reference them) ───────────────
 
 const ringStyles = StyleSheet.create({
-  ringVal:  { fontSize: 36, fontWeight: '700' as const, letterSpacing: -1 }   as TextStyle,
-  ringUnit: { fontSize: 12, fontWeight: '500' as const, marginTop: 2 }        as TextStyle,
-  ringGoal: { fontSize: 11, marginTop: 2 }                                     as TextStyle,
-  ringPct:  { fontSize: 13, fontWeight: '600' as const, marginTop: 3 }        as TextStyle,
+  ringVal:  { fontSize: fs(36), fontWeight: '700' as const, letterSpacing: -1 }   as TextStyle,
+  ringUnit: { fontSize: fs(12), fontWeight: '500' as const, marginTop: 2 }        as TextStyle,
+  ringGoal: { fontSize: fs(11), marginTop: 2 }                                     as TextStyle,
+  ringPct:  { fontSize: fs(13), fontWeight: '600' as const, marginTop: 3 }        as TextStyle,
 });
 
 // ─── Ring component ───────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ const WaterRing: React.FC<{
           />
           <Circle
             cx={SIZE / 2} cy={SIZE / 2} r={R}
-            fill="none" stroke="#5b8dd9" strokeWidth={STROKE}
+            fill="none" stroke={colors.hydration} strokeWidth={STROKE}
             strokeLinecap="round"
             strokeDasharray={`${fill} ${CIRCUMF}`}
             transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
@@ -99,10 +100,10 @@ const WaterRing: React.FC<{
           <Text style={[ringStyles.ringUnit, { color: colors.textSecondary }]}>
             {totalMl >= 1000 ? 'litres' : 'ml'}
           </Text>
-          <Text style={[ringStyles.ringGoal, { color: '#5b8dd9' }]}>
+          <Text style={[ringStyles.ringGoal, { color: colors.hydration }]}>
             of {formatWater(goalMl)}
           </Text>
-          <Text style={[ringStyles.ringPct, { color: '#5b8dd9' }]}>
+          <Text style={[ringStyles.ringPct, { color: colors.hydration }]}>
             {Math.round(pct)}%
           </Text>
         </View>
@@ -132,12 +133,12 @@ export default function WaterScreen() {
   const pct     = goalMl > 0 ? (totalMl / goalMl) * 100 : 0;
   const leftMl  = Math.max(0, goalMl - totalMl);
 
-  const addEntry = useCallback(async (ml: number, label: string, emoji: string) => {
+  const addEntry = useCallback(async (ml: number, label: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const entry: WaterEntry = {
       id:    `w_${Date.now()}`,
       ml,
-      label: `${emoji} ${label}`,
+      label,
       time:  Date.now(),
     };
     const updated = [entry, ...entries];
@@ -186,8 +187,8 @@ export default function WaterScreen() {
             style={[styles.targetPill, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
           >
             <Text style={[styles.targetLabel, { color: colors.textSecondary }]}>Daily target</Text>
-            <Text style={[styles.targetValue, { color: '#5b8dd9' }]}>{formatWater(goalMl)}</Text>
-            <Text style={[styles.targetEdit, { color: colors.textMuted }]}>{editingTarget ? '✓' : '✎'}</Text>
+            <Text style={[styles.targetValue, { color: colors.hydration }]}>{formatWater(goalMl)}</Text>
+            {editingTarget ? <Check size={14} color={colors.hydration} /> : <Edit3 size={14} color={colors.textMuted} />}
           </TouchableOpacity>
 
           {editingTarget && (
@@ -196,6 +197,9 @@ export default function WaterScreen() {
                 <TouchableOpacity
                   key={ml}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set daily water goal to ${formatWater(ml)}`}
+                  accessibilityState={{ selected: ml === goalMl }}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     updateDailyTarget('dailyWaterMl', ml);
@@ -204,14 +208,14 @@ export default function WaterScreen() {
                   style={[
                     styles.targetPresetBtn,
                     {
-                      backgroundColor: ml === goalMl ? 'rgba(91,141,217,0.15)' : colors.card,
-                      borderColor: ml === goalMl ? '#5b8dd9' : colors.borderLight,
+                      backgroundColor: ml === goalMl ? `${colors.hydration}26` : colors.card,
+                      borderColor: ml === goalMl ? colors.hydration : colors.borderLight,
                     },
                   ]}
                 >
                   <Text style={[
                     styles.targetPresetText,
-                    { color: ml === goalMl ? '#5b8dd9' : colors.text, fontWeight: ml === goalMl ? '700' : '500' },
+                    { color: ml === goalMl ? colors.hydration : colors.text, fontWeight: ml === goalMl ? '700' : '500' },
                   ]}>
                     {formatWater(ml)}
                   </Text>
@@ -227,9 +231,9 @@ export default function WaterScreen() {
               { val: String(entries.length), lbl: 'glasses' },
               { val: `${streak}d`, lbl: 'streak' },
             ].map(({ val, lbl }) => (
-              <View key={lbl} style={[styles.statBox, { backgroundColor: '#5b8dd918', borderColor: '#5b8dd930' }]}>
-                <Text style={[styles.statVal, { color: '#5b8dd9' }]}>{val}</Text>
-                <Text style={[styles.statLbl, { color: isDark ? 'rgba(91,141,217,0.55)' : 'rgba(30,80,180,0.5)' }]}>
+              <View key={lbl} style={[styles.statBox, { backgroundColor: `${colors.hydration}18`, borderColor: `${colors.hydration}30` }]}>
+                <Text style={[styles.statVal, { color: colors.hydration }]}>{val}</Text>
+                <Text style={[styles.statLbl, { color: `${colors.hydration}99` }]}>
                   {lbl}
                 </Text>
               </View>
@@ -242,12 +246,20 @@ export default function WaterScreen() {
             {QUICK_ADD.map((opt) => (
               <TouchableOpacity
                 key={opt.ml}
-                onPress={() => addEntry(opt.ml, opt.label, opt.emoji)}
+                onPress={() => addEntry(opt.ml, opt.label)}
                 activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${opt.ml} milliliters of water (${opt.label})`}
+                accessibilityHint="Double tap to add this amount to your daily water intake"
                 style={[styles.quickBtn, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
               >
-                <Text style={styles.quickEmoji}>{opt.emoji}</Text>
-                <Text style={[styles.quickMl, { color: '#5b8dd9' }]}>{opt.ml}ml</Text>
+                <View style={styles.quickIconCircle}>
+                  {opt.label === 'Cup' ? <Coffee size={15} color={colors.hydration} /> :
+                   opt.label === 'Glass' ? <Droplet size={15} color={colors.hydration} /> :
+                   opt.label === 'Bottle' ? <Droplets size={15} color={colors.hydration} /> :
+                   <Droplets size={15} color={colors.hydration} />}
+                </View>
+                <Text style={[styles.quickMl, { color: colors.hydration }]}>{opt.ml}ml</Text>
                 <Text style={[styles.quickLabel, { color: colors.textMuted }]}>{opt.label}</Text>
               </TouchableOpacity>
             ))}
@@ -256,9 +268,12 @@ export default function WaterScreen() {
           {/* Goal met banner */}
           {pct >= 100 && (
             <View style={[styles.goalBanner, { backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}>
-              <Text style={[styles.goalBannerText, { color: colors.success }]}>
-                🎉 Daily goal reached! Great hydration today.
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Sparkles size={15} color={colors.success} />
+                <Text style={[styles.goalBannerText, { color: colors.success }]}>
+                  Daily goal reached! Great hydration today.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -275,12 +290,12 @@ export default function WaterScreen() {
                       i < entries.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
                     ]}
                   >
-                    <View style={[styles.logDot, { backgroundColor: '#5b8dd9' }]} />
+                    <View style={[styles.logDot, { backgroundColor: colors.hydration }]} />
                     <View style={styles.logInfo}>
                       <Text style={[styles.logName, { color: colors.text }]}>{entry.label}</Text>
                       <Text style={[styles.logTime, { color: colors.textMuted }]}>{formatTime(entry.time)}</Text>
                     </View>
-                    <Text style={[styles.logMl, { color: '#5b8dd9' }]}>{entry.ml}ml</Text>
+                    <Text style={[styles.logMl, { color: colors.hydration }]}>{entry.ml}ml</Text>
                     <TouchableOpacity
                       onPress={() => deleteEntry(entry.id)}
                       style={styles.deleteBtn}
@@ -296,7 +311,9 @@ export default function WaterScreen() {
 
           {entries.length === 0 && !loading && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>💧</Text>
+              <View style={[styles.emptyIcon, { backgroundColor: `${colors.hydration}15` }]}>
+                <Droplets size={28} color={colors.hydration} />
+              </View>
               <Text style={[styles.emptyText, { color: colors.textMuted }]}>No water logged yet today</Text>
               <Text style={[styles.emptySub, { color: colors.textMuted }]}>Tap a button above to get started</Text>
             </View>
@@ -319,37 +336,37 @@ function makeStyles(colors: ColorScheme) {
     content:      { paddingHorizontal: 20, paddingBottom: 40 }                   as ViewStyle,
     header:       { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, marginTop: 12, marginBottom: 8 } as ViewStyle,
     backBtn:      { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    title:        { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.3 }  as TextStyle,
+    title:        { fontSize: fs(22), fontWeight: '700' as const, letterSpacing: -0.3 }  as TextStyle,
     targetPill:    { flexDirection: 'row' as const, alignItems: 'center' as const, alignSelf: 'center' as const, gap: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 14 } as ViewStyle,
-    targetLabel:   { fontSize: 13, fontWeight: '500' as const } as TextStyle,
-    targetValue:   { fontSize: 15, fontWeight: '700' as const } as TextStyle,
-    targetEdit:    { fontSize: 14, marginLeft: 2 } as TextStyle,
+    targetLabel:   { fontSize: fs(13), fontWeight: '500' as const } as TextStyle,
+    targetValue:   { fontSize: fs(15), fontWeight: '700' as const } as TextStyle,
+    targetEdit:    { fontSize: fs(14), marginLeft: 2 } as TextStyle,
     targetPresets: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, justifyContent: 'center' as const, marginBottom: 16 } as ViewStyle,
     targetPresetBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5 } as ViewStyle,
-    targetPresetText: { fontSize: 14 } as TextStyle,
+    targetPresetText: { fontSize: fs(14) } as TextStyle,
     statsRow:     { flexDirection: 'row' as const, gap: 8, marginBottom: 20 }    as ViewStyle,
     statBox:      { flex: 1, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center' as const } as ViewStyle,
-    statVal:      { fontSize: 18, fontWeight: '700' as const, letterSpacing: -0.5 }  as TextStyle,
-    statLbl:      { fontSize: 11, fontWeight: '500' as const, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
-    sectionTitle: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 10 } as TextStyle,
+    statVal:      { fontSize: fs(18), fontWeight: '700' as const, letterSpacing: -0.5 }  as TextStyle,
+    statLbl:      { fontSize: fs(11), fontWeight: '500' as const, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
+    sectionTitle: { fontSize: fs(11), fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 10 } as TextStyle,
     quickRow:     { flexDirection: 'row' as const, gap: 8, marginBottom: 16 }    as ViewStyle,
-    quickBtn:     { flex: 1, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center' as const, gap: 3 } as ViewStyle,
-    quickEmoji:   { fontSize: 20 }                                               as TextStyle,
-    quickMl:      { fontSize: 12, fontWeight: '600' as const }                   as TextStyle,
-    quickLabel:   { fontSize: 11 }                                                as TextStyle,
+    quickBtn:     { flex: 1, borderRadius: 16, borderWidth: 1, padding: 12, alignItems: 'center' as const, gap: 4 } as ViewStyle,
+    quickIconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(91,141,217,0.1)', alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: 2 } as ViewStyle,
+    quickMl:      { fontSize: fs(15), fontWeight: '700' as const }                   as TextStyle,
+    quickLabel:   { fontSize: fs(9), textTransform: 'uppercase' as const, letterSpacing: 0.5 } as TextStyle,
     goalBanner:   { borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 16, alignItems: 'center' as const } as ViewStyle,
-    goalBannerText: { fontSize: 13, fontWeight: '600' as const }                 as TextStyle,
+    goalBannerText: { fontSize: fs(13), fontWeight: '600' as const }                 as TextStyle,
     logCard:      { borderRadius: 14, borderWidth: 1, overflow: 'hidden' as const, marginBottom: 16 } as ViewStyle,
     logRow:       { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, padding: 12 } as ViewStyle,
     logDot:       { width: 8, height: 8, borderRadius: 4 }                       as ViewStyle,
     logInfo:      { flex: 1 }                                                    as ViewStyle,
-    logName:      { fontSize: 13, fontWeight: '500' as const }                   as TextStyle,
-    logTime:      { fontSize: 12, marginTop: 1 }                                 as TextStyle,
-    logMl:        { fontSize: 13, fontWeight: '600' as const }                   as TextStyle,
+    logName:      { fontSize: fs(13), fontWeight: '500' as const }                   as TextStyle,
+    logTime:      { fontSize: fs(12), marginTop: 1 }                                 as TextStyle,
+    logMl:        { fontSize: fs(13), fontWeight: '600' as const }                   as TextStyle,
     deleteBtn:    { padding: 4 }                                                  as ViewStyle,
     emptyState:   { alignItems: 'center' as const, paddingVertical: 32 }         as ViewStyle,
-    emptyEmoji:   { fontSize: 40, marginBottom: 10 }                             as TextStyle,
-    emptyText:    { fontSize: 15, fontWeight: '600' as const }                   as TextStyle,
-    emptySub:     { fontSize: 13, marginTop: 4 }                                 as TextStyle,
+    emptyIcon:    { width: 56, height: 56, borderRadius: 28, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: 12 } as ViewStyle,
+    emptyText:    { fontSize: fs(15), fontWeight: '600' as const }                   as TextStyle,
+    emptySub:     { fontSize: fs(13), marginTop: 4 }                                 as TextStyle,
   });
 }

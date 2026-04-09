@@ -3,8 +3,11 @@ import {
   View, Text, TextInput, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { User, Check } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
+import { hexAlpha } from '@/constants/colors';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface Step1NameProps {
   value: string;
@@ -16,6 +19,7 @@ export const Step1Name: React.FC<Step1NameProps> = ({
   value, onChange, onSubmit,
 }) => {
   const { isDark, colors } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const iconOpacity  = useRef(new Animated.Value(0)).current;
   const iconScale    = useRef(new Animated.Value(0.8)).current;
@@ -45,13 +49,19 @@ export const Step1Name: React.FC<Step1NameProps> = ({
   }, []);
 
   useEffect(() => {
-    Animated.loop(
+    if (reduceMotion) {
+      cursorAnim.setValue(1);
+      return;
+    }
+    const blink = Animated.loop(
       Animated.sequence([
         Animated.timing(cursorAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
         Animated.timing(cursorAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       ])
-    ).start();
-  }, []);
+    );
+    blink.start();
+    return () => blink.stop();
+  }, [reduceMotion]);
 
   useEffect(() => {
     Animated.timing(hintOpacity, {
@@ -63,20 +73,20 @@ export const Step1Name: React.FC<Step1NameProps> = ({
   const borderColor = cardGlow.interpolate({
     inputRange: [0, 1],
     outputRange: isDark
-      ? ['rgba(200,135,42,0.22)', 'rgba(200,135,42,0.7)']
-      : ['rgba(200,135,42,0.3)',  'rgba(200,135,42,0.75)'],
+      ? [hexAlpha(colors.primary, 0.22), hexAlpha(colors.primary, 0.7)]
+      : [hexAlpha(colors.primary, 0.3), hexAlpha(colors.primary, 0.75)],
   });
   const cardBg = cardGlow.interpolate({
     inputRange: [0, 1],
     outputRange: isDark
-      ? ['rgba(200,135,42,0.04)', 'rgba(200,135,42,0.09)']
+      ? [hexAlpha(colors.primary, 0.04), hexAlpha(colors.primary, 0.09)]
       : ['rgba(255,255,255,0.6)',  'rgba(255,255,255,0.9)'],
   });
 
-  const cream = isDark ? '#f0e0c0' : '#1e1004';
-  const goldColor = isDark ? colors.primary : '#a06820';
-  const mutedSub = isDark ? 'rgba(240,224,192,0.42)' : 'rgba(60,35,10,0.48)';
-  const goldLight = isDark ? '#e8a84c' : '#a06820';
+  const cream = colors.text;
+  const goldColor = colors.primary;
+  const mutedSub = colors.textSecondary;
+  const goldLight = colors.trackWeight;
 
   return (
     <View style={styles.wrap}>
@@ -85,11 +95,11 @@ export const Step1Name: React.FC<Step1NameProps> = ({
         {
           opacity: iconOpacity,
           transform: [{ scale: iconScale }],
-          backgroundColor: 'rgba(200,135,42,0.1)',
-          borderColor: isDark ? 'rgba(200,135,42,0.2)' : 'rgba(200,135,42,0.28)',
+          backgroundColor: `${colors.primary}1A`,
+          borderColor: `${colors.primary}33`,
         },
       ]}>
-        <Text style={styles.iconEmoji}>👤</Text>
+        <User size={20} color={goldLight} />
       </Animated.View>
 
       <Text style={[styles.heading, { color: cream }]}>
@@ -104,7 +114,7 @@ export const Step1Name: React.FC<Step1NameProps> = ({
         { borderColor, backgroundColor: cardBg },
         isDark
           ? { shadowColor: goldColor, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.12, shadowRadius: 14 }
-          : { shadowColor: '#c8872a', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.08, shadowRadius: 12 },
+          : { shadowColor: colors.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.08, shadowRadius: 12 },
       ]}>
         <Text style={[styles.inputLabel, { color: goldColor }]}>
           YOUR NAME
@@ -121,7 +131,7 @@ export const Step1Name: React.FC<Step1NameProps> = ({
             autoFocus
             autoCapitalize="words"
             autoCorrect={false}
-            placeholderTextColor={isDark ? 'rgba(200,135,42,0.25)' : 'rgba(160,104,32,0.3)'}
+            placeholderTextColor={colors.textMuted}
             placeholder="Enter your name"
             style={[styles.textInput, { color: cream }]}
           />
@@ -138,16 +148,19 @@ export const Step1Name: React.FC<Step1NameProps> = ({
 
         <View style={[
           styles.underline,
-          { backgroundColor: isDark ? 'rgba(200,135,42,0.5)' : 'rgba(200,135,42,0.45)' },
+          { backgroundColor: `${colors.primary}80` },
         ]} />
       </Animated.View>
 
-      <Animated.Text style={[
-        styles.hint,
-        { opacity: hintOpacity, color: isDark ? '#3aaa6e' : '#208050' },
+      <Animated.View style={[
+        styles.hintRow,
+        { opacity: hintOpacity },
       ]}>
-        ✓ Namaste, {value.trim() || '…'}! Your journey awaits.
-      </Animated.Text>
+        <Check size={14} color={colors.success} strokeWidth={3} />
+        <Text style={[styles.hint, { color: colors.success }]}>
+          Namaste, {value.trim() || '…'}! Your journey awaits.
+        </Text>
+      </Animated.View>
     </View>
   );
 };
@@ -158,14 +171,14 @@ const styles = StyleSheet.create({
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.xl,
   }                                                             as ViewStyle,
-  iconEmoji:  { fontSize: 20 }                                  as TextStyle,
+  iconEmoji:  { fontSize: fs(20) }                                  as TextStyle,
   heading:    {
-    fontFamily: FONTS.displayLight, fontSize: 40,
-    lineHeight: 46, letterSpacing: 0.2, marginBottom: SPACING.xs,
+    fontFamily: FONTS.displayLight, fontSize: fs(40),
+    lineHeight: lh(40), letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                             as TextStyle,
   subheading: {
-    fontFamily: FONTS.bodyRegular, fontSize: 14,
-    lineHeight: 21, marginBottom: SPACING.xl + 4,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(14),
+    lineHeight: lh(14, 1.35), marginBottom: SPACING.xl + 4,
   }                                                             as TextStyle,
   inputCard:  {
     borderWidth: 1.5, borderRadius: RADIUS.lg,
@@ -173,13 +186,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   }                                                             as ViewStyle,
   inputLabel: {
-    fontFamily: FONTS.bodyMedium, fontSize: 10,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(10),
     letterSpacing: 0.15, fontWeight: '500', marginBottom: 6,
   }                                                             as TextStyle,
   inputRow:   { flexDirection: 'row', alignItems: 'center' }   as ViewStyle,
   textInput:  {
     flex: 1, fontFamily: FONTS.displayLight,
-    fontSize: 28, lineHeight: 34, padding: 0,
+    fontSize: fs(28), lineHeight: lh(28), padding: 0,
   }                                                             as TextStyle,
   cursor:     {
     width: 2, height: 26, borderRadius: 1, marginLeft: 2,
@@ -187,7 +200,10 @@ const styles = StyleSheet.create({
   underline:  {
     height: 1.5, borderRadius: 1, marginTop: SPACING.sm,
   }                                                             as ViewStyle,
+  hintRow:    {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SPACING.sm,
+  }                                                             as ViewStyle,
   hint:       {
-    fontFamily: FONTS.bodyRegular, fontSize: 13, marginTop: SPACING.sm,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13),
   }                                                             as TextStyle,
 });

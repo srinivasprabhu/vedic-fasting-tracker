@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
@@ -6,6 +7,7 @@ import {
   Animated,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface InsightTag {
   label: string;
@@ -49,8 +51,8 @@ function generateInsight(props: AayuInsightCardProps): {
       supporting:
         'Even a 12–16h window can support insulin balance and metabolic flexibility. Pick a day and begin when it feels right.',
       tags: [
-        { label: 'Fresh start', emoji: '🌅', color: '#D4A03C' },
-        ...(hasGoodStreak ? [{ label: `${streak}-day streak to protect`, emoji: '🔥', color: '#C25450' }] : []),
+        { label: 'Fresh start', emoji: '✦', color: '#D4A03C' },
+        ...(hasGoodStreak ? [{ label: `${streak}-day streak to protect`, emoji: '✦', color: '#C25450' }] : []),
       ],
     };
   }
@@ -68,7 +70,7 @@ function generateInsight(props: AayuInsightCardProps): {
             ? `Your ${longestRounded}h fast likely entered deeper fasting territory, where repair and metabolic adaptation are often more active. ${totalRounded}h total across ${weekFasts} fasts.`
             : `You hit autophagy-friendly length ${weekAutophagyCount > 1 ? `${weekAutophagyCount} times` : 'this week'} — averaging ${avgRounded}h per fast. Consistency builds the habit.`,
       tags: [
-        { label: 'Deep fast zone', emoji: '🌙', color: '#7B68AE' },
+        { label: 'Deep fast zone', emoji: '✦', color: '#7B68AE' },
         { label: 'Metabolic shift', emoji: '↗', color: '#5B8C5A' },
         ...(weekLongestHours >= 48
           ? [{ label: 'Advanced phase', emoji: '✦', color: '#D4A03C' }]
@@ -83,9 +85,9 @@ function generateInsight(props: AayuInsightCardProps): {
       supporting:
         'Extended fasting is often associated with stronger metabolic flexibility and recovery pathways. Keep listening to your body and hydrate well.',
       tags: [
-        { label: 'Deep fast unlocked', emoji: '🌙', color: '#7B68AE' },
-        { label: 'Fat adaptation', emoji: '⚡', color: '#5B8C5A' },
-        ...(hasGoodStreak ? [{ label: `${streak}-day streak`, emoji: '🔥', color: '#C25450' }] : []),
+        { label: 'Deep fast unlocked', emoji: '✦', color: '#7B68AE' },
+        { label: 'Fat adaptation', emoji: '✦', color: '#5B8C5A' },
+        ...(hasGoodStreak ? [{ label: `${streak}-day streak`, emoji: '✦', color: '#C25450' }] : []),
       ],
     };
   }
@@ -95,8 +97,8 @@ function generateInsight(props: AayuInsightCardProps): {
       headline: `${streak}-day streak · ${weekFasts} fast${weekFasts === 1 ? '' : 's'} this week`,
       supporting: `Averaging ${avgRounded}h per fast — regular windows help your metabolism stay flexible.`,
       tags: [
-        { label: `${streak} day streak`, emoji: '🔥', color: '#C25450' },
-        { label: `${weekFasts} this week`, emoji: '📊', color: '#5B8C5A' },
+        { label: `${streak} day streak`, emoji: '✦', color: '#C25450' },
+        { label: `${weekFasts} this week`, emoji: '✦', color: '#5B8C5A' },
       ],
     };
   }
@@ -106,8 +108,8 @@ function generateInsight(props: AayuInsightCardProps): {
     supporting:
       'Each completed window supports insulin sensitivity and digestive rest. Small wins compound.',
     tags: [
-      { label: `${totalRounded}h this week`, emoji: '⏱️', color: '#5B8C5A' },
-      { label: 'Building momentum', emoji: '✨', color: '#D4A03C' },
+      { label: `${totalRounded}h this week`, emoji: '✦', color: '#5B8C5A' },
+      { label: 'Building momentum', emoji: '✦', color: '#D4A03C' },
     ],
   };
 }
@@ -121,6 +123,7 @@ export default function AayuInsightCard({
   weekAutophagyCount,
 }: AayuInsightCardProps) {
   const { colors, isDark } = useTheme();
+  const reduceMotion = useReducedMotion();
   const glowAnim = useRef(new Animated.Value(0.4)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -148,18 +151,24 @@ export default function AayuInsightCard({
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 700,
-      delay: 150,
+      duration: reduceMotion ? 0 : 700,
+      delay: reduceMotion ? 0 : 150,
       useNativeDriver: true,
     }).start();
 
-    Animated.loop(
+    if (reduceMotion) {
+      glowAnim.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2400, useNativeDriver: true }),
         Animated.timing(glowAnim, { toValue: 0.4, duration: 2400, useNativeDriver: true }),
       ]),
-    ).start();
-  }, [fadeAnim, glowAnim]);
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [fadeAnim, glowAnim, reduceMotion]);
 
   const cardBg = isDark ? '#1A0D06' : colors.surfaceWarm;
   const cardBorder = isDark ? '#3D2010' : colors.border;
@@ -175,7 +184,7 @@ export default function AayuInsightCard({
     <Animated.View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, opacity: fadeAnim }]}>
       <View style={styles.header}>
         <View style={[styles.headerLeft, { backgroundColor: pillBg, borderColor: pillBorder }]}>
-          <Animated.View style={[styles.liveDot, { opacity: glowAnim, backgroundColor: '#D4A03C' }]} />
+          <Animated.View style={[styles.liveDot, { opacity: glowAnim, backgroundColor: colors.warning }]} />
           <Text style={[styles.headerLabel, { color: labelColor }]}>WEEKLY HIGHLIGHT</Text>
         </View>
         <Text style={[styles.dateLabel, { color: dateLabelColor }]}>{dateLabel}</Text>
@@ -228,12 +237,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   headerLabel: {
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: '700',
     letterSpacing: 0.8,
   },
   dateLabel: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '500',
   },
   headlineBlock: {
@@ -242,13 +251,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headline: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '700',
     lineHeight: 26,
     letterSpacing: -0.3,
   },
   supporting: {
-    fontSize: 15,
+    fontSize: fs(15),
     lineHeight: 23,
     marginBottom: 14,
     fontWeight: '400',
@@ -265,7 +274,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tagText: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '600',
     letterSpacing: 0.1,
   },

@@ -2,6 +2,7 @@
 // Reusable trend chart card with Week/Month/Year toggle.
 // Supports bar charts (fasting, water) and line charts (weight).
 
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -22,7 +23,7 @@ import type { ColorScheme } from '@/constants/colors';
 
 interface TrendChartCardProps {
   title:       string;
-  icon:        string;
+  icon:        React.ReactNode;
   color:       string;
   data:        TrendPoint[];
   unit:        string;        // "h", "ml", "kg", "steps"
@@ -100,7 +101,7 @@ const RangeToggle: React.FC<{
 const rt = StyleSheet.create({
   row:         { flexDirection: 'row', borderRadius: 10, padding: 2 } as ViewStyle,
   item:        { flex: 1, paddingVertical: 6, borderRadius: 8, alignItems: 'center' } as ViewStyle,
-  label:       { fontSize: 12, fontWeight: '500' } as TextStyle,
+  label:       { fontSize: fs(12), fontWeight: '500' } as TextStyle,
   labelActive: { fontWeight: '700' } as TextStyle,
 });
 
@@ -175,11 +176,11 @@ const SummaryRow: React.FC<{
 const sr = StyleSheet.create({
   row:  { flexDirection: 'row', paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(200,135,42,.08)' } as ViewStyle,
   item: { flex: 1, alignItems: 'center' } as ViewStyle,
-  val:  { fontSize: 17, fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
-  lbl:  { fontSize: 11, marginTop: 2, fontWeight: '600' } as TextStyle,
+  val:  { fontSize: fs(17), fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
+  lbl:  { fontSize: fs(11), marginTop: 2, fontWeight: '600' } as TextStyle,
   div:  { width: 1, height: 32, marginHorizontal: 2 } as ViewStyle,
-  interpret: { fontSize: 13, lineHeight: 18, marginTop: 10, fontWeight: '500' } as TextStyle,
-  refCap: { fontSize: 11, fontWeight: '600', marginTop: 4, alignSelf: 'center' } as TextStyle,
+  interpret: { fontSize: fs(13), lineHeight: 18, marginTop: 10, fontWeight: '500' } as TextStyle,
+  refCap: { fontSize: fs(11), fontWeight: '600', marginTop: 4, alignSelf: 'center' } as TextStyle,
 });
 
 // ─── Bar chart renderer ───────────────────────────────────────────────────────
@@ -226,7 +227,7 @@ function renderBarChart(
             <SvgText
               x={PAD_L}
               y={Math.max(PAD_T + 9, ty - 4)}
-              fontSize={9}
+              fontSize={10}
               fontWeight="600"
               fill={colors.textSecondary}
             >
@@ -281,7 +282,7 @@ function renderBarChart(
           key={`yl-${i}`}
           x={PAD_L - 4}
           y={toY(v) + 4}
-          fontSize={9}
+          fontSize={10}
           fontWeight="500"
           fill={colors.textMuted}
           textAnchor="end"
@@ -387,7 +388,7 @@ function renderLineChart(
             x1={PAD_L} y1={toY(goalValue)} x2={CHART_W - PAD_R} y2={toY(goalValue)}
             stroke={colors.success} strokeWidth={1} strokeDasharray="6,4" opacity={0.5}
           />
-          <SvgText x={CHART_W - PAD_R + 2} y={toY(goalValue) + 4} fontSize={9} fill={colors.success} fontWeight="700">
+          <SvgText x={CHART_W - PAD_R + 2} y={toY(goalValue) + 4} fontSize={10} fill={colors.success} fontWeight="700">
             Goal
           </SvgText>
         </>
@@ -409,7 +410,7 @@ function renderLineChart(
       {/* Y-axis labels */}
       {ySteps.map((v, i) => (
         <SvgText key={`yl-${i}`} x={PAD_L - 4} y={toY(v) + 4}
-          fontSize={9} fontWeight="500" fill={colors.textMuted} textAnchor="end">
+          fontSize={10} fontWeight="500" fill={colors.textMuted} textAnchor="end">
           {formatYAxis(v)}
         </SvgText>
       ))}
@@ -465,7 +466,7 @@ export const TrendChartCard: React.FC<TrendChartCardProps> = ({
       <View style={s.header}>
         <View style={s.headerTitleCol}>
           <View style={s.headerLeft}>
-            <Text style={s.headerIcon}>{icon}</Text>
+            <View>{icon}</View>
             <Text style={[s.headerTitle, { color: colors.text }]}>{title}</Text>
           </View>
           {detailHint ? (
@@ -544,17 +545,17 @@ const s = StyleSheet.create({
   } as ViewStyle,
 
   headerIcon: {
-    fontSize: 17,
+    fontSize: fs(17),
   } as TextStyle,
 
   headerTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     letterSpacing: -0.3,
   } as TextStyle,
 
   detailHint: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '500',
     marginTop: 4,
     marginLeft: 28,
@@ -562,7 +563,7 @@ const s = StyleSheet.create({
   } as TextStyle,
 
   headerUnit: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '500',
     marginTop: 2,
   } as TextStyle,

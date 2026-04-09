@@ -5,13 +5,14 @@ import {
 } from 'react-native';
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import type { UserPlan } from '@/types/user';
 import {
   formatWater, formatSteps, bmiCategoryLabel, bmiCategoryColor,
   estimateAdjustedWeeksToGoal,
 } from '@/utils/calculatePlan';
 import { WeightProjectionChart } from '@/components/WeightProjectionChart';
+import { Footprints, Droplets, Flame, Scale, Info } from 'lucide-react-native';
 
 // ─── Helper: compute dynamic fast window label ──────────────────────────────
 
@@ -39,10 +40,10 @@ interface Step6PlanProps {
 
 
 
-// ─── Animated metric card — now tappable in customise mode ────────────────────
+// ─── Animated metric card ────────────────────────────────────────────────────
 
 const PlanCard: React.FC<{
-  icon:      string;
+  icon:      React.ReactNode;
   label:     string;
   value:     string;
   unit?:     string;
@@ -89,7 +90,7 @@ const PlanCard: React.FC<{
         }),
       },
     ]}>
-      <Text style={styles.cardIcon}>{icon}</Text>
+      <View style={styles.cardIconWrap}>{icon}</View>
       <Text style={[styles.cardLabel, { color: isDark ? 'rgba(200,135,42,0.5)' : 'rgba(160,104,32,0.55)' }]}>
         {label}
       </Text>
@@ -314,26 +315,30 @@ export const Step6Plan: React.FC<Step6PlanProps> = ({
       {/* 2-column grid */}
       <View style={styles.grid}>
         <PlanCard
-          icon="👟" label="DAILY STEPS"
+          icon={<View style={[styles.featureIcon, { backgroundColor: '#7AAE7915' }]}><Footprints size={15} color="#7AAE79" /></View>}
+          label="DAILY STEPS"
           value={stepsLabel} sub="steps / day"
           isDark={isDark} delay={320}
         />
 
         <PlanCard
-          icon="💧" label="DAILY WATER"
+          icon={<View style={[styles.featureIcon, { backgroundColor: '#5b8dd915' }]}><Droplets size={15} color="#5b8dd9" /></View>}
+          label="DAILY WATER"
           value={waterLabel} sub="35ml per kg"
           isDark={isDark} delay={370}
         />
 
         <PlanCard
-          icon="🔥" label="DAILY CALORIES"
+          icon={<View style={[styles.featureIcon, { backgroundColor: '#e07b3015' }]}><Flame size={15} color="#e07b30" /></View>}
+          label="DAILY CALORIES"
           value={String(plan.dailyCalories)} unit="kcal"
           sub={deficitLabel}
           isDark={isDark} delay={420}
         />
         {plan.bmi != null && (
           <PlanCard
-            icon="⚖️" label="BMI"
+            icon={<View style={[styles.featureIcon, { backgroundColor: '#e8a84c15' }]}><Scale size={15} color="#e8a84c" /></View>}
+            label="BMI"
             value={String(plan.bmi)}
             sub={bmiCategoryLabel(plan.bmiCategory)}
             accent={bmiCategoryColor(plan.bmiCategory, isDark)}
@@ -358,9 +363,12 @@ export const Step6Plan: React.FC<Step6PlanProps> = ({
 
       {/* Projection disclaimer */}
       {hasProjection && (
-        <Text style={[styles.disclaimer, { color: isDark ? 'rgba(240,224,192,0.3)' : 'rgba(60,35,10,0.35)' }]}>
-          ℹ️ This is a conservative estimate based on your fasting plan, activity level, and age. Actual results may vary depending on food choices during your eating window, sleep quality, stress, hydration, and hormonal factors. Many users see results faster with consistent fasting and mindful eating.
-        </Text>
+        <View style={styles.disclaimerRow}>
+          <Info size={14} color={isDark ? 'rgba(240,224,192,0.3)' : 'rgba(60,35,10,0.35)'} />
+          <Text style={[styles.disclaimerText, { color: isDark ? 'rgba(240,224,192,0.3)' : 'rgba(60,35,10,0.35)' }]}>
+            This is a conservative estimate based on your fasting plan, activity level, and age. Actual results may vary depending on food choices during your eating window, sleep quality, stress, hydration, and hormonal factors. Many users see results faster with consistent fasting and mindful eating.
+          </Text>
+        </View>
       )}
 
     </ScrollView>
@@ -378,62 +386,74 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm + 2,
   }                                                              as ViewStyle,
   badgeText:      {
-    fontFamily: FONTS.bodyMedium, fontSize: 11,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(11),
     fontWeight: '500', letterSpacing: 0.14,
   }                                                              as TextStyle,
   title:          {
-    fontFamily: FONTS.displayLight, fontSize: 34,
-    lineHeight: 40, letterSpacing: 0.2, marginBottom: SPACING.xs,
+    fontFamily: FONTS.displayLight, fontSize: fs(34),
+    lineHeight: lh(34), letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                              as TextStyle,
-  titleAccent:    { fontFamily: FONTS.displayItalic, fontSize: 34 } as TextStyle,
+  titleAccent:    { fontFamily: FONTS.displayItalic, fontSize: fs(34), lineHeight: lh(34) } as TextStyle,
   subtitle:       {
-    fontFamily: FONTS.bodyRegular, fontSize: 13,
-    lineHeight: 19, marginBottom: SPACING.sm,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13),
+    lineHeight: lh(13, 1.35), marginBottom: SPACING.sm,
   }                                                              as TextStyle,
   // IF card
   ifCard:         {
     borderWidth: 1.5, borderRadius: RADIUS.xl,
-    padding: SPACING.md, marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md + 4,
+    marginBottom: SPACING.sm,
   }                                                              as ViewStyle,
   ifTitleRow:     { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginBottom: SPACING.sm } as ViewStyle,
-  ifBig:          { fontFamily: FONTS.displayLight, fontSize: 38, fontWeight: '300', lineHeight: 40 } as TextStyle,
-  ifColon:        { fontFamily: FONTS.displayLight, fontSize: 24, fontWeight: '300' } as TextStyle,
-  ifUnit:         { fontFamily: FONTS.bodyMedium, fontSize: 13, fontWeight: '500', marginLeft: 4 } as TextStyle,
+  ifBig:          { fontFamily: FONTS.displayLight, fontSize: fs(38), fontWeight: '300', lineHeight: lh(38) } as TextStyle,
+  ifColon:        { fontFamily: FONTS.displayLight, fontSize: fs(24), fontWeight: '300', lineHeight: lh(24) } as TextStyle,
+  ifUnit:         { fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '500', lineHeight: lh(13), marginLeft: 4 } as TextStyle,
   ifTrack:        { height: 8, borderRadius: 4, flexDirection: 'row', overflow: 'hidden', marginBottom: SPACING.xs } as ViewStyle,
   ifFastFill:     { height: '100%', backgroundColor: 'rgba(200,135,42,0.55)' } as ViewStyle,
   ifEatFill:      { height: '100%' }                            as ViewStyle,
   ifLabels:       { flexDirection: 'row', justifyContent: 'space-between' } as ViewStyle,
-  ifLabelText:    { fontFamily: FONTS.bodyRegular, fontSize: 11 } as TextStyle,
+  ifLabelText:    { fontFamily: FONTS.bodyRegular, fontSize: fs(11), lineHeight: lh(11, 1.35) } as TextStyle,
   // Metric cards
   grid:           { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.sm } as ViewStyle,
   card:           {
-    width: '47.5%', borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACING.sm + 2,
+    width: '47.5%', borderWidth: 1.5, borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.sm + 2,
+    paddingTop: SPACING.sm + 4,
+    paddingBottom: SPACING.md,
   }                                                              as ViewStyle,
   cardFeatured:   {}                                             as ViewStyle,
-  cardIcon:       { fontSize: 18, marginBottom: 5 }              as TextStyle,
+  cardIconWrap:   { marginBottom: 5 }                            as ViewStyle,
+  featureIcon:    { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
   cardLabel:      {
-    fontFamily: FONTS.bodyMedium, fontSize: 10,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(10),
+    lineHeight: lh(10, 1.35),
     letterSpacing: 0.14, fontWeight: '500', marginBottom: 5,
   }                                                              as TextStyle,
   cardValueRow:   { flexDirection: 'row', alignItems: 'baseline', gap: 3 } as ViewStyle,
-  cardValue:      { fontFamily: FONTS.displayLight, fontSize: 24, fontWeight: '300', lineHeight: 26 } as TextStyle,
-  cardUnit:       { fontFamily: FONTS.bodyMedium, fontSize: 11, fontWeight: '500' } as TextStyle,
-  cardSub:        { fontFamily: FONTS.bodyRegular, fontSize: 12, marginTop: 3 } as TextStyle,
+  cardValue:      { fontFamily: FONTS.displayLight, fontSize: fs(24), fontWeight: '300', lineHeight: lh(24) } as TextStyle,
+  cardUnit:       { fontFamily: FONTS.bodyMedium, fontSize: fs(11), fontWeight: '500', lineHeight: lh(11) } as TextStyle,
+  cardSub:        { fontFamily: FONTS.bodyRegular, fontSize: fs(12), lineHeight: lh(12, 1.35), marginTop: 3 } as TextStyle,
   // Goal row
   goalRow:        {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACING.md,
   }                                                              as ViewStyle,
   goalEyebrow:    {
-    fontFamily: FONTS.bodyMedium, fontSize: 10,
+    fontFamily: FONTS.bodyMedium, fontSize: fs(10),
+    lineHeight: lh(10, 1.35),
     letterSpacing: 0.14, fontWeight: '500', marginBottom: 4,
   }                                                              as TextStyle,
   goalValueRow:   { flexDirection: 'row', alignItems: 'baseline' } as ViewStyle,
-  goalValue:      { fontFamily: FONTS.displayLight, fontSize: 28, fontWeight: '300', lineHeight: 30 } as TextStyle,
-  goalUnit:       { fontFamily: FONTS.bodyMedium, fontSize: 14, fontWeight: '500' } as TextStyle,
-  goalSub:        { fontFamily: FONTS.bodyRegular, fontSize: 13 } as TextStyle,
-  disclaimer:      {
-    fontFamily: FONTS.bodyRegular, fontSize: 11, lineHeight: 16,
+  goalValue:      { fontFamily: FONTS.displayLight, fontSize: fs(28), fontWeight: '300', lineHeight: lh(28) } as TextStyle,
+  goalUnit:       { fontFamily: FONTS.bodyMedium, fontSize: fs(14), fontWeight: '500', lineHeight: lh(14) } as TextStyle,
+  goalSub:        { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35) } as TextStyle,
+  disclaimerRow:  {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 6,
     marginTop: SPACING.sm + 4, paddingHorizontal: 4,
+  }                                                              as ViewStyle,
+  disclaimerText: {
+    fontFamily: FONTS.bodyRegular, fontSize: fs(11), lineHeight: lh(11, 1.35), flex: 1,
   }                                                              as TextStyle,
 });

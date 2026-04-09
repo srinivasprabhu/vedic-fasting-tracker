@@ -5,13 +5,12 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Text, TextInput } from 'react-native';
-import { FONT_SCALE } from '@/constants/theme';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { FastingProvider } from '@/contexts/FastingContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { RevenueCatProvider } from '@/contexts/RevenueCatContext';
 import { registerForPushNotifications } from '@/utils/notifications';
@@ -19,53 +18,9 @@ import { NotificationScheduleSync } from '@/components/NotificationScheduleSync'
 import { DailySyncManager } from '@/components/DailySyncManager';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 import BrandedSplash from '@/components/BrandedSplash';
+import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY } from '@/constants/storageKeys';
 
 SplashScreen.preventAutoHideAsync();
-
-// ─── Global font scale ─────────────────────────────────────────────────────────
-// Override default Text and TextInput to apply FONT_SCALE from theme.ts
-// This scales ALL text in the app by the configured factor (1.2 = 20% larger)
-const originalTextRender = (Text as any).render;
-if (originalTextRender) {
-  (Text as any).render = function(props: any, ref: any) {
-    const style = props.style;
-    let fontSize = undefined;
-    if (style) {
-      // Extract fontSize from style (could be array or object)
-      const flatStyle = Array.isArray(style)
-        ? Object.assign({}, ...style.filter(Boolean).map(s => typeof s === 'object' ? s : {}))
-        : (typeof style === 'object' ? style : {});
-      if (flatStyle.fontSize) {
-        fontSize = Math.round(flatStyle.fontSize * FONT_SCALE);
-      }
-    }
-    const newProps = fontSize
-      ? { ...props, style: [style, { fontSize }] }
-      : props;
-    return originalTextRender.call(this, newProps, ref);
-  };
-}
-
-// Same for TextInput
-const originalTextInputRender = (TextInput as any).render;
-if (originalTextInputRender) {
-  (TextInput as any).render = function(props: any, ref: any) {
-    const style = props.style;
-    let fontSize = undefined;
-    if (style) {
-      const flatStyle = Array.isArray(style)
-        ? Object.assign({}, ...style.filter(Boolean).map(s => typeof s === 'object' ? s : {}))
-        : (typeof style === 'object' ? style : {});
-      if (flatStyle.fontSize) {
-        fontSize = Math.round(flatStyle.fontSize * FONT_SCALE);
-      }
-    }
-    const newProps = fontSize
-      ? { ...props, style: [style, { fontSize }] }
-      : props;
-    return originalTextInputRender.call(this, newProps, ref);
-  };
-}
 
 if (Platform.OS !== 'web') {
   ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
@@ -88,8 +43,6 @@ if (GOOGLE_WEB_CLIENT_ID && !isExpoGo && Platform.OS !== 'web') {
 }
 
 const queryClient = new QueryClient();
-const ONBOARDING_KEY = 'vedic_onboarding_complete';
-const PROFILE_KEY = 'vedic_user_profile';
 
 function RootLayoutNav() {
   const [isReady, setIsReady] = useState<boolean>(false);
@@ -123,8 +76,8 @@ function RootLayoutNav() {
   useEffect(() => {
     async function checkOnboarding() {
       try {
-        const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
-        const profileData = await AsyncStorage.getItem(PROFILE_KEY);
+        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        const profileData = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
         console.log('Onboarding status:', completed, 'Profile:', !!profileData);
         if (completed !== 'true') {
           setShowOnboarding(true);
@@ -154,9 +107,19 @@ function RootLayoutNav() {
 
   return (
     <>
-    {showBrandedSplash && (
-      <BrandedSplash onFinish={() => setShowBrandedSplash(false)} />
-    )}
+      {showBrandedSplash && (
+        <BrandedSplash onFinish={() => setShowBrandedSplash(false)} />
+      )}
+      <RootStack />
+    </>
+  );
+}
+
+/** Stack routes that need theme-aware `contentStyle` must live under `useTheme`. */
+function RootStack() {
+  const { colors } = useTheme();
+
+  return (
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
@@ -164,7 +127,7 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           animation: 'fade',
-          contentStyle: { backgroundColor: '#0a0604' },
+          contentStyle: { backgroundColor: colors.background },
         }}
       />
       <Stack.Screen
@@ -172,7 +135,7 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           animation: 'fade',
-          contentStyle: { backgroundColor: '#0a0604' },
+          contentStyle: { backgroundColor: colors.background },
         }}
       />
       <Stack.Screen
@@ -215,7 +178,6 @@ function RootLayoutNav() {
         }}
       />
     </Stack>
-    </>
   );
 }
 

@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
@@ -9,6 +10,7 @@ import {
 } from 'react-native';
 import { Info } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { StatValueText } from '@/components/ui/StatValueText';
 import { BarData, MilestoneData, MetabolicZone, formatHours } from '@/utils/analytics-helpers';
 import type { ColorScheme } from '@/constants/colors';
 
@@ -179,7 +181,9 @@ export function ImpactCard({
       <View style={[styles.impactIconWrap, { backgroundColor: color + '18' }]}>
         {icon}
       </View>
-      <Text style={styles.impactValue}>{value}</Text>
+      <StatValueText color={colors.text} size="md">
+        {value}
+      </StatValueText>
       <Text style={styles.impactLabel}>{label}</Text>
       <Text style={styles.impactSublabel}>{sublabel}</Text>
     </Animated.View>
@@ -290,7 +294,7 @@ function makeStyles(colors: ColorScheme) {
     },
     barLabel: {
       width: 32,
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
@@ -309,7 +313,7 @@ function makeStyles(colors: ColorScheme) {
     },
     barValue: {
       width: 36,
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textSecondary,
       textAlign: 'right' as const,
       fontWeight: '500' as const,
@@ -343,17 +347,17 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'space-between' as const,
     },
     zoneName: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '500' as const,
       color: colors.text,
     },
     zoneRange: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
     zoneDesc: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       marginTop: 1,
     },
@@ -364,7 +368,7 @@ function makeStyles(colors: ColorScheme) {
       marginLeft: 8,
     },
     zoneActiveText: {
-      fontSize: 9,
+      fontSize: fs(9),
       fontWeight: '800' as const,
       color: '#fff',
       letterSpacing: 0.5,
@@ -394,12 +398,12 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
     },
     gaugeLabel: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
     gaugeValue: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontWeight: '700' as const,
       letterSpacing: -0.5,
     },
@@ -420,11 +424,13 @@ function makeStyles(colors: ColorScheme) {
       borderWidth: 1,
       borderColor: colors.borderLight,
       flexGrow: 1,
+      alignSelf: 'stretch' as const,
       alignItems: 'center' as const,
     },
     impactCardTouchable: {
       flexGrow: 1,
       flexBasis: '45%' as any,
+      alignSelf: 'stretch' as const,
     },
     impactIconWrap: {
       width: 40,
@@ -434,21 +440,15 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
       marginBottom: 8,
     },
-    impactValue: {
-      fontSize: 20,
-      fontWeight: '700' as const,
-      color: colors.text,
-      letterSpacing: -0.5,
-    },
     impactLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       color: colors.textSecondary,
       marginTop: 2,
       textAlign: 'center' as const,
     },
     impactSublabel: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       marginTop: 2,
       textAlign: 'center' as const,
@@ -481,7 +481,7 @@ function makeStyles(colors: ColorScheme) {
       gap: 8,
     },
     milestoneTitle: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '600' as const,
       color: colors.text,
     },
@@ -489,7 +489,7 @@ function makeStyles(colors: ColorScheme) {
       color: colors.textMuted,
     },
     milestoneDesc: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       marginTop: 1,
       marginBottom: 6,
@@ -505,7 +505,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 2,
     },
     milestoneProgressText: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       marginTop: 3,
       textAlign: 'right' as const,
@@ -516,7 +516,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 8,
     },
     unlockedText: {
-      fontSize: 11,
+      fontSize: fs(11),
       fontWeight: '600' as const,
     },
   });

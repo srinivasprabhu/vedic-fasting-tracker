@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, useWindowDimensions } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { ColorScheme } from '@/constants/colors';
 
 interface CircularTimerProps {
@@ -14,18 +15,30 @@ interface CircularTimerProps {
 
 export default function CircularTimer({ progress, elapsed, remaining, label, isActive }: CircularTimerProps) {
   const { colors } = useTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const reduceMotion = useReducedMotion();
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Responsive sizing: max ~200px ring, scales down on smaller screens
+  const size = Math.min(200, screenWidth * 0.56);
+  const strokeWidth = Math.max(7, size * 0.035);
+
+  const styles = useMemo(() => makeStyles(colors, size), [colors, size]);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  const size = 260;
-  const strokeWidth = 9;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - Math.min(progress, 1));
 
   useEffect(() => {
+    // Skip animations if user prefers reduced motion
+    if (reduceMotion) {
+      pulseAnim.setValue(1);
+      glowAnim.setValue(isActive ? 0.25 : 0);
+      return;
+    }
+
     if (isActive) {
       const pulse = Animated.loop(
         Animated.sequence([
@@ -64,17 +77,42 @@ export default function CircularTimer({ progress, elapsed, remaining, label, isA
       return () => {
         pulse.stop();
         glow.stop();
+        // Reset to initial values on cleanup
+        pulseAnim.setValue(1);
+        glowAnim.setValue(0);
       };
+    } else {
+      // Reset animations when not active
+      pulseAnim.setValue(1);
+      glowAnim.setValue(0);
     }
-  }, [isActive, pulseAnim, glowAnim]);
+  }, [isActive, reduceMotion, pulseAnim, glowAnim]);
 
   const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.15, 0.35],
   });
 
+  // Calculate progress percentage for accessibility
+  const progressPercent = Math.round(progress * 100);
+
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible={true}
+      accessibilityRole="progressbar"
+      accessibilityLabel={
+        isActive
+          ? `Fasting timer: ${elapsed} elapsed, ${remaining} remaining, ${progressPercent}% complete`
+          : `Fasting timer ready: ${label}`
+      }
+      accessibilityValue={{
+        min: 0,
+        max: 100,
+        now: progressPercent,
+        text: `${progressPercent}% complete`,
+      }}
+    >
       {isActive && (
         <Animated.View
           style={[
@@ -108,10 +146,16 @@ export default function CircularTimer({ progress, elapsed, remaining, label, isA
             />
           </Svg>
           <View style={styles.centerContent}>
-            <Text style={styles.elapsedTime}>{elapsed}</Text>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.elapsedTime} accessibilityElementsHidden={true}>
+              {elapsed}
+            </Text>
+            <Text style={styles.label} accessibilityElementsHidden={true}>
+              {label}
+            </Text>
             {isActive && (
-              <Text style={styles.remaining}>{remaining} left</Text>
+              <Text style={styles.remaining} accessibilityElementsHidden={true}>
+                {remaining} left
+              </Text>
             )}
           </View>
         </View>
@@ -120,7 +164,11 @@ export default function CircularTimer({ progress, elapsed, remaining, label, isA
   );
 }
 
-function makeStyles(colors: ColorScheme) {
+function makeStyles(colors: ColorScheme, size: number = 200) {
+  const glowSize = size * 1.12; // Glow ring is 12% larger than timer
+  const elapsedFontSize = 36; // Keep digits large and readable at fixed size
+  const labelSize = Math.max(12, size * 0.046); // Min 12px for accessibility
+
   return StyleSheet.create({
     container: {
       alignItems: 'center' as const,
@@ -129,15 +177,15 @@ function makeStyles(colors: ColorScheme) {
     },
     glowRing: {
       position: 'absolute' as const,
-      width: 292,
-      height: 292,
-      borderRadius: 146,
+      width: glowSize,
+      height: glowSize,
+      borderRadius: glowSize / 2,
       backgroundColor: colors.primary,
     },
     timerOuter: {
-      width: 260,
-      height: 260,
-      borderRadius: 130,
+      width: size,
+      height: size,
+      borderRadius: size / 2,
       backgroundColor: colors.card,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
@@ -155,26 +203,26 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
     },
     elapsedTime: {
-      fontSize: 56,
+      fontSize: elapsedFontSize,
       fontWeight: '500' as const,
       color: colors.text,
       letterSpacing: 0.5,
-      lineHeight: 62,
+      lineHeight: elapsedFontSize * 1.1,
     },
     label: {
-      fontSize: 12,
+      fontSize: labelSize,
       color: colors.textSecondary,
-      marginTop: 8,
+      marginTop: size * 0.03,
       fontWeight: '600' as const,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.8,
-      lineHeight: 16,
+      lineHeight: labelSize * 1.33,
     },
     remaining: {
-      fontSize: 14,
+      fontSize: Math.max(14, size * 0.054),
       color: colors.textSecondary,
-      marginTop: 8,
-      lineHeight: 18,
+      marginTop: size * 0.03,
+      lineHeight: Math.max(18, size * 0.07),
     },
   });
 }

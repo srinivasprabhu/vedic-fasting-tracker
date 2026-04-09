@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import type { AgeGroup } from '@/types/user';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 
 interface Step2AgeProps {
   value: AgeGroup | null;
@@ -159,14 +159,14 @@ const styles = StyleSheet.create({
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.xl,
   }                                                              as ViewStyle,
-  iconText:  { fontSize: 20, fontFamily: FONTS.bodyRegular }     as TextStyle,
+  iconText:  { fontSize: fs(20), fontFamily: FONTS.bodyRegular }     as TextStyle,
   heading:   {
-    fontFamily: FONTS.displayLight, fontSize: 40,
-    lineHeight: 46, letterSpacing: 0.2, marginBottom: SPACING.xs,
+    fontFamily: FONTS.displayLight, fontSize: fs(40),
+    lineHeight: lh(40), letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                              as TextStyle,
   subheading: {
-    fontFamily: FONTS.bodyRegular, fontSize: 13,
-    lineHeight: 21, marginBottom: SPACING.xl + 4,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13),
+    lineHeight: lh(13, 1.35), marginBottom: SPACING.xl + 4,
   }                                                              as TextStyle,
   grid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 9 } as ViewStyle,
   pill:      {
@@ -174,5 +174,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md + 4, paddingVertical: SPACING.sm + 3,
     alignItems: 'center', minWidth: 80,
   }                                                              as ViewStyle,
-  pillLabel: { fontFamily: FONTS.bodyMedium, fontSize: 13, fontWeight: '500' } as TextStyle,
+  pillLabel: { fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '500' } as TextStyle,
 });

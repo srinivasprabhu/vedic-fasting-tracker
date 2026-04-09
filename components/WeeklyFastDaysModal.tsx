@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -167,8 +168,8 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       justifyContent: 'space-between' as const,
       marginBottom: 8,
     },
-    title: { fontSize: 20, fontWeight: '700' as const },
-    sub: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
+    title: { fontSize: fs(20), fontWeight: '700' as const },
+    sub: { fontSize: fs(14), lineHeight: 20, marginBottom: 16 },
     list: { maxHeight: 360 },
     dayRow: {
       flexDirection: 'row' as const,
@@ -180,8 +181,8 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       marginBottom: 8,
       gap: 12,
     },
-    dayShort: { width: 36, fontSize: 13, fontWeight: '700' as const },
-    dayLabel: { flex: 1, fontSize: 16, fontWeight: '600' as const },
+    dayShort: { width: 36, fontSize: fs(13), fontWeight: '700' as const },
+    dayLabel: { flex: 1, fontSize: fs(16), fontWeight: '600' as const },
     check: {
       width: 26,
       height: 26,
@@ -189,13 +190,13 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
-    checkMark: { color: '#fff', fontSize: 14, fontWeight: '700' as const },
-    countLine: { fontSize: 13, marginTop: 8, marginBottom: 14, textAlign: 'center' as const },
+    checkMark: { color: '#fff', fontSize: fs(14), fontWeight: '700' as const },
+    countLine: { fontSize: fs(13), marginTop: 8, marginBottom: 14, textAlign: 'center' as const },
     saveBtn: {
       paddingVertical: 14,
       borderRadius: 14,
       alignItems: 'center' as const,
     },
-    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' as const },
+    saveBtnText: { color: '#fff', fontSize: fs(16), fontWeight: '700' as const },
   });
 }

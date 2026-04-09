@@ -5,9 +5,10 @@ import {
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import { calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor } from '@/utils/calculatePlan';
 import type { WeightUnit } from '@/types/user';
+import { Scale } from 'lucide-react-native';
 import { RulerPicker } from './RulerPicker';
 
 interface Props {
@@ -20,15 +21,35 @@ interface Props {
 
 // ── BMI scale bar ─────────────────────────────────────────────────────────────
 
-const BMIScale: React.FC<{ bmi: number; isDark: boolean }> = ({ bmi, isDark }) => {
+const BMIScale: React.FC<{ bmi: number; isDark: boolean; compact?: boolean }> = ({
+  bmi, isDark, compact,
+}) => {
   const minBMI = 10, maxBMI = 40;
   const pct    = Math.min(100, Math.max(0, ((bmi - minBMI) / (maxBMI - minBMI)) * 100));
-  const cat    = getBMICategory(bmi);
   const needleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(needleAnim, { toValue: pct, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [pct]);
+
+  if (compact) {
+    return (
+      <View style={bsc.wrap}>
+        <View style={bsc.bar}>
+          <View style={[bsc.seg, { flex: 1.7, backgroundColor: '#5b8dd9' }]} />
+          <View style={[bsc.seg, { flex: 1.5, backgroundColor: '#3aaa6e' }]} />
+          <View style={[bsc.seg, { flex: 1,   backgroundColor: '#e8c05a' }]} />
+          <View style={[bsc.seg, { flex: 1.2, backgroundColor: '#e07b30' }]} />
+          <View style={[bsc.seg, { flex: 2,   backgroundColor: '#e05555' }]} />
+        </View>
+        <View style={bsc.needleTrack}>
+          <Animated.View style={[bsc.needle, {
+            left: needleAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+          }]} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={bs.wrap}>
@@ -53,6 +74,14 @@ const BMIScale: React.FC<{ bmi: number; isDark: boolean }> = ({ bmi, isDark }) =
   );
 };
 
+const bsc = StyleSheet.create({
+  wrap:        { marginTop: 4 }                                                         as ViewStyle,
+  bar:         { flexDirection: 'row' as const, height: 5, borderRadius: 3, overflow: 'hidden' as const } as ViewStyle,
+  seg:         { height: '100%' as any }                                                as ViewStyle,
+  needleTrack: { height: 9, position: 'relative' as const }                              as ViewStyle,
+  needle:      { position: 'absolute' as const, width: 2, height: 9, borderRadius: 1, backgroundColor: '#fff', top: 0, marginLeft: -1, shadowColor: '#000', shadowOffset: { width:0, height:1 }, shadowOpacity: .35, shadowRadius: 1.5 } as ViewStyle,
+});
+
 const bs = StyleSheet.create({
   wrap:        { marginTop: 6 }                                                         as ViewStyle,
   bar:         { flexDirection: 'row' as const, height: 8, borderRadius: 4, overflow: 'hidden' as const } as ViewStyle,
@@ -60,7 +89,7 @@ const bs = StyleSheet.create({
   needleTrack: { height: 14, position: 'relative' as const }                            as ViewStyle,
   needle:      { position: 'absolute' as const, width: 3, height: 14, borderRadius: 2, backgroundColor: '#fff', top: 0, marginLeft: -1.5, shadowColor: '#000', shadowOffset: { width:0, height:1 }, shadowOpacity: .4, shadowRadius: 2 } as ViewStyle,
   labels:      { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginTop: 2 } as ViewStyle,
-  lbl:         { fontFamily: FONTS.bodyRegular, fontSize: 10 }                           as TextStyle,
+  lbl:         { fontFamily: FONTS.bodyRegular, fontSize: fs(10) }                           as TextStyle,
 });
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -112,16 +141,16 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
   const bmiColor = bmiCategoryColor(bmiCat, isDark);
 
   return (
-    <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }], paddingTop: SPACING.xl }}>
+    <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }], paddingTop: SPACING.lg }}>
       <View style={[s.iconWrap, { backgroundColor: 'rgba(200,135,42,.1)', borderColor: isDark ? 'rgba(200,135,42,.2)' : 'rgba(200,135,42,.28)' }]}>
-        <Text style={{ fontSize: 20 }}>⚖️</Text>
+        <Scale size={20} color={goldLt} />
       </View>
 
       <Text style={[s.heading, { color: cream }]}>
         Current{'\n'}<Text style={[s.accent, { color: goldLt }]}>weight</Text>
       </Text>
       <Text style={[s.sub, { color: mutedSub }]}>
-        Scroll to select · your starting point
+        BMI summary below — use the ruler for weight
       </Text>
 
       {/* Unit toggle */}
@@ -147,7 +176,26 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
         ))}
       </View>
 
-      {/* Ruler */}
+      {/* Compact BMI above a shorter ruler so weight controls clear the bottom CTA */}
+      {bmi && (
+        <View style={[s.bmiCard, {
+          backgroundColor: isDark ? 'rgba(200,135,42,.06)' : 'rgba(200,135,42,.05)',
+          borderColor:     isDark ? 'rgba(200,135,42,.18)' : 'rgba(200,135,42,.2)',
+        }]}>
+          <Text style={[s.bmiEyebrow, { color: isDark ? 'rgba(200,135,42,.45)' : 'rgba(160,104,32,.5)' }]}>YOUR BMI</Text>
+          <View style={s.bmiTopRow}>
+            <View style={s.bmiValRow}>
+              <Text style={[s.bmiVal, s.bmiValCompact, { color: cream }]}>{bmi}</Text>
+              <Text style={[s.bmiUnit, { color: mutedCl }]}>kg/m²</Text>
+            </View>
+            <View style={[s.bmiCatBadge, { backgroundColor: `${bmiColor}22`, borderColor: `${bmiColor}55` }]}>
+              <Text style={[s.bmiCatText, { color: bmiColor }]}>{bmiCategoryLabel(bmiCat)}</Text>
+            </View>
+          </View>
+          <BMIScale bmi={bmi} isDark={isDark} compact />
+        </View>
+      )}
+
       <RulerPicker
         value={safeVal}
         min={minVal}
@@ -157,45 +205,28 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
         showDecimal
         decimal={decimal}
         onDecimalChange={handleDecimalChange}
+        visibleRows={3}
+        compact
       />
-
-      {/* Live BMI */}
-      {bmi && (
-        <View style={[s.bmiCard, {
-          backgroundColor: isDark ? 'rgba(200,135,42,.06)' : 'rgba(200,135,42,.05)',
-          borderColor:     isDark ? 'rgba(200,135,42,.18)' : 'rgba(200,135,42,.2)',
-        }]}>
-          <Text style={[s.bmiEyebrow, { color: isDark ? 'rgba(200,135,42,.45)' : 'rgba(160,104,32,.5)' }]}>YOUR BMI</Text>
-          <View style={s.bmiTopRow}>
-            <View style={s.bmiValRow}>
-              <Text style={[s.bmiVal, { color: cream }]}>{bmi}</Text>
-              <Text style={[s.bmiUnit, { color: mutedCl }]}>kg/m²</Text>
-            </View>
-            <View style={[s.bmiCatBadge, { backgroundColor: `${bmiColor}22`, borderColor: `${bmiColor}55` }]}>
-              <Text style={[s.bmiCatText, { color: bmiColor }]}>{bmiCategoryLabel(bmiCat)}</Text>
-            </View>
-          </View>
-          <BMIScale bmi={bmi} isDark={isDark} />
-        </View>
-      )}
     </Animated.View>
   );
 };
 
 const s = StyleSheet.create({
-  iconWrap:    { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg } as ViewStyle,
-  heading:     { fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 42, letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
-  accent:      { fontFamily: FONTS.displayItalic, fontSize: 36 } as TextStyle,
-  sub:         { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 20, marginBottom: SPACING.md } as TextStyle,
-  unitToggle:  { flexDirection: 'row' as const, borderRadius: RADIUS.md, borderWidth: 1, overflow: 'hidden' as const, alignSelf: 'flex-start' as const, marginBottom: SPACING.md } as ViewStyle,
+  iconWrap:    { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.md } as ViewStyle,
+  heading:     { fontFamily: FONTS.displayLight, fontSize: fs(32), lineHeight: lh(32), letterSpacing: .2, marginBottom: 4 } as TextStyle,
+  accent:      { fontFamily: FONTS.displayItalic, fontSize: fs(32), lineHeight: lh(32) } as TextStyle,
+  sub:         { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.sm } as TextStyle,
+  unitToggle:  { flexDirection: 'row' as const, borderRadius: RADIUS.md, borderWidth: 1, overflow: 'hidden' as const, alignSelf: 'flex-start' as const, marginBottom: SPACING.sm } as ViewStyle,
   unitBtn:     { paddingHorizontal: 16, paddingVertical: 6 } as ViewStyle,
-  unitBtnText: { fontFamily: FONTS.bodyMedium, fontSize: 12 } as TextStyle,
-  bmiCard:     { borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACING.md, marginTop: SPACING.sm } as ViewStyle,
-  bmiEyebrow:  { fontFamily: FONTS.bodyMedium, fontSize: 10, letterSpacing: .14, fontWeight: '500' as const, marginBottom: 6, textTransform: 'uppercase' as const } as TextStyle,
-  bmiTopRow:   { flexDirection: 'row' as const, alignItems: 'flex-end' as const, justifyContent: 'space-between' as const, marginBottom: 10 } as ViewStyle,
+  unitBtnText: { fontFamily: FONTS.bodyMedium, fontSize: fs(12) } as TextStyle,
+  bmiCard:     { borderWidth: 1.5, borderRadius: RADIUS.lg, paddingVertical: SPACING.sm, paddingBottom: SPACING.sm - 2, paddingHorizontal: SPACING.md, marginTop: 4, marginBottom: SPACING.sm } as ViewStyle,
+  bmiEyebrow:  { fontFamily: FONTS.bodyMedium, fontSize: fs(9), letterSpacing: .12, fontWeight: '500' as const, marginBottom: 4, textTransform: 'uppercase' as const } as TextStyle,
+  bmiTopRow:   { flexDirection: 'row' as const, alignItems: 'flex-end' as const, justifyContent: 'space-between' as const, marginBottom: 4 } as ViewStyle,
   bmiValRow:   { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 4 } as ViewStyle,
-  bmiVal:      { fontFamily: FONTS.displayLight, fontSize: 32, fontWeight: '300' as const, lineHeight: 36 } as TextStyle,
-  bmiUnit:     { fontFamily: FONTS.bodyMedium, fontSize: 11 } as TextStyle,
+  bmiVal:      { fontFamily: FONTS.displayLight, fontSize: fs(32), fontWeight: '300' as const, lineHeight: lh(32) } as TextStyle,
+  bmiValCompact: { fontSize: fs(26), lineHeight: lh(26) } as TextStyle,
+  bmiUnit:     { fontFamily: FONTS.bodyMedium, fontSize: fs(11) } as TextStyle,
   bmiCatBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1 } as ViewStyle,
-  bmiCatText:  { fontFamily: FONTS.bodyMedium, fontSize: 11, fontWeight: '600' as const } as TextStyle,
+  bmiCatText:  { fontFamily: FONTS.bodyMedium, fontSize: fs(11), fontWeight: '600' as const } as TextStyle,
 });

@@ -1,5 +1,7 @@
+import { fs } from '@/constants/theme';
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import { Sparkles } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
 export default function NotFoundScreen() {
@@ -7,7 +9,9 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Page Not Found' }} />
       <View style={styles.container}>
-        <Text style={styles.icon}>🙏</Text>
+        <View style={styles.iconCircle}>
+          <Sparkles size={28} color={Colors.primary} />
+        </View>
         <Text style={styles.title}>This path does not exist.</Text>
         <Link href="/" style={styles.link}>
           <Text style={styles.linkText}>Return to Home</Text>
@@ -25,12 +29,17 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: Colors.background,
   },
-  icon: {
-    fontSize: 48,
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primaryLight ?? `${Colors.primary}15`,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     marginBottom: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: fs(18),
     fontWeight: '600',
     color: Colors.text,
   },
@@ -42,7 +51,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   linkText: {
-    fontSize: 14,
+    fontSize: fs(14),
     color: Colors.textLight,
     fontWeight: '600',
   },

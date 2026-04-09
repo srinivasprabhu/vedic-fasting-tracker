@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.55)',
   } as ViewStyle,
   topTitle: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 4,
@@ -257,14 +258,14 @@ const styles = StyleSheet.create({
     minHeight: 200,
   } as ViewStyle,
   headline: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '600',
     color: '#FFFFFF',
     lineHeight: 26,
     marginBottom: 10,
   } as TextStyle,
   body: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '400',
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 22,
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   } as ViewStyle,
   ctaText: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '600',
     color: '#0D1F12',
   } as TextStyle,
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   } as ViewStyle,
   skipText: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '500',
     color: 'rgba(255,255,255,0.78)',
   } as TextStyle,

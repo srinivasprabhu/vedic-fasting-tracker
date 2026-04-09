@@ -24,11 +24,12 @@ import { Step3Level as StepExperience }  from '@/components/profile-setup/Step3L
 import { StepBuildingPlan }              from '@/components/profile-setup/StepBuildingPlan';
 import { Step6Plan as StepPlanReveal } from '@/components/profile-setup/Step6Plan';
 import { SetupHeader }                  from '@/components/profile-setup/SetupHeader';
+import { AlertTriangle } from 'lucide-react-native';
 
 import { useTheme }       from '@/contexts/ThemeContext';
 import { useAuth }        from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-import { FONTS, SPACING } from '@/constants/theme';
+import { FONTS, SPACING, fs } from '@/constants/theme';
 import { calculatePlan }  from '@/utils/calculatePlan';
 import type {
   FastingPurpose, UserSex, WeightUnit,
@@ -166,7 +167,7 @@ export default function ProfileSetupScreen() {
       case 4:  return age >= 14 && age <= 80;
       case 5:  return parseFloat(heightCm) > 50;
       case 6:  return parseFloat(currentWeight) > 0;
-      case 7:  return !isUnderweightLosingMore; // block if underweight trying to lose
+      case 7:  return !isUnderweightLosingMore;
       case 8:  return activityLevel !== null;
       case 9:  return lastMealTime !== null;
       case 10: return true;
@@ -194,7 +195,7 @@ export default function ProfileSetupScreen() {
           <StepGoal value={purpose} onChange={setPurpose} />
           {isMinorWeightLoss && (
             <View style={[s.safetyBanner, { backgroundColor: isDark ? 'rgba(212,96,96,.08)' : 'rgba(212,96,96,.06)', borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)' }]}>
-              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <AlertTriangle size={16} color={isDark ? '#D46060' : '#c05050'} />
               <Text style={[s.safetyText, { color: isDark ? 'rgba(240,224,192,.7)' : 'rgba(60,35,10,.7)' }]}>
                 Weight loss programs are not recommended for users under 18. Your body is still growing and needs adequate nutrition. Please choose a different goal, or consult a healthcare provider.
               </Text>
@@ -211,7 +212,7 @@ export default function ProfileSetupScreen() {
           <StepTargetWeight value={targetWeight} onChange={setTargetWeight} currentWeightKg={currentWeight} heightCm={heightCm} unit={weightUnit} />
           {isUnderweightLosingMore && (
             <View style={[s.safetyBanner, { backgroundColor: isDark ? 'rgba(212,96,96,.08)' : 'rgba(212,96,96,.06)', borderColor: isDark ? 'rgba(212,96,96,.25)' : 'rgba(212,96,96,.22)' }]}>
-              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <AlertTriangle size={16} color={isDark ? '#D46060' : '#c05050'} />
               <Text style={[s.safetyText, { color: isDark ? 'rgba(240,224,192,.7)' : 'rgba(60,35,10,.7)' }]}>
                 Your current BMI ({currentBmi?.toFixed(1)}) is in the underweight range. Setting a lower target weight could be harmful to your health. Please set a target at or above your current weight, or skip this step.
               </Text>
@@ -325,9 +326,9 @@ const s = StyleSheet.create({
   stepWrap:      { flex: 1, paddingHorizontal: 24, paddingTop: 12 }                      as ViewStyle,
   bottomWrap:    { paddingHorizontal: 24, paddingTop: 12 }                               as ViewStyle,
   ctaBtn:        { borderRadius: 16, paddingVertical: 17, alignItems: 'center' as const, shadowOffset: { width: 0, height: 6 }, shadowRadius: 14 } as ViewStyle,
-  ctaText:       { fontFamily: FONTS.bodyMedium, fontSize: 16, fontWeight: '600' as const, letterSpacing: .2 } as TextStyle,
+  ctaText:       { fontFamily: FONTS.bodyMedium, fontSize: fs(16), fontWeight: '600' as const, letterSpacing: .2 } as TextStyle,
   skipBtn:       { alignItems: 'center' as const, paddingVertical: 14 }                  as ViewStyle,
-  skipText:      { fontFamily: FONTS.bodyRegular, fontSize: 13 }                         as TextStyle,
+  skipText:      { fontFamily: FONTS.bodyRegular, fontSize: fs(13) }                         as TextStyle,
   safetyBanner:  { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 10, padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 16 } as ViewStyle,
-  safetyText:    { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 19, flex: 1 } as TextStyle,
+  safetyText:    { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: 19, flex: 1 } as TextStyle,
 });

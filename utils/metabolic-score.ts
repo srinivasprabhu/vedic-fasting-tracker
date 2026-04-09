@@ -107,7 +107,7 @@ function calcCircadianOverlap(startTime: number, endTime: number): number {
 export function calculateMetabolicScore(params: {
   /** All completed fasting records */
   completedRecords: FastRecord[];
-  /** Records within the current period (7D/30D/90D) */
+  /** Records within the current period (7D / 30D / ALL) */
   thisWeekRecords: FastRecord[];
   /** Records from the previous period (for comparison) */
   lastWeekRecords: FastRecord[];
@@ -117,7 +117,7 @@ export function calculateMetabolicScore(params: {
   targetFastHours: number;
   /** Target fasts per week (5 for daily IF, 2 for 5:2) */
   targetFastsPerWeek?: number;
-  /** Number of days in the period (7, 30, or 90). Default 7. */
+  /** Days in the scoring window (7, 30, or ALL-time span capped for targets). Default 7. */
   periodDays?: number;
 }): MetabolicScoreBreakdown {
   const {
@@ -190,8 +190,10 @@ export function calculateMetabolicScore(params: {
   const consistencyInsight = weekCompleted === 0
     ? `No fasts completed in this period yet.`
     : weekCompleted >= targetFastsForPeriod
-    ? `${weekCompleted} of ${targetFastsForPeriod} days on target. Perfect consistency.`
-    : `${weekCompleted} of ${targetFastsForPeriod} days on target. ${remaining} more ${remaining === 1 ? 'day' : 'days'} to go.`;
+    ? weekCompleted === targetFastsForPeriod
+    ? `${weekCompleted} of ${targetFastsForPeriod} completed fasts — on target for this period.`
+    : `${weekCompleted} completed fasts in this period (plan target ${targetFastsForPeriod}).`
+    : `${weekCompleted} of ${targetFastsForPeriod} completed fasts for this period. ${remaining} more to go.`;
 
   // ── 3. Circadian Score (0-20) ────────────────────────────────────────────
   // How much of your fasting overlaps with the overnight window (10PM-6AM)?
@@ -229,15 +231,16 @@ export function calculateMetabolicScore(params: {
     : `${overlapH}h ${overlapM}m overnight overlap. Push break-fast past 7 AM to improve.`;
 
   // ── 4. Deep Fast Score (0-15) ────────────────────────────────────────────
-  // How many fasts this week exceeded 16h (autophagy threshold)?
+  // How many fasts in this period exceeded 16h (autophagy threshold)?
   const deepFastCount = thisWeekRecords.filter(r => {
     if (!r.endTime || !r.completed) return false;
     const hours = (r.endTime - r.startTime) / 3600000;
     return hours >= 16;
   }).length;
 
-  // Target: 2 deep fasts per week
-  const deepFastRatio = Math.min(1, deepFastCount / 2);
+  // Target scales with period: ~2 deep (16h+) fasts per week
+  const deepFastTarget = Math.max(1, Math.round(2 * weeks));
+  const deepFastRatio = Math.min(1, deepFastCount / deepFastTarget);
   const deepFasts = Math.round(deepFastRatio * 15);
   const deepFastPct = Math.round(deepFastRatio * 100);
   const deepFastGrade = deepFastPct >= 90 ? 'A'
@@ -246,10 +249,10 @@ export function calculateMetabolicScore(params: {
     : deepFastPct >= 25 ? 'C'
     : 'D';
   const deepFastInsight = deepFastCount === 0
-    ? 'No deep fasts (16h+) this week. Try extending one fast past 16 hours.'
-    : deepFastCount >= 2
-    ? `${deepFastCount} deep fasts this week. ${deepFastCount >= 3 ? 'Exceptional depth.' : 'Solid.'}`
-    : `${deepFastCount} deep fast this week. One 18h+ fast would push this to ${deepFastGrade === 'B' ? 'A' : 'B+'}.`;
+    ? `No deep fasts (16h+) in this period. Target ~${deepFastTarget} for your window.`
+    : deepFastCount >= deepFastTarget
+    ? `${deepFastCount} deep fasts in this period. ${deepFastCount > deepFastTarget ? 'Exceptional depth.' : 'Solid.'}`
+    : `${deepFastCount} deep fast${deepFastCount === 1 ? '' : 's'} in this period. Aim for ~${deepFastTarget} (16h+) to max this pillar.`;
 
   // ── 5. Streak Bonus (0-10) ───────────────────────────────────────────────
   const streakBonus = Math.min(10, Math.round(streak * 1.5));
@@ -287,12 +290,12 @@ export function calculateMetabolicScore(params: {
       if (!r.endTime || !r.completed) return false;
       return ((r.endTime - r.startTime) / 3600000) >= 16;
     }).length;
-    const lwDeepScore = Math.round(Math.min(1, lwDeep / 2) * 15);
-    // No streak data for last week, use 0
+    const lwDeepScore = Math.round(Math.min(1, lwDeep / deepFastTarget) * 15);
+    // No streak data for prior period, use 0
     lastWeekTotal = Math.min(100, lwDuration + lwConsistency + lwCircadian + lwDeepScore);
   }
 
-  const vsLastWeek = total - lastWeekTotal;
+  const vsLastWeek = lastWeekRecords.length > 0 ? total - lastWeekTotal : 0;
 
   return {
     total,
@@ -362,27 +365,47 @@ export function getLastWeekRecords(completedRecords: FastRecord[]): FastRecord[]
 
 // ─── Helper: get records for a date range ─────────────────────────────────────
 
-export type InsightRange = '7D' | '30D' | '90D';
+export type InsightRange = '7D' | '30D' | 'ALL';
 
-/** Returns records within the last N days */
+/**
+ * Calendar span for scoring targets and copy. For ALL, uses days since earliest fast start
+ * (min 7, max 365) so expectations stay realistic.
+ */
+export function getInsightPeriodSpanDays(
+  completedRecords: FastRecord[],
+  range: InsightRange,
+): number {
+  if (range === '7D') return 7;
+  if (range === '30D') return 30;
+  if (completedRecords.length === 0) return 7;
+  const earliest = Math.min(...completedRecords.map(r => r.startTime));
+  const days = Math.ceil((Date.now() - earliest) / 86400000);
+  return Math.max(7, Math.min(365, days));
+}
+
+/** Returns records within the last N days, or all records for ALL. */
 export function getRecordsForRange(
   completedRecords: FastRecord[],
   range: InsightRange,
 ): FastRecord[] {
+  if (range === 'ALL') return completedRecords;
   const now = Date.now();
-  const days = range === '7D' ? 7 : range === '30D' ? 30 : 90;
+  const days = range === '7D' ? 7 : 30;
   const cutoff = now - days * 86400000;
   return completedRecords.filter(r => (r.endTime ?? r.startTime) >= cutoff);
 }
 
-/** Returns the "previous period" records for comparison.
- *  If range=7D → previous 7 days; 30D → previous 30 days; 90D → previous 90 days */
+/**
+ * Previous window of the same length, for trend comparison.
+ * ALL → no prior “all time”; returns [] (caller should not show delta vs prior).
+ */
 export function getPreviousPeriodRecords(
   completedRecords: FastRecord[],
   range: InsightRange,
 ): FastRecord[] {
+  if (range === 'ALL') return [];
   const now = Date.now();
-  const days = range === '7D' ? 7 : range === '30D' ? 30 : 90;
+  const days = range === '7D' ? 7 : 30;
   const periodStart = now - days * 2 * 86400000;
   const periodEnd = now - days * 86400000;
   return completedRecords.filter(r => {

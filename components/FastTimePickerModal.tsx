@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
@@ -465,7 +466,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       marginBottom: 4,
     },
     sheetTitle: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontWeight: '700' as const,
       color: colors.text,
     },
@@ -500,13 +501,13 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       flex: 1,
     },
     choiceTitle: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '600' as const,
       color: colors.text,
       marginBottom: 2,
     },
     choiceDesc: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textSecondary,
     },
     stepContainer: {
@@ -528,7 +529,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       marginBottom: 14,
     },
     monthLabel: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '600' as const,
       color: colors.text,
     },
@@ -550,7 +551,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
     weekDayLabel: {
       flex: 1,
       textAlign: 'center' as const,
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       color: colors.textMuted,
     },
@@ -574,7 +575,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       borderColor: colors.primary,
     },
     dayText: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '500' as const,
       color: colors.text,
     },
@@ -594,7 +595,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       marginBottom: 16,
     },
     timePickerLabel: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       marginBottom: 10,
       textAlign: 'center' as const,
@@ -608,13 +609,13 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       marginBottom: 20,
     },
     timeDisplayText: {
-      fontSize: 36,
+      fontSize: fs(36),
       fontWeight: '700' as const,
       color: colors.text,
       letterSpacing: 2,
     },
     timeSectionLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       color: colors.textMuted,
       textTransform: 'uppercase' as const,
@@ -643,7 +644,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       opacity: 0.35,
     },
     timeChipText: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '600' as const,
       color: colors.text,
     },
@@ -663,7 +664,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       justifyContent: 'center' as const,
     },
     confirmBtnText: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '600' as const,
       color: colors.textLight,
     },
@@ -679,7 +680,7 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       alignItems: 'center' as const,
     },
     backBtnText: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '600' as const,
       color: colors.textSecondary,
     },

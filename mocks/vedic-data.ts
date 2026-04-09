@@ -21,7 +21,7 @@ export const INTERMITTENT_FAST_TYPES: FastTypeInfo[] = [
       'Avoid snacking outside the window',
       'Stay hydrated throughout',
     ],
-    icon: '⏱️',
+    icon: 'Timer',
     category: 'intermittent',
   },
   {
@@ -44,7 +44,7 @@ export const INTERMITTENT_FAST_TYPES: FastTypeInfo[] = [
       'Break fast gently with light food',
       'Listen to your body',
     ],
-    icon: '🔄',
+    icon: 'RefreshCw',
     category: 'intermittent',
   },
   {
@@ -67,7 +67,7 @@ export const INTERMITTENT_FAST_TYPES: FastTypeInfo[] = [
       'Focus on nutrient-dense foods',
       'Not recommended for beginners',
     ],
-    icon: '⚔️',
+    icon: 'Swords',
     category: 'intermittent',
   },
   {
@@ -90,7 +90,7 @@ export const INTERMITTENT_FAST_TYPES: FastTypeInfo[] = [
       'Choose a consistent meal time',
       'Ensure adequate calorie intake in one sitting',
     ],
-    icon: '🍽️',
+    icon: 'UtensilsCrossed',
     category: 'intermittent',
   },
   {
@@ -113,7 +113,7 @@ export const INTERMITTENT_FAST_TYPES: FastTypeInfo[] = [
       'Break fast gently with broth or fruit',
       'Only for experienced fasters',
     ],
-    icon: '🌟',
+    icon: 'Star',
     category: 'intermittent',
   },
 ];
@@ -139,7 +139,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Spend time in prayer and meditation',
       'Break fast after sunrise next day with grain',
     ],
-    icon: '🕉️',
+    icon: 'Sparkles',
     category: 'vedic',
   },
   {
@@ -162,7 +162,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Chant Om Namah Shivaya',
       'Break fast after evening worship',
     ],
-    icon: '🌙',
+    icon: 'Moon',
     category: 'vedic',
   },
   {
@@ -185,7 +185,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Offer water to the moon',
       'Practice meditation during moonrise',
     ],
-    icon: '🌕',
+    icon: 'Sun',
     category: 'vedic',
   },
   {
@@ -208,7 +208,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Light a diya (lamp) in the evening',
       'Practice silence and reflection',
     ],
-    icon: '🌑',
+    icon: 'CircleDot',
     category: 'vedic',
   },
   {
@@ -231,7 +231,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Chant Mahamrityunjaya Mantra',
       'Offer Bilva leaves to Shiva Linga',
     ],
-    icon: '🔱',
+    icon: 'Crown',
     category: 'vedic',
   },
   {
@@ -254,7 +254,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Read Brihaspativar Katha',
       'Donate to Brahmins or the needy',
     ],
-    icon: '📿',
+    icon: 'Heart',
     category: 'vedic',
   },
   {
@@ -277,7 +277,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Light a sesame oil lamp',
       'Recite Hanuman Chalisa',
     ],
-    icon: '🪔',
+    icon: 'Flame',
     category: 'vedic',
   },
   {
@@ -300,7 +300,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Keep mind focused on divine',
       'Break fast carefully with water first',
     ],
-    icon: '🧘',
+    icon: 'Flower2',
     category: 'vedic',
   },
   {
@@ -323,7 +323,7 @@ export const FAST_TYPES: FastTypeInfo[] = [
       'Light a lamp for all nine days',
       'Observe celibacy during the period',
     ],
-    icon: '🔥',
+    icon: 'Flame',
     category: 'vedic',
   },
 ];
@@ -440,6 +440,16 @@ export function getNextUpcomingVedicDay(): ReturnType<typeof buildVedicDays>[num
   return upcoming.length > 0 ? upcoming[0] : null;
 }
 
+/** Default Today inspiration — science-forward, optional traditional lines via Settings. */
+export const NEUTRAL_DAILY_QUOTES = [
+  { text: 'Consistency beats intensity. Small daily wins add up.', source: 'Aayu' },
+  { text: 'Rest for the digestive system is a skill — you are building it.', source: 'Metabolic health' },
+  { text: 'Hydration and sleep amplify everything your fast is doing.', source: 'Wellness' },
+  { text: 'Progress is measured in weeks, not single sessions.', source: 'Habits' },
+  { text: 'Your body switches fuels gradually — patience is part of the process.', source: 'Physiology' },
+  { text: 'Track honestly, adjust gently, repeat.', source: 'Aayu' },
+];
+
 export const VEDIC_QUOTES = [
   { text: 'Fasting is the greatest remedy — the physician within.', source: 'Ayurvedic Wisdom' },
   { text: 'When the body fasts, the soul feasts.', source: 'Vedic Teaching' },
@@ -470,49 +480,49 @@ export const AUTOPHAGY_STAGES: AutophagyStage[] = [
     hour: 0,
     title: 'Fed State',
     description: 'Body is digesting food. Insulin levels are elevated. Cells are in growth mode, using glucose for energy.',
-    icon: '🍽️',
+    icon: 'UtensilsCrossed',
   },
   {
     hour: 4,
     title: 'Post-Absorptive',
     description: 'Insulin drops. Body begins transitioning from glucose to stored glycogen. Digestion slows down.',
-    icon: '⏳',
+    icon: 'Hourglass',
   },
   {
     hour: 12,
     title: 'Early Fasting',
     description: 'Glycogen stores begin depleting. Body starts mobilizing fat for energy. Growth hormone rises.',
-    icon: '🔄',
+    icon: 'RefreshCw',
   },
   {
     hour: 16,
     title: 'Fat Burning Zone',
     description: 'Significant fat oxidation begins. Ketone production starts. Mild autophagy is triggered as cells begin recycling damaged components.',
-    icon: '🔥',
+    icon: 'Flame',
   },
   {
     hour: 18,
     title: 'Autophagy Activation',
     description: 'Autophagy ramps up significantly. Cells actively break down and recycle misfolded proteins, damaged organelles, and cellular debris.',
-    icon: '♻️',
+    icon: 'RefreshCw',
   },
   {
     hour: 24,
     title: 'Deep Autophagy',
     description: 'Full autophagy mode. Cells undergo deep cleaning. Old and dysfunctional cellular components are aggressively recycled. Stem cell regeneration begins.',
-    icon: '🧬',
+    icon: 'Dna',
   },
   {
     hour: 36,
     title: 'Peak Renewal',
     description: 'Autophagy at peak levels. Immune system regeneration accelerates. Growth hormone surges up to 300%. Profound cellular rejuvenation occurs.',
-    icon: '✨',
+    icon: 'Sparkles',
   },
   {
     hour: 48,
     title: 'Immune Reset',
     description: 'Immune system undergoes significant renewal. Old immune cells are broken down and replaced with new, more efficient ones.',
-    icon: '🛡️',
+    icon: 'Shield',
   },
 ];
 
@@ -520,60 +530,60 @@ export const AUTOPHAGY_BENEFITS: AutophagyBenefit[] = [
   {
     title: 'Cellular Cleanup',
     description: 'Autophagy removes damaged proteins and organelles, preventing accumulation of cellular waste that contributes to aging and disease.',
-    icon: '🧹',
+    icon: 'Sparkles',
     color: '#2E86AB',
   },
   {
     title: 'Anti-Aging',
     description: 'By recycling old cellular components and generating new ones, autophagy slows biological aging at the cellular level. Nobel Prize-winning research confirmed this mechanism.',
-    icon: '⏪',
+    icon: 'Clock',
     color: '#8B6DB5',
   },
   {
     title: 'Cancer Prevention',
     description: 'Autophagy can identify and eliminate pre-cancerous cells before they multiply. It removes damaged DNA and dysfunctional mitochondria that could lead to mutations.',
-    icon: '🛡️',
+    icon: 'Shield',
     color: '#5B8C5A',
   },
   {
     title: 'Brain Health',
     description: 'Clears toxic protein aggregates (like beta-amyloid and tau) linked to Alzheimer\'s and Parkinson\'s. Promotes neuroplasticity and cognitive function.',
-    icon: '🧠',
+    icon: 'Brain',
     color: '#E05A33',
   },
   {
     title: 'Immune Boost',
     description: 'Recycles old immune cells and generates fresh, more effective ones. Enhances the body\'s ability to fight infections and reduce chronic inflammation.',
-    icon: '💪',
+    icon: 'Dumbbell',
     color: '#C97B2A',
   },
   {
     title: 'Metabolic Reset',
     description: 'Improves insulin sensitivity, enhances mitochondrial function, and optimizes fat metabolism. Helps reverse metabolic syndrome markers.',
-    icon: '⚡',
+    icon: 'Zap',
     color: '#1B7A6E',
   },
   {
     title: 'Heart Protection',
     description: 'Removes damaged proteins from heart muscle cells, reduces arterial plaque buildup, and decreases oxidative stress on the cardiovascular system.',
-    icon: '❤️',
+    icon: 'Heart',
     color: '#C25450',
   },
   {
     title: 'Stem Cell Activation',
     description: 'Extended fasting triggers stem cell regeneration, creating entirely new cells to replace damaged tissue. This is the body\'s deepest repair mechanism.',
-    icon: '🌱',
+    icon: 'Sprout',
     color: '#6C4F82',
   },
 ];
 
 export const IF_GUIDE_TIPS = [
-  { emoji: '🕐', title: 'Start Gradual', text: 'Begin with 12:12, then progress to 16:8. Let your body adapt over 1-2 weeks before extending your fasting window.' },
-  { emoji: '💧', title: 'Stay Hydrated', text: 'Drink water, black coffee, or herbal tea during fasting hours. Proper hydration reduces hunger and supports detoxification.' },
-  { emoji: '🥗', title: 'Break Fast Wisely', text: 'Start with easily digestible foods — bone broth, fruits, or light salads. Avoid heavy meals immediately after long fasts.' },
-  { emoji: '🏃', title: 'Light Exercise', text: 'Walking, yoga, and light stretching during fasting can enhance fat burning. Avoid high-intensity workouts until adapted.' },
-  { emoji: '😴', title: 'Prioritize Sleep', text: 'Quality sleep amplifies fasting benefits. Poor sleep raises cortisol and ghrelin, making fasting harder and less effective.' },
-  { emoji: '📊', title: 'Track Progress', text: 'Monitor your fasting hours, energy levels, and how you feel. Consistency matters more than perfection.' },
+  { emoji: 'Clock', title: 'Start Gradual', text: 'Begin with 12:12, then progress to 16:8. Let your body adapt over 1-2 weeks before extending your fasting window.' },
+  { emoji: 'Droplets', title: 'Stay Hydrated', text: 'Drink water, black coffee, or herbal tea during fasting hours. Proper hydration reduces hunger and supports detoxification.' },
+  { emoji: 'Salad', title: 'Break Fast Wisely', text: 'Start with easily digestible foods — bone broth, fruits, or light salads. Avoid heavy meals immediately after long fasts.' },
+  { emoji: 'Activity', title: 'Light Exercise', text: 'Walking, yoga, and light stretching during fasting can enhance fat burning. Avoid high-intensity workouts until adapted.' },
+  { emoji: 'Moon', title: 'Prioritize Sleep', text: 'Quality sleep amplifies fasting benefits. Poor sleep raises cortisol and ghrelin, making fasting harder and less effective.' },
+  { emoji: 'BarChart3', title: 'Track Progress', text: 'Monitor your fasting hours, energy levels, and how you feel. Consistency matters more than perfection.' },
 ];
 
 export const FAST_TYPE_COLORS: Record<string, string> = {

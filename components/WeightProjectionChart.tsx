@@ -9,7 +9,7 @@ import Svg, {
   Stop, Circle, Line, Text as SvgText,
 } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs } from '@/constants/theme';
 
 interface Props {
   currentWeightKg: number;
@@ -308,7 +308,7 @@ const s = StyleSheet.create({
 
   label: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 8,
+    fontSize: fs(8),
     letterSpacing: 0.14,
     fontWeight: '500',
     marginBottom: SPACING.sm,
@@ -330,12 +330,12 @@ const s = StyleSheet.create({
 
   badgeText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: '600',
   } as TextStyle,
 
   arrowText: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '400',
   } as TextStyle,
 

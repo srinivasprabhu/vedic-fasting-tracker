@@ -2,13 +2,14 @@
 // Card shown in the Insights tab for generating the monthly PDF report.
 // Three states: Locked (free), Available (Pro), Already Generated (Pro, this month done).
 
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   Animated, Easing, ActivityIndicator, Share, Platform,
   ViewStyle, TextStyle,
 } from 'react-native';
-import { FileText, Lock, Download, Check, Share2 } from 'lucide-react-native';
+import { FileText, Lock, Download, Check, Share2, BarChart3 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -159,7 +160,9 @@ export default function MonthlyReportCard() {
             </View>
           </View>
           <View style={[s.lockedBody, { backgroundColor: isDark ? 'rgba(232,168,76,0.04)' : 'rgba(200,135,42,0.03)' }]}>
-            <Text style={{ fontSize: 28, marginBottom: 8 }}>📊</Text>
+            <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(232,168,76,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <BarChart3 size={18} color="#e8a84c" />
+            </View>
             <Text style={[s.lockedTitle, { color: colors.text }]}>Monthly PDF Report</Text>
             <Text style={[s.lockedText, { color: colors.textMuted }]}>
               {availability.reason || 'Get a detailed analysis of your fasting journey delivered as a beautiful PDF report.'}
@@ -277,21 +280,21 @@ const s = StyleSheet.create({
   card: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16 } as ViewStyle,
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } as ViewStyle,
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 } as ViewStyle,
-  title: { fontSize: 15, fontWeight: '700' } as TextStyle,
+  title: { fontSize: fs(15), fontWeight: '700' } as TextStyle,
   proBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(232,168,76,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 } as ViewStyle,
-  proText: { fontSize: 9, fontWeight: '800', color: '#e8a84c', letterSpacing: 0.8 } as TextStyle,
+  proText: { fontSize: fs(9), fontWeight: '800', color: '#e8a84c', letterSpacing: 0.8 } as TextStyle,
   doneBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 } as ViewStyle,
-  doneText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 } as TextStyle,
+  doneText: { fontSize: fs(9), fontWeight: '700', letterSpacing: 0.5 } as TextStyle,
   readyBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 } as ViewStyle,
-  readyText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8 } as TextStyle,
-  availText: { fontSize: 13, lineHeight: 18, marginBottom: 12 } as TextStyle,
+  readyText: { fontSize: fs(9), fontWeight: '800', letterSpacing: 0.8 } as TextStyle,
+  availText: { fontSize: fs(13), lineHeight: 18, marginBottom: 12 } as TextStyle,
   actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' } as ViewStyle,
   generateBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12 } as ViewStyle,
-  generateText: { fontSize: 14, fontWeight: '600', color: '#fff' } as TextStyle,
+  generateText: { fontSize: fs(14), fontWeight: '600', color: '#fff' } as TextStyle,
   shareBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
-  freeNote: { fontSize: 10, textAlign: 'center', marginTop: 8 } as TextStyle,
+  freeNote: { fontSize: fs(10), textAlign: 'center', marginTop: 8 } as TextStyle,
   lockedBody: { borderRadius: 12, padding: 20, alignItems: 'center', marginBottom: 8 } as ViewStyle,
-  lockedTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 } as TextStyle,
-  lockedText: { fontSize: 12, textAlign: 'center', lineHeight: 17, paddingHorizontal: 8 } as TextStyle,
-  lockedFooter: { fontSize: 11, textAlign: 'center' } as TextStyle,
+  lockedTitle: { fontSize: fs(14), fontWeight: '600', marginBottom: 4 } as TextStyle,
+  lockedText: { fontSize: fs(12), textAlign: 'center', lineHeight: 17, paddingHorizontal: 8 } as TextStyle,
+  lockedFooter: { fontSize: fs(11), textAlign: 'center' } as TextStyle,
 });

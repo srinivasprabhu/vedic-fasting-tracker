@@ -41,10 +41,13 @@ Layout: `[mandala mark]  Aayu` (no descriptor line)
 ### Primary
 | Name | Dark context | Light context | Use |
 |------|-------------|---------------|-----|
-| Gold accent | `#c8872a` | `#a06820` | Primary brand colour, CTA buttons, highlights |
+| Brand gold | `#c8872a` | `#a06820` | Logo, brand mark ✦, Pro badge, active tab, links, onboarding accents. This is the identity colour. |
+| CTA salmon | `#d4956a` | `#c4845a` | Primary action buttons ONLY (Begin Fast, End Fast, Get Started, Save). Provides contrast against dark gold bg. |
 | Background | `#0e0703` | `#fdf8f0` | App/website background |
 | Text | `#f0e0c0` (cream) | `#1e1004` | Primary text |
 | Text muted | `rgba(240,224,192,0.55)` | `rgba(30,16,4,0.5)` | Secondary text |
+
+**Rule:** Gold = brand identity. Salmon = interactive CTA. Never mix their roles.
 
 ### Semantic
 | Name | Dark | Light | Use |

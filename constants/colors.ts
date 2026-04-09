@@ -1,9 +1,25 @@
+/** Append 8-bit alpha (0–1) to #RRGGBB for React Native styles */
+export function hexAlpha(hex: string, alpha: number): string {
+  const n = Math.round(Math.max(0, Math.min(1, alpha)) * 255);
+  return `${hex.slice(0, 7)}${n.toString(16).padStart(2, '0')}`;
+}
+
 export type ColorScheme = {
   primary: string;
   primaryLight: string;
   primaryDark: string;
   accent: string;
   accentLight: string;
+  /** Water / hydration metrics and CTAs */
+  hydration: string;
+  /** Primary “Begin / End fast” button fill */
+  fastAction: string;
+  /** Text & icons on `fastAction` buttons */
+  onFastAction: string;
+  /** Weight tracker accent (warm gold — light vs dark tuned) */
+  trackWeight: string;
+  /** Streak / flame highlights on dashboard tiles */
+  streakAccent: string;
   background: string;
   card: string;
   surface: string;
@@ -33,14 +49,20 @@ export const lightColors: ColorScheme = {
   accent: '#B85C38',
   accentLight: '#E8C4B0',
 
+  hydration: '#5B8DD9',
+  fastAction: '#D4956A',
+  onFastAction: '#1A0D04',
+  trackWeight: '#A06820',
+  streakAccent: '#E07B30',
+
   background: '#FBF7F0',
   card: '#FFFFFF',
   surface: '#F5EDE0',
   surfaceWarm: '#FEF3E2',
 
   text: '#2C1810',
-  textSecondary: '#8B7355',
-  textMuted: '#9A8B78',
+  textSecondary: '#7A6552',
+  textMuted: '#6E5E4F',
   textLight: '#FFFFFF',
 
   border: '#E8DFD0',
@@ -67,6 +89,12 @@ export const darkColors: ColorScheme = {
   accent: '#D4754A',
   accentLight: '#2A1510',
 
+  hydration: '#6B9AE8',
+  fastAction: '#D4956A',
+  onFastAction: '#1A0D04',
+  trackWeight: '#E8A84C',
+  streakAccent: '#F09040',
+
   background: '#100805',
   card: '#1C1009',
   surface: '#231409',
@@ -74,7 +102,7 @@ export const darkColors: ColorScheme = {
 
   text: '#F2E5D0',
   textSecondary: '#C4A882',
-  textMuted: '#9A836F',
+  textMuted: '#B5A08A',
   textLight: '#FFFFFF',
 
   border: '#301E0F',

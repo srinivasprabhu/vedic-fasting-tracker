@@ -4,14 +4,15 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { User, UserX, Lock } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import type { UserSex } from '@/types/user';
 
-const OPTIONS: { id: UserSex; emoji: string; label: string }[] = [
-  { id: 'male',              emoji: '♂',  label: 'Male'       },
-  { id: 'female',            emoji: '♀',  label: 'Female'     },
-  { id: 'prefer_not_to_say', emoji: '◎', label: 'Prefer not' },
+const OPTIONS: { id: UserSex; Icon: typeof User; label: string }[] = [
+  { id: 'male',              Icon: User,  label: 'Male'       },
+  { id: 'female',            Icon: User,  label: 'Female'     },
+  { id: 'prefer_not_to_say', Icon: UserX, label: 'Prefer not' },
 ];
 
 interface Props {
@@ -39,7 +40,7 @@ export const Step3Sex: React.FC<Props> = ({ value, onChange }) => {
   return (
     <View style={s.wrap}>
       <Animated.View style={[s.iconWrap, { opacity: iconOpac, transform: [{ scale: iconScale }], backgroundColor: 'rgba(200,135,42,0.1)', borderColor: isDark ? 'rgba(200,135,42,0.2)' : 'rgba(200,135,42,0.28)' }]}>
-        <Text style={s.iconEmoji}>👤</Text>
+        <User size={20} color={goldLt} />
       </Animated.View>
       <Text style={[s.heading, { color: cream }]}>
         Your{'\n'}<Text style={[s.accent, { color: goldLt }]}>biological sex</Text>
@@ -68,7 +69,10 @@ export const Step3Sex: React.FC<Props> = ({ value, onChange }) => {
                 },
               ]}
             >
-              <Text style={s.emoji}>{opt.emoji}</Text>
+              <opt.Icon
+                size={22}
+                color={sel ? goldLt : isDark ? 'rgba(240,224,192,0.6)' : 'rgba(30,16,4,0.6)'}
+              />
               <Text style={[s.label, { color: sel ? goldLt : isDark ? '#e8d5b0' : '#3a2010' }]}>
                 {opt.label}
               </Text>
@@ -77,9 +81,12 @@ export const Step3Sex: React.FC<Props> = ({ value, onChange }) => {
         })}
       </View>
 
-      <Text style={[s.privacy, { color: privNote }]}>
-        🔒 Stored only on your device — never shared.
-      </Text>
+      <View style={s.privacyRow}>
+        <Lock size={12} color={privNote} />
+        <Text style={[s.privacy, { color: privNote }]}>
+          Stored only on your device — never shared.
+        </Text>
+      </View>
     </View>
   );
 };
@@ -87,13 +94,12 @@ export const Step3Sex: React.FC<Props> = ({ value, onChange }) => {
 const s = StyleSheet.create({
   wrap:     { flex: 1, paddingTop: SPACING.xxl }                                                                                                  as ViewStyle,
   iconWrap: { width: 50, height: 50, borderRadius: 25, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.xl } as ViewStyle,
-  iconEmoji:{ fontSize: 20 }                                                                                                                      as TextStyle,
-  heading:  { fontFamily: FONTS.displayLight, fontSize: 38, lineHeight: 44, letterSpacing: 0.2, marginBottom: SPACING.xs }                       as TextStyle,
-  accent:   { fontFamily: FONTS.displayItalic, fontSize: 38 }                                                                                    as TextStyle,
-  sub:      { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 21, marginBottom: SPACING.xl + 4 }                                        as TextStyle,
+  heading:  { fontFamily: FONTS.displayLight, fontSize: fs(38), lineHeight: lh(38), letterSpacing: 0.2, marginBottom: SPACING.xs }                as TextStyle,
+  accent:   { fontFamily: FONTS.displayItalic, fontSize: fs(38), lineHeight: lh(38) }                                                                 as TextStyle,
+  sub:      { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.xl + 4 }                             as TextStyle,
   row:      { flexDirection: 'row' as const, gap: SPACING.sm, marginBottom: SPACING.lg }                                                         as ViewStyle,
   btn:      { flex: 1, borderWidth: 1.5, borderRadius: RADIUS.lg, paddingVertical: SPACING.md, alignItems: 'center' as const, gap: 5 }           as ViewStyle,
-  emoji:    { fontSize: 22 }                                                                                                                      as TextStyle,
-  label:    { fontFamily: FONTS.bodyMedium, fontSize: 11, fontWeight: '500' as const }                                                           as TextStyle,
-  privacy:  { fontFamily: FONTS.bodyRegular, fontSize: 10, lineHeight: 15 }                                                                      as TextStyle,
+  label:    { fontFamily: FONTS.bodyMedium, fontSize: fs(11), fontWeight: '500' as const }                                                           as TextStyle,
+  privacyRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6 }                         as ViewStyle,
+  privacy:  { fontFamily: FONTS.bodyRegular, fontSize: fs(10), lineHeight: lh(10, 1.35) }                                                             as TextStyle,
 });

@@ -4,15 +4,17 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, ScrollView, ViewStyle, TextStyle,
 } from 'react-native';
+import { Ruler } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
+import { hexAlpha } from '@/constants/colors';
 import { cmToFtIn } from '@/utils/calculatePlan';
 import { RulerPicker } from './RulerPicker';
 
 interface Props { value: string; onChange: (v: string) => void; }
 
 export const StepHeight: React.FC<Props> = ({ value, onChange }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
 
   const opac  = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(16)).current;
@@ -24,9 +26,9 @@ export const StepHeight: React.FC<Props> = ({ value, onChange }) => {
     ]).start();
   }, []);
 
-  const cream    = isDark ? '#f0e0c0' : '#1e1004';
-  const mutedSub = isDark ? 'rgba(240,224,192,.42)' : 'rgba(60,35,10,.48)';
-  const goldLt   = isDark ? '#e8a84c' : '#a06820';
+  const cream    = isDark ? colors.text : '#1e1004';
+  const mutedSub = isDark ? hexAlpha(colors.text, 0.42) : 'rgba(60,35,10,.48)';
+  const goldLt   = colors.primary;
 
   // Parse integer cm from the string value
   const intVal = parseInt(value, 10);
@@ -40,8 +42,8 @@ export const StepHeight: React.FC<Props> = ({ value, onChange }) => {
 
   return (
     <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }], paddingTop: SPACING.xl }}>
-      <View style={[s.iconWrap, { backgroundColor: 'rgba(200,135,42,.1)', borderColor: isDark ? 'rgba(200,135,42,.2)' : 'rgba(200,135,42,.28)' }]}>
-        <Text style={{ fontSize: 20 }}>📏</Text>
+      <View style={[s.iconWrap, { backgroundColor: hexAlpha(colors.primary, 0.1), borderColor: isDark ? hexAlpha(colors.primary, 0.2) : hexAlpha(colors.primary, 0.28) }]}>
+        <Ruler size={20} color={goldLt} />
       </View>
 
       <Text style={[s.heading, { color: cream }]}>
@@ -65,7 +67,7 @@ export const StepHeight: React.FC<Props> = ({ value, onChange }) => {
 
 const s = StyleSheet.create({
   iconWrap: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg } as ViewStyle,
-  heading:  { fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 42, letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
-  accent:   { fontFamily: FONTS.displayItalic, fontSize: 36 } as TextStyle,
-  sub:      { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 20, marginBottom: SPACING.xl } as TextStyle,
+  heading:  { fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36), letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
+  accent:   { fontFamily: FONTS.displayItalic, fontSize: fs(36), lineHeight: lh(36) } as TextStyle,
+  sub:      { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.xl } as TextStyle,
 });

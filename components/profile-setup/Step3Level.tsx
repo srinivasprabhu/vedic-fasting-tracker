@@ -3,9 +3,10 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { Flame, Leaf, Zap, Bird, Check } from 'lucide-react-native';
 import type { FastingLevel } from '@/types/user';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 
 interface Step3LevelProps {
   value: FastingLevel | null;
@@ -14,7 +15,7 @@ interface Step3LevelProps {
 
 interface LevelOption {
   id: FastingLevel;
-  icon: string;
+  Icon: typeof Flame;
   name: string;
   description: string;
 }
@@ -22,19 +23,19 @@ interface LevelOption {
 const LEVELS: LevelOption[] = [
   {
     id: 'beginner',
-    icon: '🌱',
+    Icon: Leaf,
     name: 'Beginner',
     description: 'New to fasting or just starting out. We\'ll ease you in with 12:12 and build from there.',
   },
   {
     id: 'intermediate',
-    icon: '⚡',
+    Icon: Zap,
     name: 'Getting there',
     description: 'You\'ve tried fasting before. Comfortable with 16:8, ready to explore more.',
   },
   {
     id: 'experienced',
-    icon: '🦅',
+    Icon: Bird,
     name: 'Experienced',
     description: 'Fasting is a habit. You do extended fasts and know your body well.',
   },
@@ -102,6 +103,8 @@ const LevelCard: React.FC<{
       : ['#1e1004', '#7a4010'],
   });
 
+  const goldLt = isDark ? '#e8a84c' : '#a06820';
+
   return (
     <Animated.View style={{
       opacity: entranceAnim,
@@ -127,7 +130,9 @@ const LevelCard: React.FC<{
             }),
           },
         ]}>
-          <Text style={styles.cardIcon}>{option.icon}</Text>
+          <View style={[styles.cardIconCircle, { backgroundColor: isDark ? 'rgba(200,135,42,.08)' : 'rgba(200,135,42,.06)' }]}>
+            <option.Icon size={18} color={goldLt} />
+          </View>
 
           <View style={styles.cardBody}>
             <Animated.Text style={[styles.cardName, { color: nameColor }]}>
@@ -149,7 +154,7 @@ const LevelCard: React.FC<{
               opacity: checkScale,
             },
           ]}>
-            <Text style={styles.checkText}>✓</Text>
+            <Check size={12} color="#fff8ed" strokeWidth={3} />
           </Animated.View>
         </Animated.View>
       </TouchableOpacity>
@@ -184,7 +189,7 @@ export const Step3Level: React.FC<Step3LevelProps> = ({ value, onChange }) => {
           borderColor: isDark ? 'rgba(200,135,42,0.2)' : 'rgba(200,135,42,0.28)',
         },
       ]}>
-        <Text style={styles.iconEmoji}>🔥</Text>
+        <Flame size={20} color={goldLight} />
       </Animated.View>
 
       <Text style={[styles.heading, { color: cream }]}>
@@ -214,42 +219,40 @@ export const Step3Level: React.FC<Step3LevelProps> = ({ value, onChange }) => {
 };
 
 const styles = StyleSheet.create({
-  wrap:        { flex: 1, paddingTop: SPACING.xl }               as ViewStyle,
-  iconWrap:    {
+  wrap:           { flex: 1, paddingTop: SPACING.xl }               as ViewStyle,
+  iconWrap:       {
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.lg,
   }                                                              as ViewStyle,
-  iconEmoji:   { fontSize: 20 }                                  as TextStyle,
-  heading:     {
-    fontFamily: FONTS.displayLight, fontSize: 38,
-    lineHeight: 44, letterSpacing: 0.2, marginBottom: SPACING.xs,
+  heading:        {
+    fontFamily: FONTS.displayLight, fontSize: fs(38),
+    lineHeight: lh(38), letterSpacing: 0.2, marginBottom: SPACING.xs,
   }                                                              as TextStyle,
-  headingAccent: { fontFamily: FONTS.displayItalic, fontSize: 38 } as TextStyle,
-  subheading:  {
-    fontFamily: FONTS.bodyRegular, fontSize: 14,
-    lineHeight: 21, marginBottom: SPACING.xl,
+  headingAccent:  { fontFamily: FONTS.displayItalic, fontSize: fs(38), lineHeight: lh(38) } as TextStyle,
+  subheading:     {
+    fontFamily: FONTS.bodyRegular, fontSize: fs(14),
+    lineHeight: lh(14, 1.35), marginBottom: SPACING.xl,
   }                                                              as TextStyle,
-  cards:       { gap: SPACING.sm + 2 }                           as ViewStyle,
-  card:        {
+  cards:          { gap: SPACING.sm + 2 }                           as ViewStyle,
+  card:           {
     flexDirection: 'row', alignItems: 'center',
     gap: SPACING.md, padding: SPACING.md,
     borderRadius: RADIUS.xl - 2, borderWidth: 1.5,
   }                                                              as ViewStyle,
-  cardIcon:    { fontSize: 22, flexShrink: 0 }                   as TextStyle,
-  cardBody:    { flex: 1 }                                        as ViewStyle,
-  cardName:    {
-    fontFamily: FONTS.bodyMedium, fontSize: 14,
+  cardIconCircle: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  }                                                              as ViewStyle,
+  cardBody:       { flex: 1 }                                        as ViewStyle,
+  cardName:       {
+    fontFamily: FONTS.bodyMedium, fontSize: fs(14),
     fontWeight: '500', marginBottom: 3,
   }                                                              as TextStyle,
-  cardDesc:    {
-    fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 19,
+  cardDesc:       {
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35),
   }                                                              as TextStyle,
-  check:       {
+  check:          {
     width: 22, height: 22, borderRadius: 11, flexShrink: 0,
     alignItems: 'center', justifyContent: 'center',
   }                                                              as ViewStyle,
-  checkText:   {
-    fontFamily: FONTS.bodyMedium, fontSize: 12,
-    fontWeight: '700', color: '#fff8ed',
-  }                                                              as TextStyle,
 });

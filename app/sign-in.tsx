@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -52,13 +53,13 @@ export default function SignInScreen() {
       justifyContent: 'center',
     },
     title: {
-      fontSize: 24,
+      fontSize: fs(24),
       fontWeight: '700',
       color: colors.text,
       marginBottom: 8,
     },
     subtitle: {
-      fontSize: 15,
+      fontSize: fs(15),
       color: colors.textMuted,
       marginBottom: 32,
     },

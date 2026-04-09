@@ -2,6 +2,7 @@
 // Full daily tracking tab — water, steps, weight all in one scrollable page.
 // Steps auto-counted via expo-sensors Pedometer where available, manual fallback otherwise.
 
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
@@ -12,7 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Rect, Line, Text as SvgText } from 'react-native-svg';
-import { Trash2 } from 'lucide-react-native';
+import {
+  Trash2, Droplets, Coffee, GlassWater, Sparkles,
+  Footprints, Activity, Zap, Trophy, Scale,
+} from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { usePedometer } from '@/hooks/usePedometer';
@@ -95,47 +99,49 @@ const MiniWeekBars: React.FC<{
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
-const SectionHead: React.FC<{ emoji: string; title: string; sub: string; colors: ColorScheme }> = ({ emoji, title, sub, colors }) => (
+const SectionHead: React.FC<{ icon: React.ReactNode; title: string; sub: string; colors: ColorScheme }> = ({ icon, title, sub, colors }) => (
   <View style={{ marginBottom: 10 }}>
-    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{emoji} {title}</Text>
-    <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>{sub}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {icon}
+      <Text style={{ fontSize: fs(15), fontWeight: '700', color: colors.text }}>{title}</Text>
+    </View>
+    <Text style={{ fontSize: fs(11), color: colors.textMuted, marginTop: 2, marginLeft: 42 }}>{sub}</Text>
   </View>
 );
 
 // ─── Water quick-add button ───────────────────────────────────────────────────
 
 const AddBtn: React.FC<{
-  emoji: string; label: string; ml: number;
+  icon: React.ReactNode; label: string; ml: number;
   onPress: () => void; colors: ColorScheme; featured?: boolean;
-}> = ({ emoji, label, ml, onPress, colors, featured }) => (
+}> = ({ icon, label, ml, onPress, colors, featured }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.75}
     style={[qb.wrap, {
       backgroundColor: featured ? 'rgba(91,141,217,.18)' : colors.card,
       borderColor:     featured ? 'rgba(91,141,217,.45)' : colors.borderLight,
     }]}
   >
-    <Text style={qb.emoji}>{emoji}</Text>
+    {icon}
     <Text style={[qb.ml, { color: '#5b8dd9' }]}>+{ml}ml</Text>
     <Text style={[qb.lbl, { color: colors.textMuted }]}>{label}</Text>
   </TouchableOpacity>
 );
 const qb = StyleSheet.create({
   wrap:  { flex: 1, borderWidth: 1.5, borderRadius: 12, padding: 10, alignItems: 'center' as const, gap: 3 } as ViewStyle,
-  emoji: { fontSize: 18 } as TextStyle,
-  ml:    { fontSize: 11, fontWeight: '700' as const } as TextStyle,
-  lbl:   { fontSize: 9 } as TextStyle,
+  ml:    { fontSize: fs(11), fontWeight: '700' as const } as TextStyle,
+  lbl:   { fontSize: fs(9) } as TextStyle,
 });
 
 // ─── Steps quick-add button ───────────────────────────────────────────────────
 
 const StepBtn: React.FC<{
-  emoji: string; label: string; steps: number;
+  icon: React.ReactNode; label: string; steps: number;
   onPress: () => void; colors: ColorScheme;
-}> = ({ emoji, label, steps, onPress, colors }) => (
+}> = ({ icon, label, steps, onPress, colors }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.75}
     style={[sb.wrap, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
   >
-    <Text style={sb.emoji}>{emoji}</Text>
+    {icon}
     <View>
       <Text style={[sb.steps, { color: colors.success }]}>+{steps >= 1000 ? `${steps/1000}k` : steps}</Text>
       <Text style={[sb.lbl, { color: colors.textMuted }]}>{label}</Text>
@@ -144,9 +150,8 @@ const StepBtn: React.FC<{
 );
 const sb = StyleSheet.create({
   wrap:  { flex: 1, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, padding: 10, borderWidth: 1, borderRadius: 11 } as ViewStyle,
-  emoji: { fontSize: 18 } as TextStyle,
-  steps: { fontSize: 12, fontWeight: '700' as const } as TextStyle,
-  lbl:   { fontSize: 9 } as TextStyle,
+  steps: { fontSize: fs(12), fontWeight: '700' as const } as TextStyle,
+  lbl:   { fontSize: fs(9) } as TextStyle,
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -201,9 +206,9 @@ export default function DailyScreen() {
   const toGoalKg  = latestKg && goalKg ? Math.max(0, latestKg - goalKg) : null;
 
   // ── Water handlers ─────────────────────────────────────────────────────────
-  const addWater = useCallback(async (ml: number, label: string, emoji: string) => {
+  const addWater = useCallback(async (ml: number, label: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const entry: WaterEntry = { id: `w_${Date.now()}`, ml, label: `${emoji} ${label}`, time: Date.now() };
+    const entry: WaterEntry = { id: `w_${Date.now()}`, ml, label, time: Date.now() };
     const updated = [entry, ...waterEntries];
     setWaterEntries(updated);
     await saveWater(updated);
@@ -287,7 +292,7 @@ export default function DailyScreen() {
 
             {/* ══ WATER ═══════════════════════════════════════════════════ */}
             <View style={[styles.section, { backgroundColor: colors.card, borderColor: 'rgba(91,141,217,.2)' }]}>
-              <SectionHead emoji="💧" title="Water" sub={`${formatWater(waterTarget)} daily target`} colors={colors} />
+              <SectionHead icon={<View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${waterColor}15`, alignItems: 'center', justifyContent: 'center' }}><Droplets size={16} color={waterColor} /></View>} title="Water" sub={`${formatWater(waterTarget)} daily target`} colors={colors} />
               <View style={styles.ringRow}>
                 <Ring pct={waterPct} color={waterColor} size={80} stroke={6}>
                   <View style={{ alignItems: 'center' }}>
@@ -310,14 +315,17 @@ export default function DailyScreen() {
               </View>
               <Text style={[styles.addTitle, { color: colors.textMuted }]}>QUICK ADD</Text>
               <View style={styles.addRow}>
-                <AddBtn emoji="☕" label="Cup"    ml={150} onPress={() => addWater(150,'Cup','☕')}    colors={colors} />
-                <AddBtn emoji="🥤" label="Glass"  ml={250} onPress={() => addWater(250,'Glass','🥤')}  colors={colors} featured />
-                <AddBtn emoji="💧" label="Bottle" ml={500} onPress={() => addWater(500,'Bottle','💧')} colors={colors} featured />
-                <AddBtn emoji="🏺" label="Large"  ml={750} onPress={() => addWater(750,'Large','🏺')}  colors={colors} />
+                <AddBtn icon={<Coffee size={16} color={waterColor} />}     label="Cup"    ml={150} onPress={() => addWater(150,'Cup')}    colors={colors} />
+                <AddBtn icon={<GlassWater size={16} color={waterColor} />} label="Glass"  ml={250} onPress={() => addWater(250,'Glass')}  colors={colors} featured />
+                <AddBtn icon={<Droplets size={16} color={waterColor} />}   label="Bottle" ml={500} onPress={() => addWater(500,'Bottle')} colors={colors} featured />
+                <AddBtn icon={<Droplets size={18} color={waterColor} />}   label="Large"  ml={750} onPress={() => addWater(750,'Large')}  colors={colors} />
               </View>
               {waterPct >= 100 && (
                 <View style={[styles.goalBanner, { backgroundColor: colors.successLight, borderColor: `${colors.success}40` }]}>
-                  <Text style={[styles.goalText, { color: colors.success }]}>🎉 Water goal reached!</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={14} color={colors.success} />
+                    <Text style={[styles.goalText, { color: colors.success }]}>Water goal reached!</Text>
+                  </View>
                 </View>
               )}
               {waterEntries.length > 0 && (
@@ -343,7 +351,7 @@ export default function DailyScreen() {
             {/* ══ STEPS ════════════════════════════════════════════════════ */}
             <View style={[styles.section, { backgroundColor: colors.card, borderColor: `${stepsColor}30` }]}>
               <SectionHead
-                emoji="👟"
+                icon={<View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${stepsColor}15`, alignItems: 'center', justifyContent: 'center' }}><Footprints size={16} color={stepsColor} /></View>}
                 title="Steps"
                 sub={`${pedometer.steps.toLocaleString()} / ${stepsTarget >= 1000 ? `${stepsTarget/1000}k` : stepsTarget} · ${pedometer.sourceLabel}`}
                 colors={colors}
@@ -394,12 +402,12 @@ export default function DailyScreen() {
                 {pedometer.available ? 'ADD EXTRA STEPS' : 'QUICK ADD'}
               </Text>
               <View style={[styles.addRow, { marginBottom: 8 }]}>
-                <StepBtn emoji="🚶" label="~10 min" steps={1000}  onPress={() => handleAddSteps(1000)}  colors={colors} />
-                <StepBtn emoji="🏃" label="~25 min" steps={2500}  onPress={() => handleAddSteps(2500)}  colors={colors} />
+                <StepBtn icon={<Footprints size={16} color={stepsColor} />} label="~10 min" steps={1000}  onPress={() => handleAddSteps(1000)}  colors={colors} />
+                <StepBtn icon={<Activity size={16} color={stepsColor} />}  label="~25 min" steps={2500}  onPress={() => handleAddSteps(2500)}  colors={colors} />
               </View>
               <View style={[styles.addRow, { marginBottom: 10 }]}>
-                <StepBtn emoji="⚡" label="~50 min" steps={5000}  onPress={() => handleAddSteps(5000)}  colors={colors} />
-                <StepBtn emoji="🏆" label="Full day" steps={10000} onPress={() => handleAddSteps(10000)} colors={colors} />
+                <StepBtn icon={<Zap size={16} color={stepsColor} />}       label="~50 min" steps={5000}  onPress={() => handleAddSteps(5000)}  colors={colors} />
+                <StepBtn icon={<Trophy size={16} color={stepsColor} />}    label="Full day" steps={10000} onPress={() => handleAddSteps(10000)} colors={colors} />
               </View>
 
               {showStepsInput ? (
@@ -414,7 +422,7 @@ export default function DailyScreen() {
                     autoFocus returnKeyType="done" onSubmitEditing={submitManualSteps}
                   />
                   <TouchableOpacity onPress={submitManualSteps} style={[styles.manualBtn, { backgroundColor: colors.primary }]}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textLight }}>Add</Text>
+                    <Text style={{ fontSize: fs(13), fontWeight: '600', color: colors.textLight }}>Add</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -425,14 +433,17 @@ export default function DailyScreen() {
 
               {stepsPct >= 100 && (
                 <View style={[styles.goalBanner, { backgroundColor: colors.successLight, borderColor: `${colors.success}40` }]}>
-                  <Text style={[styles.goalText, { color: colors.success }]}>🏆 Step goal crushed!</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Trophy size={14} color={colors.success} />
+                    <Text style={[styles.goalText, { color: colors.success }]}>Step goal crushed!</Text>
+                  </View>
                 </View>
               )}
             </View>
 
             {/* ══ WEIGHT ═══════════════════════════════════════════════════ */}
             <View style={[styles.section, { backgroundColor: colors.card, borderColor: `${weightColor}30` }]}>
-              <SectionHead emoji="⚖️" title="Weight" sub="Log today's weight to track your journey" colors={colors} />
+              <SectionHead icon={<View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${weightColor}15`, alignItems: 'center', justifyContent: 'center' }}><Scale size={16} color={weightColor} /></View>} title="Weight" sub="Log today's weight to track your journey" colors={colors} />
               {latestKg && (
                 <View style={styles.weightBoxRow}>
                   <View style={[styles.weightBox, { backgroundColor: isDark ? 'rgba(200,135,42,.07)' : 'rgba(200,135,42,.06)', borderColor: isDark ? 'rgba(200,135,42,.18)' : 'rgba(200,135,42,.2)' }]}>
@@ -470,13 +481,13 @@ export default function DailyScreen() {
                   keyboardType="decimal-pad"
                   placeholder={latestKg ? fmtWeight(latestKg) : (weightUnit === 'lbs' ? '165.0' : '74.0')}
                   placeholderTextColor={colors.textMuted}
-                  style={[styles.manualInput, { color: colors.text, borderColor: colors.borderLight, flex: 1, fontSize: 20 }]}
+                  style={[styles.manualInput, { color: colors.text, borderColor: colors.borderLight, flex: 1, fontSize: fs(20) }]}
                   returnKeyType="done" onSubmitEditing={logWeight}
                 />
-                <Text style={{ fontSize: 13, fontWeight: '500', color: colors.textSecondary, marginHorizontal: 6 }}>{weightUnit}</Text>
+                <Text style={{ fontSize: fs(13), fontWeight: '500', color: colors.textSecondary, marginHorizontal: 6 }}>{weightUnit}</Text>
                 <TouchableOpacity onPress={logWeight} disabled={!weightInput}
                   style={[styles.manualBtn, { backgroundColor: weightInput ? colors.primary : colors.surface }]}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: weightInput ? colors.textLight : colors.textMuted }}>Log</Text>
+                  <Text style={{ fontSize: fs(13), fontWeight: '600', color: weightInput ? colors.textLight : colors.textMuted }}>Log</Text>
                 </TouchableOpacity>
               </View>
               {weightLog.length > 0 && (
@@ -516,40 +527,40 @@ function makeStyles(colors: ColorScheme) {
     root:               { flex: 1, backgroundColor: colors.background }                  as ViewStyle,
     content:            { paddingHorizontal: 16, paddingBottom: 40 }                     as ViewStyle,
     header:             { paddingTop: 16, paddingBottom: 12 }                            as ViewStyle,
-    pageTitle:          { fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }         as TextStyle,
-    pageDate:           { fontSize: 12, marginTop: 2 }                                   as TextStyle,
+    pageTitle:          { fontSize: fs(24), fontWeight: '700', letterSpacing: -0.5 }         as TextStyle,
+    pageDate:           { fontSize: fs(12), marginTop: 2 }                                   as TextStyle,
     section:            { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 12 } as ViewStyle,
     ringRow:            { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 16, marginBottom: 14 } as ViewStyle,
-    ringPct:            { fontSize: 14, fontWeight: '700' as const, textAlign: 'center' as const } as TextStyle,
-    ringLbl:            { fontSize: 10, textAlign: 'center' as const, marginTop: 1, textTransform: 'uppercase' as const, letterSpacing: 0.4 } as TextStyle,
+    ringPct:            { fontSize: fs(14), fontWeight: '700' as const, textAlign: 'center' as const } as TextStyle,
+    ringLbl:            { fontSize: fs(10), textAlign: 'center' as const, marginTop: 1, textTransform: 'uppercase' as const, letterSpacing: 0.4 } as TextStyle,
     statsList:          { flex: 1, gap: 6 }                                              as ViewStyle,
     statLine:           { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const } as ViewStyle,
-    statLbl:            { fontSize: 12 }                                                 as TextStyle,
-    statVal:            { fontSize: 13, fontWeight: '600' as const }                     as TextStyle,
-    addTitle:           { fontSize: 10, fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' as const } as TextStyle,
+    statLbl:            { fontSize: fs(12) }                                                 as TextStyle,
+    statVal:            { fontSize: fs(13), fontWeight: '600' as const }                     as TextStyle,
+    addTitle:           { fontSize: fs(10), fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' as const } as TextStyle,
     addRow:             { flexDirection: 'row' as const, gap: 6 }                        as ViewStyle,
     goalBanner:         { borderRadius: 10, borderWidth: 1, padding: 10, marginTop: 10, alignItems: 'center' as const } as ViewStyle,
-    goalText:           { fontSize: 12, fontWeight: '600' as const }                     as TextStyle,
+    goalText:           { fontSize: fs(12), fontWeight: '600' as const }                     as TextStyle,
     liveBadge:          { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 7, borderWidth: 1, borderRadius: 10, padding: 9, marginBottom: 12 } as ViewStyle,
     liveDot:            { width: 7, height: 7, borderRadius: 3.5 }                       as ViewStyle,
-    liveTxt:            { fontSize: 12, fontWeight: '500' as const, flex: 1 }            as TextStyle,
+    liveTxt:            { fontSize: fs(12), fontWeight: '500' as const, flex: 1 }            as TextStyle,
     logRow:             { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, paddingVertical: 8 } as ViewStyle,
     logDot:             { width: 7, height: 7, borderRadius: 3.5 }                       as ViewStyle,
-    logName:            { fontSize: 12, fontWeight: '500' as const }                     as TextStyle,
-    logMeta:            { fontSize: 11, marginTop: 1 }                                   as TextStyle,
-    logVal:             { fontSize: 12, fontWeight: '600' as const }                     as TextStyle,
+    logName:            { fontSize: fs(12), fontWeight: '500' as const }                     as TextStyle,
+    logMeta:            { fontSize: fs(11), marginTop: 1 }                                   as TextStyle,
+    logVal:             { fontSize: fs(12), fontWeight: '600' as const }                     as TextStyle,
     manualRow:          { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 } as ViewStyle,
-    manualInput:        { borderBottomWidth: 1.5, paddingVertical: 6, fontSize: 16, fontWeight: '500' as const } as TextStyle,
+    manualInput:        { borderBottomWidth: 1.5, paddingVertical: 6, fontSize: fs(16), fontWeight: '500' as const } as TextStyle,
     manualBtn:          { borderRadius: 10, paddingHorizontal: 18, paddingVertical: 10 } as ViewStyle,
     manualToggle:       { borderWidth: 1, borderStyle: 'dashed' as const, borderRadius: 10, padding: 12, alignItems: 'center' as const } as ViewStyle,
-    manualToggleText:   { fontSize: 12, fontWeight: '500' as const }                     as TextStyle,
+    manualToggleText:   { fontSize: fs(12), fontWeight: '500' as const }                     as TextStyle,
     weightBoxRow:       { flexDirection: 'row' as const, gap: 8, marginBottom: 10 }      as ViewStyle,
     weightBox:          { flex: 1, borderWidth: 1, borderRadius: 12, padding: 10, alignItems: 'center' as const } as ViewStyle,
-    weightBoxVal:       { fontSize: 16, fontWeight: '700' as const }                     as TextStyle,
-    weightBoxLbl:       { fontSize: 10, marginTop: 3, textAlign: 'center' as const, textTransform: 'uppercase' as const, letterSpacing: 0.4 } as TextStyle,
+    weightBoxVal:       { fontSize: fs(16), fontWeight: '700' as const }                     as TextStyle,
+    weightBoxLbl:       { fontSize: fs(10), marginTop: 3, textAlign: 'center' as const, textTransform: 'uppercase' as const, letterSpacing: 0.4 } as TextStyle,
     weightProgress:     { height: 5, borderRadius: 3, overflow: 'hidden' as const, marginBottom: 4 } as ViewStyle,
     weightProgressFill: { height: '100%' as any, borderRadius: 3 }                       as ViewStyle,
     todayBadge:         { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }    as ViewStyle,
-    todayText:          { fontSize: 10, fontWeight: '600' as const }                      as TextStyle,
+    todayText:          { fontSize: fs(10), fontWeight: '600' as const }                      as TextStyle,
   });
 }

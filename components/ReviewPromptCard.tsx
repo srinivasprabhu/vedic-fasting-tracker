@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Star, X } from 'lucide-react-native';
@@ -98,12 +99,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     marginBottom: 4,
   },
   body: {
-    fontSize: 14,
+    fontSize: fs(14),
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -122,11 +123,11 @@ const styles = StyleSheet.create({
   },
   btnText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '700',
   },
   laterText: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '600',
   },
 });

@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
@@ -11,7 +12,6 @@ import {
   ScrollView,
   Dimensions,
   Alert,
-  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,12 +31,16 @@ import {
   TrendingUp,
   Copy,
   Check,
+  Dna,
+  Moon,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { ColorScheme } from '@/constants/colors';
+import { METABOLIC_ZONE_PALETTE } from '@/constants/metabolicZones';
+import { AayuMandala } from '@/components/onboarding/AayuMandala';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -60,11 +64,30 @@ function formatDate(timestamp: number): string {
 }
 
 function getMetabolicZone(durationHours: number): { name: string; icon: string; color: string; description: string } {
-  if (durationHours >= 24) return { name: 'Deep Autophagy', icon: '🧬', color: '#8B5CF6', description: 'Cellular renewal at peak levels' };
-  if (durationHours >= 18) return { name: 'Autophagy', icon: '✨', color: '#3B82F6', description: 'Cells are recycling damaged components' };
-  if (durationHours >= 14) return { name: 'Fat Burning', icon: '🔥', color: '#F59E0B', description: 'Body is actively burning fat stores' };
-  if (durationHours >= 8) return { name: 'Ketosis', icon: '⚡', color: '#10B981', description: 'Transitioning to ketone energy' };
-  return { name: 'Glycogen Depletion', icon: '🌙', color: '#6366F1', description: 'Depleting sugar reserves' };
+  if (durationHours >= 24) {
+    return { name: 'Deep renewal', icon: 'Dna', color: METABOLIC_ZONE_PALETTE.deepRenewal, description: 'Extended fast — repair and regeneration signals are strongest.' };
+  }
+  if (durationHours >= 18) {
+    return { name: 'Autophagy', icon: 'Sparkles', color: METABOLIC_ZONE_PALETTE.autophagy, description: 'Cells recycle damaged components for renewal.' };
+  }
+  if (durationHours >= 14) {
+    return { name: 'Fat burning', icon: 'Flame', color: METABOLIC_ZONE_PALETTE.fatBurning, description: 'Fat stores are a primary energy source.' };
+  }
+  if (durationHours >= 8) {
+    return { name: 'Metabolic shift', icon: 'Zap', color: METABOLIC_ZONE_PALETTE.ketosis, description: 'Fuel mix shifts toward ketones and fat.' };
+  }
+  return { name: 'Early fast', icon: 'Moon', color: METABOLIC_ZONE_PALETTE.anabolic, description: 'Using glycogen as your body eases into the fast.' };
+}
+
+function renderZoneIcon(name: string, color: string, size: number = 22) {
+  switch (name) {
+    case 'Dna': return <Dna size={size} color={color} />;
+    case 'Sparkles': return <Sparkles size={size} color={color} />;
+    case 'Flame': return <Flame size={size} color={color} />;
+    case 'Zap': return <Zap size={size} color={color} />;
+    case 'Moon': return <Moon size={size} color={color} />;
+    default: return <Sparkles size={size} color={color} />;
+  }
 }
 
 function getMotivationalMessage(completed: boolean, durationHours: number): string {
@@ -96,7 +119,7 @@ function getCompletionMessage(
   }
   return {
     title: 'Congratulations!',
-    subtitle: 'Fast Completed 🙏',
+    subtitle: 'Fast Completed',
     detailMessage: getMotivationalMessage(completed, durationHours),
   };
 }
@@ -245,7 +268,9 @@ export default function FastCompleteScreen() {
   const buildShareText = useCallback(() => {
     if (!fast) return '';
     const nameStr = userName ? `\n👤 ${userName}` : '';
-    return `🪷 Vedic Intermittent Fasting Achievement!${nameStr}\n\n🏆 ${fast.label}\n⏱️ Duration: ${formatDurationLong(durationMs)}\n📊 ${completionPct}% completed\n🔥 ${streak} day streak\n${zone.icon} Zone: ${zone.name}\n\nFasting with discipline 🙏\n#VedicIntermittentFasting #VedicFasting #Health`;
+    const shareZoneEmoji: Record<string, string> = { Dna: '🧬', Sparkles: '✨', Flame: '🔥', Zap: '⚡', Moon: '🌙' };
+    const zoneEmoji = shareZoneEmoji[zone.icon] ?? '✦';
+    return `✦ Aayu — fast complete!${nameStr}\n\n🏆 ${fast.label}\n⏱️ Duration: ${formatDurationLong(durationMs)}\n📊 ${completionPct}% of target\n🔥 ${streak} day streak\n${zoneEmoji} Zone: ${zone.name}\n\nSmart fasting · real results\n#Aayu #IntermittentFasting #Health`;
   }, [fast, durationMs, completionPct, streak, zone]);
 
   const handleClose = useCallback(() => {
@@ -269,17 +294,24 @@ export default function FastCompleteScreen() {
     outputRange: [0.3, 1.2, 1],
   });
 
-  const confettiEmojis = ['🎉', '✨', '🌟', '🔥', '💪', '🙏', '🪷', '⭐', '🎊', '💫', '🌸', '🪷'];
+  const confettiEmojis = ['✦', '•', '★', '◆', '✧', '✦', '•', '★', '◆', '✧', '✦', '•'];
+
+  const gradientTop = isDark ? colors.background : colors.surfaceWarm;
+  const gradientMid = isDark ? colors.surface : colors.card;
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={isDark
-          ? ['#1A0E05', '#2A1508', '#1A0E05'] as [string, string, string]
-          : ['#FDF6ED', '#FEF0D9', '#FDF6ED'] as [string, string, string]
-        }
+        colors={[gradientTop, gradientMid, gradientTop] as [string, string, string]}
         style={StyleSheet.absoluteFill}
       />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { alignItems: 'center', paddingTop: 100 }]}
+        accessibilityElementsHidden
+      >
+        <AayuMandala size={280} color={colors.primary} animated={false} glow={false} opacity={isDark ? 0.06 : 0.09} />
+      </View>
 
       {confettiAnims.map((anim, i) => (
         <Animated.View
@@ -307,7 +339,7 @@ export default function FastCompleteScreen() {
       </TouchableOpacity>
 
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { zIndex: 2 }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -344,15 +376,18 @@ export default function FastCompleteScreen() {
         >
           <LinearGradient
             colors={isDark
-              ? ['#2A1A08', '#1E1208', '#2A1508'] as [string, string, string]
-              : ['#FFFBF5', '#FFF5E6', '#FFFBF5'] as [string, string, string]
+              ? [colors.surfaceWarm, colors.card, colors.surface] as [string, string, string]
+              : [colors.card, colors.surfaceWarm, colors.card] as [string, string, string]
             }
             style={styles.shareCardGradient}
           >
             <View style={styles.cardHeader}>
               <View style={styles.cardBrandRow}>
-                <Image source={require('@/assets/images/mandala-icon.png')} style={styles.brandIcon} />
-                <Text style={styles.cardBrand}>Vedic Fasting</Text>
+                <AayuMandala size={32} color={colors.primary} animated={false} glow={false} opacity={0.95} />
+                <View style={styles.cardBrandTextCol}>
+                  <Text style={[styles.cardBrand, { color: colors.text }]}>Aayu</Text>
+                  <Text style={[styles.cardBrandTag, { color: colors.textMuted }]}>Intermittent fasting</Text>
+                </View>
               </View>
               <View style={[styles.completionBadge, { backgroundColor: fast.completed ? colors.success + '18' : colors.warning + '18' }]}>
                 <Text style={[styles.completionBadgeText, { color: fast.completed ? colors.success : colors.warning }]}>
@@ -393,7 +428,9 @@ export default function FastCompleteScreen() {
             </View>
 
             <View style={styles.zoneCard}>
-              <Text style={styles.zoneIcon}>{zone.icon}</Text>
+              <View style={styles.zoneIconCircle}>
+                {renderZoneIcon(zone.icon, zone.color)}
+              </View>
               <View style={styles.zoneInfo}>
                 <Text style={[styles.zoneName, { color: zone.color }]}>{zone.name}</Text>
                 <Text style={styles.zoneDesc}>{zone.description}</Text>
@@ -428,7 +465,7 @@ export default function FastCompleteScreen() {
             ) : null}
 
             <View style={styles.cardFooter}>
-              <Text style={styles.cardFooterText}>🙏 Fasting with discipline</Text>
+              <Text style={[styles.cardFooterText, { color: colors.textMuted }]}>✦ Smart fasting · real results</Text>
             </View>
           </LinearGradient>
         </Animated.View>
@@ -460,14 +497,14 @@ export default function FastCompleteScreen() {
             testID="share-button"
           >
             <LinearGradient
-              colors={[colors.primary, colors.primaryDark] as [string, string]}
+              colors={[colors.fastAction, colors.primaryDark] as [string, string]}
               style={styles.shareButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Share2 size={20} color="#FFF" />
-              <Text style={styles.shareButtonText}>Share Achievement</Text>
-              <ChevronRight size={18} color="#FFF" />
+              <Share2 size={20} color={colors.onFastAction} />
+              <Text style={[styles.shareButtonText, { color: colors.onFastAction }]}>Share achievement</Text>
+              <ChevronRight size={18} color={colors.onFastAction} />
             </LinearGradient>
           </TouchableOpacity>
 
@@ -521,7 +558,7 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       zIndex: 5,
     },
     confettiEmoji: {
-      fontSize: 22,
+      fontSize: fs(22),
     },
     heroSection: {
       alignItems: 'center' as const,
@@ -546,20 +583,20 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       justifyContent: 'center' as const,
     },
     heroTitle: {
-      fontSize: 28,
+      fontSize: fs(28),
       fontWeight: '800' as const,
       color: colors.text,
       letterSpacing: -0.5,
       marginBottom: 4,
     },
     heroTitleSub: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontWeight: '600' as const,
       color: colors.textSecondary,
       marginBottom: 8,
     },
     heroSubtitle: {
-      fontSize: 15,
+      fontSize: fs(15),
       color: colors.textSecondary,
       textAlign: 'center' as const,
       lineHeight: 22,
@@ -589,18 +626,22 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
     cardBrandRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: 10,
     },
-    brandIcon: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
+    cardBrandTextCol: {
+      justifyContent: 'center' as const,
     },
     cardBrand: {
-      fontSize: 13,
+      fontSize: fs(17),
+      fontWeight: '700' as const,
+      letterSpacing: 0.04,
+    },
+    cardBrandTag: {
+      fontSize: fs(10),
       fontWeight: '600' as const,
-      color: colors.textSecondary,
-      letterSpacing: 0.5,
+      letterSpacing: 0.12,
+      textTransform: 'uppercase' as const,
+      marginTop: 2,
     },
     userBadge: {
       flexDirection: 'row' as const,
@@ -623,12 +664,12 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       justifyContent: 'center' as const,
     },
     userBadgeInitial: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '700' as const,
       color: '#FFFFFF',
     },
     userBadgeName: {
-      fontSize: 13,
+      fontSize: fs(13),
       fontWeight: '600' as const,
       color: colors.text,
       letterSpacing: 0.3,
@@ -639,17 +680,17 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       borderRadius: 12,
     },
     completionBadgeText: {
-      fontSize: 14,
+      fontSize: fs(14),
       fontWeight: '700' as const,
     },
     cardFastName: {
-      fontSize: 22,
+      fontSize: fs(22),
       fontWeight: '700' as const,
       color: colors.text,
       marginBottom: 4,
     },
     cardDate: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textMuted,
       marginBottom: 20,
     },
@@ -667,12 +708,12 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       alignItems: 'center' as const,
     },
     durationValue: {
-      fontSize: 24,
+      fontSize: fs(24),
       fontWeight: '700' as const,
       color: colors.text,
     },
     durationLabel: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       marginTop: 4,
       textTransform: 'uppercase' as const,
@@ -705,19 +746,24 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       marginBottom: 18,
       gap: 12,
     },
-    zoneIcon: {
-      fontSize: 28,
+    zoneIconCircle: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     zoneInfo: {
       flex: 1,
     },
     zoneName: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '700' as const,
       marginBottom: 2,
     },
     zoneDesc: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       lineHeight: 16,
     },
@@ -731,12 +777,12 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       gap: 4,
     },
     miniStatValue: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '700' as const,
       color: colors.text,
     },
     miniStatLabel: {
-      fontSize: 11,
+      fontSize: fs(11),
       color: colors.textMuted,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.8,
@@ -748,7 +794,7 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       borderTopColor: colors.borderLight,
     },
     cardFooterText: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       letterSpacing: 0.3,
     },
@@ -767,11 +813,11 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       gap: 8,
     },
     insightValue: {
-      fontSize: 18,
+      fontSize: fs(18),
       fontWeight: '700' as const,
     },
     insightLabel: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.8,
@@ -796,9 +842,8 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       gap: 10,
     },
     shareButtonText: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '700' as const,
-      color: '#FFFFFF',
       flex: 1,
       textAlign: 'center' as const,
     },
@@ -811,7 +856,7 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       borderColor: colors.borderLight,
     },
     doneButtonText: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '600' as const,
       color: colors.textSecondary,
     },
@@ -819,7 +864,7 @@ function makeStyles(colors: ColorScheme, isDark: boolean) {
       height: 20,
     },
     errorText: {
-      fontSize: 16,
+      fontSize: fs(16),
       color: colors.textSecondary,
       textAlign: 'center' as const,
       marginTop: 100,

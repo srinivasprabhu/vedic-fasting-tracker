@@ -16,11 +16,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import type { FastRecord } from '@/types/fasting';
 import type { UserProfile } from '@/types/user';
+import { FASTING_RECORDS_STORAGE_KEY, PROFILE_STORAGE_KEY } from '@/constants/storageKeys';
 
 // ─── Storage keys ─────────────────────────────────────────────────────────────
 
-const KEY_RECORDS = 'vedic_fasting_records';
-const KEY_PROFILE = 'vedic_user_profile';
+const KEY_RECORDS = FASTING_RECORDS_STORAGE_KEY;
 const KEY_WEIGHT  = 'aayu_weight_log';
 
 // ─── Type helpers ─────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ export async function fetchCloudRecords(userId: string): Promise<FastRecord[]> {
 
 export async function uploadLocalProfile(userId: string): Promise<void> {
   try {
-    const stored = await AsyncStorage.getItem(KEY_PROFILE);
+    const stored = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
     const p: UserProfile | null = stored ? JSON.parse(stored) : null;
     if (!p) return;
 
@@ -196,11 +196,11 @@ export async function fetchCloudProfile(userId: string): Promise<UserProfile | n
     };
 
     // Merge with local: cloud profile wins, but preserve local-only fields
-    const localStored = await AsyncStorage.getItem(KEY_PROFILE);
+    const localStored = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
     const localProfile: UserProfile | null = localStored ? JSON.parse(localStored) : null;
     const merged = localProfile ? { ...localProfile, ...profile } : profile;
 
-    await AsyncStorage.setItem(KEY_PROFILE, JSON.stringify(merged));
+    await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
     return merged;
   } catch (e) {
     console.warn('fetchCloudProfile error:', e);

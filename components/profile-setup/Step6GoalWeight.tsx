@@ -4,8 +4,9 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { Target } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
 import { calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor, lbsToKg, calcWeeksToGoal } from '@/utils/calculatePlan';
 import type { WeightUnit } from '@/types/user';
 
@@ -69,7 +70,7 @@ export const Step6GoalWeight: React.FC<Props> = ({
   return (
     <View style={s.wrap}>
       <Animated.View style={[s.iconWrap, { opacity: iconOpac, transform: [{ scale: iconScale }], backgroundColor: 'rgba(200,135,42,0.1)', borderColor: isDark ? 'rgba(200,135,42,0.2)' : 'rgba(200,135,42,0.28)' }]}>
-        <Text style={s.iconEmoji}>🎯</Text>
+        <Target size={20} color={goldLt} />
       </Animated.View>
       <Text style={[s.heading, { color: cream }]}>
         Target{'\n'}<Text style={[s.accent, { color: goldLt }]}>weight</Text>
@@ -129,26 +130,25 @@ export const Step6GoalWeight: React.FC<Props> = ({
 const s = StyleSheet.create({
   wrap:        { flex: 1, paddingTop: SPACING.xl }                                                                                                                          as ViewStyle,
   iconWrap:    { width: 50, height: 50, borderRadius: 25, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg }     as ViewStyle,
-  iconEmoji:   { fontSize: 20 }                                                                                                                                             as TextStyle,
-  heading:     { fontFamily: FONTS.displayLight, fontSize: 38, lineHeight: 44, letterSpacing: 0.2, marginBottom: SPACING.xs }                                              as TextStyle,
-  accent:      { fontFamily: FONTS.displayItalic, fontSize: 38 }                                                                                                          as TextStyle,
-  sub:         { fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 21, marginBottom: SPACING.md }                                                                   as TextStyle,
+  heading:     { fontFamily: FONTS.displayLight, fontSize: fs(38), lineHeight: lh(38), letterSpacing: 0.2, marginBottom: SPACING.xs }                                              as TextStyle,
+  accent:      { fontFamily: FONTS.displayItalic, fontSize: fs(38), lineHeight: lh(38) }                                                                                        as TextStyle,
+  sub:         { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.md }                                                         as TextStyle,
   inputCard:   { borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACING.sm + 2, paddingTop: SPACING.sm, marginBottom: SPACING.md }                                    as ViewStyle,
-  inputLabel:  { fontFamily: FONTS.bodyMedium, fontSize: 8, letterSpacing: 0.15, fontWeight: '500' as const, marginBottom: 5, textTransform: 'uppercase' as const }       as TextStyle,
+  inputLabel:  { fontFamily: FONTS.bodyMedium, fontSize: fs(8), letterSpacing: 0.15, fontWeight: '500' as const, marginBottom: 5, textTransform: 'uppercase' as const }       as TextStyle,
   inputRow:    { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 4 }                                                                                  as ViewStyle,
-  input:       { flex: 1, fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 40, padding: 0 }                                                                      as TextStyle,
-  unit:        { fontFamily: FONTS.bodyMedium, fontSize: 14, fontWeight: '500' as const }                                                                                  as TextStyle,
+  input:       { flex: 1, fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36), padding: 0 }                                                                      as TextStyle,
+  unit:        { fontFamily: FONTS.bodyMedium, fontSize: fs(14), fontWeight: '500' as const }                                                                                  as TextStyle,
   underline:   { height: 1.5, borderRadius: 1, marginTop: 6 }                                                                                                              as ViewStyle,
   previewCard: { borderRadius: RADIUS.lg, borderWidth: 1, padding: SPACING.md, marginBottom: SPACING.sm }                                                                  as ViewStyle,
-  previewLabel:{ fontFamily: FONTS.bodyMedium, fontSize: 8, letterSpacing: 0.14, fontWeight: '500' as const, textTransform: 'uppercase' as const, marginBottom: SPACING.sm } as TextStyle,
+  previewLabel:{ fontFamily: FONTS.bodyMedium, fontSize: fs(8), letterSpacing: 0.14, fontWeight: '500' as const, textTransform: 'uppercase' as const, marginBottom: SPACING.sm } as TextStyle,
   previewTop:  { flexDirection: 'row' as const, alignItems: 'flex-end' as const, justifyContent: 'space-between' as const, marginBottom: SPACING.sm }                     as ViewStyle,
-  bmiNum:      { fontFamily: FONTS.displayLight, fontSize: 30, fontWeight: '300' as const, lineHeight: 32 }                                                                as TextStyle,
-  bmiSub:      { fontFamily: FONTS.bodyRegular, fontSize: 10, marginTop: 1 }                                                                                               as TextStyle,
+  bmiNum:      { fontFamily: FONTS.displayLight, fontSize: fs(30), fontWeight: '300' as const, lineHeight: lh(30) }                                                                as TextStyle,
+  bmiSub:      { fontFamily: FONTS.bodyRegular, fontSize: fs(10), marginTop: 1 }                                                                                               as TextStyle,
   catBadge:    { borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 }                                                                              as ViewStyle,
-  catText:     { fontFamily: FONTS.bodyMedium, fontSize: 11, fontWeight: '600' as const }                                                                                  as TextStyle,
+  catText:     { fontFamily: FONTS.bodyMedium, fontSize: fs(11), fontWeight: '600' as const }                                                                                  as TextStyle,
   timelineRow: { flexDirection: 'row' as const, alignItems: 'center' as const, flexWrap: 'wrap' as const }                                                                 as ViewStyle,
-  tlLabel:     { fontFamily: FONTS.bodyRegular, fontSize: 12 }                                                                                                             as TextStyle,
-  tlVal:       { fontFamily: FONTS.bodyMedium, fontSize: 13, fontWeight: '600' as const }                                                                                  as TextStyle,
+  tlLabel:     { fontFamily: FONTS.bodyRegular, fontSize: fs(12) }                                                                                                             as TextStyle,
+  tlVal:       { fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '600' as const }                                                                                  as TextStyle,
   skipLink:    { alignItems: 'center' as const, paddingVertical: SPACING.sm }                                                                                               as ViewStyle,
-  skipText:    { fontFamily: FONTS.bodyRegular, fontSize: 11 }                                                                                                             as TextStyle,
+  skipText:    { fontFamily: FONTS.bodyRegular, fontSize: fs(11) }                                                                                                             as TextStyle,
 });

@@ -4,8 +4,10 @@ import {
   View, Text, StyleSheet,
   Animated, Easing, ViewStyle, TextStyle,
 } from 'react-native';
+import { Calendar } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
+import { hexAlpha } from '@/constants/colors';
 import { RulerPicker } from './RulerPicker';
 
 interface Props {
@@ -14,7 +16,7 @@ interface Props {
 }
 
 export const StepAge: React.FC<Props> = ({ value, onChange }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
 
   const opac  = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(16)).current;
@@ -26,9 +28,9 @@ export const StepAge: React.FC<Props> = ({ value, onChange }) => {
     ]).start();
   }, []);
 
-  const cream    = isDark ? '#f0e0c0' : '#1e1004';
-  const goldLt   = isDark ? '#e8a84c' : '#a06820';
-  const mutedSub = isDark ? 'rgba(240,224,192,.42)' : 'rgba(60,35,10,.48)';
+  const cream    = isDark ? colors.text : '#1e1004';
+  const goldLt   = colors.primary;
+  const mutedSub = isDark ? hexAlpha(colors.text, 0.42) : 'rgba(60,35,10,.48)';
 
   const safeVal = Math.min(80, Math.max(14, value));
 
@@ -46,10 +48,10 @@ export const StepAge: React.FC<Props> = ({ value, onChange }) => {
   return (
     <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }], paddingTop: SPACING.xl }}>
       <View style={[s.iconWrap, {
-        backgroundColor: 'rgba(200,135,42,.1)',
-        borderColor: isDark ? 'rgba(200,135,42,.2)' : 'rgba(200,135,42,.28)',
+        backgroundColor: hexAlpha(colors.primary, 0.1),
+        borderColor: isDark ? hexAlpha(colors.primary, 0.2) : hexAlpha(colors.primary, 0.28),
       }]}>
-        <Text style={{ fontSize: 20 }}>🎂</Text>
+        <Calendar size={20} color={goldLt} />
       </View>
 
       <Text style={[s.heading, { color: cream }]}>
@@ -77,14 +79,14 @@ const s = StyleSheet.create({
     marginBottom: SPACING.lg,
   } as ViewStyle,
   heading: {
-    fontFamily: FONTS.displayLight, fontSize: 36, lineHeight: 42,
+    fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36),
     letterSpacing: 0.2, marginBottom: SPACING.xs,
   } as TextStyle,
   accent: {
-    fontFamily: FONTS.displayItalic, fontSize: 36,
+    fontFamily: FONTS.displayItalic, fontSize: fs(36), lineHeight: lh(36),
   } as TextStyle,
   sub: {
-    fontFamily: FONTS.bodyRegular, fontSize: 13, lineHeight: 20,
+    fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35),
     marginBottom: SPACING.xl,
   } as TextStyle,
 });

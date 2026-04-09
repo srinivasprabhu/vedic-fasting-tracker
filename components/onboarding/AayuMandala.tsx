@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, View, ViewStyle } from 'react-native';
+import { Animated, Easing, ViewStyle } from 'react-native';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import Svg, {
   Path,
   Circle,
@@ -31,56 +32,77 @@ export const AayuMandala: React.FC<AayuMandalaProps> = ({
   opacity = 1,
   style,
 }) => {
+  const reduceMotion = useReducedMotion();
   const rotation = useRef(new Animated.Value(0)).current;
   const glowOpacity = useRef(new Animated.Value(0.6)).current;
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
-    if (shouldAnimate) {
-      Animated.loop(
-        Animated.timing(rotation, {
-          toValue: 1,
-          duration: 30000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      ).start();
-
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowOpacity, {
-            toValue: 1,
-            duration: 2800,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.4,
-            duration: 2800,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 1,
-            duration: 3500,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 0.94,
-            duration: 3500,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+    if (!shouldAnimate) {
+      rotation.setValue(0);
+      scaleAnim.setValue(1);
+      return;
     }
-  }, [shouldAnimate]);
+    if (reduceMotion) {
+      rotation.setValue(0);
+      scaleAnim.setValue(1);
+      glowOpacity.setValue(0.6);
+      return;
+    }
+
+    const rotLoop = Animated.loop(
+      Animated.timing(rotation, {
+        toValue: 1,
+        duration: 30000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowOpacity, {
+          toValue: 1,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowOpacity, {
+          toValue: 0.4,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const scaleLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 3500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.94,
+          duration: 3500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    rotLoop.start();
+    glowLoop.start();
+    scaleLoop.start();
+
+    return () => {
+      rotLoop.stop();
+      glowLoop.stop();
+      scaleLoop.stop();
+    };
+  }, [shouldAnimate, reduceMotion]);
 
   const spin = rotation.interpolate({
     inputRange: [0, 1],
@@ -145,8 +167,8 @@ export const AayuMandala: React.FC<AayuMandalaProps> = ({
           height: size,
           opacity,
           transform: [
-            { rotate: shouldAnimate ? spin : '0deg' },
-            { scale: shouldAnimate ? scaleAnim : 1 },
+            { rotate: shouldAnimate && !reduceMotion ? spin : '0deg' },
+            { scale: shouldAnimate && !reduceMotion ? scaleAnim : 1 },
           ],
         },
         style,

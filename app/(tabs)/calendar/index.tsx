@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
@@ -267,14 +268,14 @@ function makeStyles(colors: ColorScheme) {
       paddingHorizontal: 20,
     },
     screenTitle: {
-      fontSize: 28,
+      fontSize: fs(28),
       fontWeight: '700' as const,
       color: colors.text,
       marginTop: 12,
       letterSpacing: -0.5,
     },
     screenSubtitle: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       marginBottom: 20,
       marginTop: 2,
@@ -294,7 +295,7 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
     },
     monthText: {
-      fontSize: 17,
+      fontSize: fs(17),
       fontWeight: '600' as const,
       color: colors.text,
     },
@@ -305,7 +306,7 @@ function makeStyles(colors: ColorScheme) {
     weekdayText: {
       flex: 1,
       textAlign: 'center' as const,
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       fontWeight: '500' as const,
     },
@@ -325,7 +326,7 @@ function makeStyles(colors: ColorScheme) {
       borderRadius: 20,
     },
     dayText: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.text,
       fontWeight: '400' as const,
     },
@@ -343,7 +344,7 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
     },
     eventsTitle: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '600' as const,
       color: colors.text,
       marginBottom: 12,
@@ -368,12 +369,12 @@ function makeStyles(colors: ColorScheme) {
       flex: 1,
     },
     eventName: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '600' as const,
       color: colors.text,
     },
     eventDate: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textSecondary,
       marginTop: 2,
     },
@@ -410,31 +411,31 @@ function makeStyles(colors: ColorScheme) {
       zIndex: 1,
     },
     modalTitle: {
-      fontSize: 22,
+      fontSize: fs(22),
       fontWeight: '700' as const,
       color: colors.text,
       marginBottom: 4,
     },
     modalDeity: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.primary,
       fontWeight: '500' as const,
       marginBottom: 4,
     },
     modalDate: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textSecondary,
       marginBottom: 20,
     },
     modalSectionTitle: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '600' as const,
       color: colors.text,
       marginBottom: 8,
       marginTop: 16,
     },
     modalText: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       lineHeight: 20,
     },
@@ -444,13 +445,13 @@ function makeStyles(colors: ColorScheme) {
       paddingRight: 16,
     },
     modalBulletDot: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.primary,
       marginRight: 8,
       lineHeight: 20,
     },
     modalBulletNum: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.primary,
       marginRight: 8,
       fontWeight: '600' as const,
@@ -459,7 +460,7 @@ function makeStyles(colors: ColorScheme) {
     },
     modalBulletText: {
       flex: 1,
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       lineHeight: 20,
     },

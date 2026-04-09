@@ -1,6 +1,7 @@
 // components/ScoreBreakdownModal.tsx
 // Full-screen modal showing detailed Metabolic Discipline Score breakdown.
 
+import { fs } from '@/constants/theme';
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, ScrollView,
@@ -15,6 +16,16 @@ import {
   getScoreColor,
 } from '@/utils/metabolic-score';
 import type { ColorScheme } from '@/constants/colors';
+
+function gradeLetterFromPct(pct: number): string {
+  if (pct >= 95) return 'A+';
+  if (pct >= 85) return 'A';
+  if (pct >= 75) return 'B+';
+  if (pct >= 65) return 'B';
+  if (pct >= 50) return 'C+';
+  if (pct >= 35) return 'C';
+  return 'D';
+}
 
 // ─── Mini score ring ──────────────────────────────────────────────────────────
 
@@ -38,8 +49,8 @@ const MiniRing: React.FC<{ score: number; color: string; colors: ColorScheme }> 
         />
       </Svg>
       <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={[{ fontSize: 20, fontWeight: '800', color, letterSpacing: -0.5 }]}>{score}</Text>
-        <Text style={[{ fontSize: 9, color: colors.textMuted, marginTop: -1 }]}>/100</Text>
+        <Text style={[{ fontSize: fs(20), fontWeight: '800', color, letterSpacing: -0.5 }]}>{score}</Text>
+        <Text style={[{ fontSize: fs(9), color: colors.textMuted, marginTop: -1 }]}>/100</Text>
       </View>
     </View>
   );
@@ -56,11 +67,19 @@ const ScoreComponentRow: React.FC<{
   insight: string;
   color: string;
   colors: ColorScheme;
-  isPro?: boolean;
-}> = ({ icon, title, subtitle, grade, pct, insight, color, colors, isPro }) => {
+  /** Extra rows only in breakdown; gated for non‑Pro. */
+  proFeatureLock?: boolean;
+  isProUser?: boolean;
+  proUpsellHint?: string;
+}> = ({
+  icon, title, subtitle, grade, pct, insight, color, colors,
+  proFeatureLock, isProUser, proUpsellHint,
+}) => {
   const barAnim = useRef(new Animated.Value(0)).current;
+  const showProUpsell = !!proFeatureLock && !isProUser;
 
   useEffect(() => {
+    if (showProUpsell) return;
     Animated.timing(barAnim, {
       toValue: Math.min(pct / 100, 1),
       duration: 800,
@@ -68,7 +87,7 @@ const ScoreComponentRow: React.FC<{
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [pct]);
+  }, [pct, showProUpsell]);
 
   return (
     <View style={[rowS.container, { borderBottomColor: colors.borderLight }]}>
@@ -78,8 +97,9 @@ const ScoreComponentRow: React.FC<{
           <Text style={[rowS.title, { color: colors.text }]}>{title}</Text>
           <Text style={[rowS.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
         </View>
-        {isPro ? (
+        {showProUpsell ? (
           <View style={rowS.proBadge}>
+            <Lock size={11} color="#e8a84c" style={{ marginRight: 4 }} />
             <Text style={rowS.proText}>PRO</Text>
           </View>
         ) : (
@@ -90,7 +110,7 @@ const ScoreComponentRow: React.FC<{
         )}
       </View>
 
-      {!isPro && (
+      {!showProUpsell && (
         <View style={[rowS.barTrack, { backgroundColor: colors.surface }]}>
           <Animated.View style={[
             rowS.barFill,
@@ -99,8 +119,8 @@ const ScoreComponentRow: React.FC<{
         </View>
       )}
 
-      <Text style={[rowS.insight, { color: isPro ? colors.textMuted : colors.textSecondary }]}>
-        {isPro ? `Unlock Pro to ${insight.toLowerCase()}` : insight}
+      <Text style={[rowS.insight, { color: colors.textSecondary }]}>
+        {showProUpsell ? (proUpsellHint ?? 'Unlock Pro to see this metric.') : insight}
       </Text>
     </View>
   );
@@ -111,16 +131,16 @@ const rowS = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 } as ViewStyle,
   iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 12 } as ViewStyle,
   titleBlock: { flex: 1 } as ViewStyle,
-  title: { fontSize: 15, fontWeight: '700' } as TextStyle,
-  subtitle: { fontSize: 12, marginTop: 1 } as TextStyle,
+  title: { fontSize: fs(15), fontWeight: '700' } as TextStyle,
+  subtitle: { fontSize: fs(12), marginTop: 1 } as TextStyle,
   gradeBlock: { alignItems: 'flex-end' } as ViewStyle,
-  grade: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 } as TextStyle,
-  gradePct: { fontSize: 11, fontWeight: '500', marginTop: 1 } as TextStyle,
-  proBadge: { backgroundColor: 'rgba(232,168,76,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 } as ViewStyle,
-  proText: { fontSize: 10, fontWeight: '800', color: '#e8a84c', letterSpacing: 0.8 } as TextStyle,
+  grade: { fontSize: fs(18), fontWeight: '800', letterSpacing: -0.3 } as TextStyle,
+  gradePct: { fontSize: fs(11), fontWeight: '500', marginTop: 1 } as TextStyle,
+  proBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(232,168,76,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 } as ViewStyle,
+  proText: { fontSize: fs(10), fontWeight: '800', color: '#e8a84c', letterSpacing: 0.8 } as TextStyle,
   barTrack: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 8 } as ViewStyle,
   barFill: { height: '100%' as any, borderRadius: 3 } as ViewStyle,
-  insight: { fontSize: 12, lineHeight: 17 } as TextStyle,
+  insight: { fontSize: fs(12), lineHeight: 17 } as TextStyle,
 });
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
@@ -129,9 +149,21 @@ interface ScoreBreakdownModalProps {
   visible: boolean;
   score: MetabolicScoreBreakdown;
   onClose: () => void;
+  isProUser?: boolean;
+  /** 0–100 — matches Insights “Autophagy Depth” for the selected period */
+  proAutophagyDepth?: number;
+  /** 0–100 — matches Insights “Inflammation” index for the selected period */
+  proInflammationIndex?: number;
 }
 
-export default function ScoreBreakdownModal({ visible, score, onClose }: ScoreBreakdownModalProps) {
+export default function ScoreBreakdownModal({
+  visible,
+  score,
+  onClose,
+  isProUser = false,
+  proAutophagyDepth = 0,
+  proInflammationIndex = 0,
+}: ScoreBreakdownModalProps) {
   const { colors, isDark } = useTheme();
   const level = getScoreLevel(score.total);
   const scoreColor = getScoreColor(level, isDark);
@@ -220,29 +252,40 @@ export default function ScoreBreakdownModal({ visible, score, onClose }: ScoreBr
             colors={colors}
           />
 
-          {/* Pro-locked components */}
           <ScoreComponentRow
             icon={<Sparkles size={16} color="#7B68AE" />}
             title="Autophagy Activation"
             subtitle="Cellular renewal depth score"
-            grade=""
-            pct={0}
-            insight="See your autophagy score and cellular renewal time."
+            grade={gradeLetterFromPct(proAutophagyDepth)}
+            pct={Math.round(proAutophagyDepth)}
+            insight={
+              isProUser
+                ? `Average depth from your fasts in the same period as the chart above — longer 16h+ fasts push this higher.`
+                : ''
+            }
             color="#7B68AE"
             colors={colors}
-            isPro
+            proFeatureLock
+            isProUser={isProUser}
+            proUpsellHint="Unlock Pro to see your autophagy depth score from fast lengths (same period as Insights)."
           />
 
           <ScoreComponentRow
             icon={<Heart size={16} color="#C25450" />}
             title="Inflammation Index"
             subtitle="Trend-based inflammation score"
-            grade=""
-            pct={0}
-            insight="Track your 30-day inflammation reduction trend."
+            grade={gradeLetterFromPct(proInflammationIndex)}
+            pct={Math.round(proInflammationIndex)}
+            insight={
+              isProUser
+                ? `Composite index from fasting time and rhythm in your selected Insights window — also shown on the Insights health grid.`
+                : ''
+            }
             color="#C25450"
             colors={colors}
-            isPro
+            proFeatureLock
+            isProUser={isProUser}
+            proUpsellHint="Unlock Pro to see your inflammation index trend for the selected period."
           />
 
           {/* How it's calculated */}
@@ -250,6 +293,7 @@ export default function ScoreBreakdownModal({ visible, score, onClose }: ScoreBr
             <Text style={[s.howTitle, { color: colors.primary }]}>HOW THIS SCORE IS CALCULATED</Text>
             <Text style={[s.howText, { color: colors.textSecondary }]}>
               Your score combines fasting duration, consistency, circadian timing, and depth — weighted by what the research says matters most for metabolic health. It updates after every completed fast.
+              {isProUser ? ' Autophagy activation and inflammation index mirror the Advanced Metrics on Insights for your selected date range (they add context and are not extra points in the ring).' : ''}
             </Text>
           </View>
 
@@ -264,15 +308,15 @@ const s = StyleSheet.create({
   root: { flex: 1 } as ViewStyle,
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 } as ViewStyle,
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 0 } as ViewStyle,
-  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
+  headerTitle: { fontSize: fs(20), fontWeight: '700', letterSpacing: -0.3 } as TextStyle,
   closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 } as ViewStyle,
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginVertical: 20 } as ViewStyle,
   heroMeta: { flex: 1 } as ViewStyle,
-  heroLabel: { fontSize: 18, fontWeight: '700', marginBottom: 4 } as TextStyle,
-  heroChange: { fontSize: 13, fontWeight: '600' } as TextStyle,
-  sectionLabel: { fontSize: 10, fontWeight: '600', letterSpacing: 1, marginBottom: 4, marginTop: 8 } as TextStyle,
+  heroLabel: { fontSize: fs(18), fontWeight: '700', marginBottom: 4 } as TextStyle,
+  heroChange: { fontSize: fs(13), fontWeight: '600' } as TextStyle,
+  sectionLabel: { fontSize: fs(10), fontWeight: '600', letterSpacing: 1, marginBottom: 4, marginTop: 8 } as TextStyle,
   howCard: { borderRadius: 14, borderWidth: 1, padding: 16, marginTop: 20 } as ViewStyle,
-  howTitle: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 8 } as TextStyle,
-  howText: { fontSize: 13, lineHeight: 19 } as TextStyle,
+  howTitle: { fontSize: fs(10), fontWeight: '700', letterSpacing: 1, marginBottom: 8 } as TextStyle,
+  howText: { fontSize: fs(13), lineHeight: 19 } as TextStyle,
 });

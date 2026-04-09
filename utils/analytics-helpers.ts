@@ -18,21 +18,21 @@ export interface MetabolicZone {
 }
 
 export const METABOLIC_ZONES: MetabolicZone[] = [
-  { id: 'anabolic', name: 'Anabolic', range: '0-4h', color: '#4A90A4', icon: '🍽️', description: 'Digesting food, insulin elevated', minHours: 0, maxHours: 4 },
-  { id: 'catabolic', name: 'Catabolic', range: '4-12h', color: '#D4A03C', icon: '⚡', description: 'Glycogen depletion begins', minHours: 4, maxHours: 12 },
-  { id: 'fatburn', name: 'Fat Burning', range: '12-18h', color: '#E8913A', icon: '🔥', description: 'Active fat oxidation', minHours: 12, maxHours: 18 },
-  { id: 'ketosis', name: 'Ketosis', range: '18-24h', color: '#B85C38', icon: '⚗️', description: 'Deep ketone production', minHours: 18, maxHours: 24 },
-  { id: 'autophagy', name: 'Autophagy', range: '24-48h', color: '#7B68AE', icon: '♻️', description: 'Cellular cleansing peak', minHours: 24, maxHours: 48 },
-  { id: 'renewal', name: 'Deep Renewal', range: '48h+', color: '#5B8C5A', icon: '🧬', description: 'Stem cell regeneration', minHours: 48, maxHours: 999 },
+  { id: 'anabolic', name: 'Anabolic', range: '0-4h', color: '#4A90A4', icon: 'UtensilsCrossed', description: 'Digesting food, insulin elevated', minHours: 0, maxHours: 4 },
+  { id: 'catabolic', name: 'Catabolic', range: '4-12h', color: '#D4A03C', icon: 'Zap', description: 'Glycogen depletion begins', minHours: 4, maxHours: 12 },
+  { id: 'fatburn', name: 'Fat Burning', range: '12-18h', color: '#E8913A', icon: 'Flame', description: 'Active fat oxidation', minHours: 12, maxHours: 18 },
+  { id: 'ketosis', name: 'Ketosis', range: '18-24h', color: '#B85C38', icon: 'FlaskConical', description: 'Deep ketone production', minHours: 18, maxHours: 24 },
+  { id: 'autophagy', name: 'Autophagy', range: '24-48h', color: '#7B68AE', icon: 'RefreshCw', description: 'Cellular cleansing peak', minHours: 24, maxHours: 48 },
+  { id: 'renewal', name: 'Deep Renewal', range: '48h+', color: '#5B8C5A', icon: 'Dna', description: 'Stem cell regeneration', minHours: 48, maxHours: 999 },
 ];
 
 export const WARRIOR_LEVELS = [
-  { name: 'Beginner', minFasts: 0, color: '#B8A898', icon: '🌱' },
-  { name: 'Starter', minFasts: 5, color: '#5B8C5A', icon: '⚡' },
-  { name: 'Disciplined', minFasts: 15, color: '#D4A03C', icon: '🔥' },
-  { name: 'Committed', minFasts: 30, color: '#E8913A', icon: '💪' },
-  { name: 'Master', minFasts: 60, color: '#C97B2A', icon: '✨' },
-  { name: 'Legend', minFasts: 100, color: '#7B68AE', icon: '👑' },
+  { name: 'Beginner', minFasts: 0, color: '#B8A898', icon: 'Leaf' },
+  { name: 'Starter', minFasts: 5, color: '#5B8C5A', icon: 'Zap' },
+  { name: 'Disciplined', minFasts: 15, color: '#D4A03C', icon: 'Flame' },
+  { name: 'Committed', minFasts: 30, color: '#E8913A', icon: 'Dumbbell' },
+  { name: 'Master', minFasts: 60, color: '#C97B2A', icon: 'Sparkles' },
+  { name: 'Legend', minFasts: 100, color: '#7B68AE', icon: 'Crown' },
 ];
 
 /** Safe fast duration in hours (never negative — fixes bad/synced records). */
@@ -65,6 +65,14 @@ export function formatFastingHoursTotal(hours: number): string {
     return `${Math.round(h * 10) / 10}h`;
   }
   return formatHours(h);
+}
+
+/**
+ * Insights / Today / analytics tiles: same rules as `formatFastingHoursTotal` for rolled-up hours
+ * so long all-time values stay short in UI (e.g. days instead of 2000+h).
+ */
+export function formatInsightHours(hours: number): string {
+  return formatFastingHoursTotal(hours);
 }
 
 /**

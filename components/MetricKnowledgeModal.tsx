@@ -1,3 +1,4 @@
+import { fs, lh } from '@/constants/theme';
 import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
@@ -9,18 +10,88 @@ import {
   Animated,
   Easing,
   Dimensions,
+  TextStyle,
 } from 'react-native';
-import { X, BookOpen, FlaskConical, Sparkles, ListChecks, FileText } from 'lucide-react-native';
+import {
+  X, BookOpen, FlaskConical, Sparkles, ListChecks, FileText, Clock,
+  Flame, Zap, HeartPulse, Droplets, Dna, Droplet, UtensilsCrossed,
+  RefreshCw, BarChart3, Moon, Activity,
+} from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MetricKnowledge } from '@/mocks/metric-knowledge';
 import type { ColorScheme } from '@/constants/colors';
+import { hexAlpha } from '@/constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const METRIC_ICON_MAP: Record<string, React.FC<any>> = {
+  Flame, Zap, HeartPulse, Droplets, Dna, Droplet, UtensilsCrossed,
+  Sparkles, RefreshCw, BarChart3, Clock, Moon, Activity,
+};
 
 interface MetricKnowledgeModalProps {
   visible: boolean;
   metric: MetricKnowledge | null;
   onClose: () => void;
+}
+
+/** Renders `**bold**` segments as heavy weight (educational copy in metric knowledge). */
+function TextWithBold({
+  text,
+  baseStyle,
+  boldColor,
+}: {
+  text: string;
+  baseStyle: TextStyle;
+  boldColor?: string;
+}) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const inner = part.slice(2, -2);
+          return (
+            <Text key={i} style={[baseStyle, { fontWeight: '700' as const, color: boldColor ?? baseStyle.color }]}>
+              {inner}
+            </Text>
+          );
+        }
+        return part;
+      })}
+    </Text>
+  );
+}
+
+function TwelveHourFastingStrip({
+  accentColor,
+  colors,
+}: {
+  accentColor: string;
+  colors: ColorScheme;
+}) {
+  return (
+    <View style={{ marginTop: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <Clock size={14} color={accentColor} />
+        <Text style={{ fontSize: fs(11), fontWeight: '700', color: colors.text, letterSpacing: -0.2 }}>
+          ~12-hour mark on a 0→24h fast
+        </Text>
+      </View>
+      <View style={{ height: 10, borderRadius: 5, flexDirection: 'row', overflow: 'hidden' }}>
+        <View style={{ flex: 1, backgroundColor: colors.surface }} />
+        <View style={{ flex: 1, backgroundColor: hexAlpha(accentColor, 0.38) }} />
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+        <Text style={{ fontSize: fs(10), color: colors.textMuted }}>0h</Text>
+        <Text style={{ fontSize: fs(10), color: accentColor, fontWeight: '700' }}>~12h shift</Text>
+        <Text style={{ fontSize: fs(10), color: colors.textMuted }}>24h</Text>
+      </View>
+      <Text style={{ fontSize: fs(10), color: colors.textMuted, marginTop: 6, lineHeight: lh(10, 1.35) }}>
+        Left: earlier fast (glycogen-heavy for many). Right: deeper into the first day (more fat/ketone contribution for many people).
+      </Text>
+    </View>
+  );
 }
 
 function SectionBlock({
@@ -150,8 +221,8 @@ export default function MetricKnowledgeModal({ visible, metric, onClose }: Metri
           <View style={styles.handleBar} />
 
           <View style={styles.headerRow}>
-            <View style={[styles.headerEmojiWrap, { backgroundColor: metric.color + '18' }]}>
-              <Text style={styles.headerEmoji}>{metric.emoji}</Text>
+            <View style={[styles.headerIconWrap, { backgroundColor: metric.color + '18' }]}>
+              {(() => { const Icon = METRIC_ICON_MAP[metric.iconName]; return Icon ? <Icon size={22} color={metric.color} /> : null; })()}
             </View>
             <View style={styles.headerTextWrap}>
               <Text style={styles.headerTitle}>{metric.title}</Text>
@@ -167,7 +238,7 @@ export default function MetricKnowledgeModal({ visible, metric, onClose }: Metri
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.shortDesc}>{metric.shortDesc}</Text>
+          <TextWithBold text={metric.shortDesc} baseStyle={styles.shortDesc} boldColor={metric.color} />
 
           <View style={[styles.accentLine, { backgroundColor: metric.color }]} />
 
@@ -184,7 +255,7 @@ export default function MetricKnowledgeModal({ visible, metric, onClose }: Metri
               index={0}
               colors={colors}
             >
-              <Text style={styles.bodyText}>{metric.science}</Text>
+              <TextWithBold text={metric.science} baseStyle={styles.bodyText} boldColor={metric.color} />
             </SectionBlock>
 
             <SectionBlock
@@ -194,10 +265,35 @@ export default function MetricKnowledgeModal({ visible, metric, onClose }: Metri
               index={1}
               colors={colors}
             >
-              <Text style={styles.bodyText}>{metric.howFastingHelps}</Text>
+              <TextWithBold text={metric.howFastingHelps} baseStyle={styles.bodyText} boldColor={metric.color} />
             </SectionBlock>
 
-            {metric.vedicPerspective && (
+            {metric.twelveHourGuide && (
+              <SectionBlock
+                icon={<Clock size={16} color={metric.color} />}
+                title="Around ~12 hours (illustrated)"
+                color={metric.color}
+                index={2}
+                colors={colors}
+              >
+                <TwelveHourFastingStrip accentColor={metric.color} colors={colors} />
+                <TextWithBold text={metric.twelveHourGuide} baseStyle={styles.bodyText} boldColor={metric.color} />
+              </SectionBlock>
+            )}
+
+            {metric.longHorizonGuide && (
+              <SectionBlock
+                icon={<Sparkles size={16} color={metric.color} />}
+                title="Longer fasts & big outcomes"
+                color={metric.color}
+                index={3}
+                colors={colors}
+              >
+                <TextWithBold text={metric.longHorizonGuide} baseStyle={styles.bodyText} boldColor={metric.color} />
+              </SectionBlock>
+            )}
+
+            {/* {metric.vedicPerspective && (
               <SectionBlock
                 icon={<Sparkles size={16} color="#7B68AE" />}
                 title="Vedic Perspective"
@@ -209,13 +305,13 @@ export default function MetricKnowledgeModal({ visible, metric, onClose }: Metri
                   <Text style={[styles.vedicText, { color: vedicText }]}>{metric.vedicPerspective}</Text>
                 </View>
               </SectionBlock>
-            )}
+            )} */}
 
             <SectionBlock
               icon={<ListChecks size={16} color={metric.color} />}
               title="Key Facts"
               color={metric.color}
-              index={3}
+              index={4}
               colors={colors}
             >
               {metric.keyFacts.map((fact, i) => (
@@ -231,7 +327,7 @@ export default function MetricKnowledgeModal({ visible, metric, onClose }: Metri
                 icon={<FileText size={16} color={colors.textMuted} />}
                 title="Sources"
                 color={colors.textMuted}
-                index={4}
+                index={5}
                 colors={colors}
               >
                 {metric.sources.map((source, i) => (
@@ -280,27 +376,24 @@ function makeStyles(colors: ColorScheme) {
       gap: 14,
       marginBottom: 12,
     },
-    headerEmojiWrap: {
+    headerIconWrap: {
       width: 48,
       height: 48,
       borderRadius: 16,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
-    headerEmoji: {
-      fontSize: 26,
-    },
     headerTextWrap: {
       flex: 1,
     },
     headerTitle: {
-      fontSize: 20,
+      fontSize: fs(20),
       fontWeight: '700' as const,
       color: colors.text,
       letterSpacing: -0.3,
     },
     headerBadge: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       marginTop: 2,
     },
@@ -313,7 +406,7 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
     },
     shortDesc: {
-      fontSize: 15,
+      fontSize: fs(15),
       color: colors.textSecondary,
       lineHeight: 22,
       marginBottom: 14,
@@ -348,13 +441,13 @@ function makeStyles(colors: ColorScheme) {
       justifyContent: 'center' as const,
     },
     sectionTitle: {
-      fontSize: 15,
+      fontSize: fs(15),
       fontWeight: '700' as const,
       color: colors.text,
       letterSpacing: -0.2,
     },
     bodyText: {
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       lineHeight: 22,
     },
@@ -365,7 +458,7 @@ function makeStyles(colors: ColorScheme) {
       borderLeftColor: '#7B68AE',
     },
     vedicText: {
-      fontSize: 14,
+      fontSize: fs(14),
       lineHeight: 22,
       fontStyle: 'italic' as const,
     },
@@ -383,12 +476,12 @@ function makeStyles(colors: ColorScheme) {
     },
     factText: {
       flex: 1,
-      fontSize: 14,
+      fontSize: fs(14),
       color: colors.textSecondary,
       lineHeight: 20,
     },
     sourceText: {
-      fontSize: 12,
+      fontSize: fs(12),
       color: colors.textMuted,
       lineHeight: 18,
       marginBottom: 4,

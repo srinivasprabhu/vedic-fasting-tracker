@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import {
   View,
@@ -6,12 +7,15 @@ import {
   Animated,
   Easing,
   TouchableOpacity,
+  ScrollView,
   ViewStyle,
   TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, Waves, Flame, Zap, Brain, Sparkles, Leaf, Check } from 'lucide-react-native';
 import type { ColorScheme } from '@/constants/colors';
+import { METABOLIC_ZONE_PALETTE } from '@/constants/metabolicZones';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import MetabolicZoneModal from './MetabolicZoneModal';
 
 interface MetabolicZone {
@@ -26,22 +30,23 @@ interface MetabolicZone {
   icon: string;
 }
 
+export type MetabolicZoneRiverVariant = 'card' | 'embedded';
+
 interface MetabolicZoneRiverProps {
   hoursElapsed: number;
   isActive: boolean;
   colors: ColorScheme;
+  /** `embedded`: compact strip for inside the timer card (fasting only). `card`: full section below the fold. */
+  variant?: MetabolicZoneRiverVariant;
 }
 
 type ZoneState = 'past' | 'active' | 'next' | 'future';
 
-const ZONE_COLORS = {
-  anabolic: '#5b8dd9',
-  catabolic: '#d4a017',
-  fatBurning: '#e07b30',
-  ketosis: '#c05050',
-  autophagy: '#8b6bbf',
-  deepRenewal: '#3aaa6e',
-} as const;
+const ZONE_COLORS = METABOLIC_ZONE_PALETTE;
+
+const ZONE_ICON_MAP: Record<string, React.FC<any>> = {
+  Waves, Flame, Zap, Brain, Sparkles, Leaf,
+};
 
 const ZONES: MetabolicZone[] = [
   {
@@ -53,7 +58,7 @@ const ZONES: MetabolicZone[] = [
     startHour: 0,
     endHour: 4,
     color: ZONE_COLORS.anabolic,
-    icon: '🌊',
+    icon: 'Waves',
   },
   {
     id: 'catabolic',
@@ -64,7 +69,7 @@ const ZONES: MetabolicZone[] = [
     startHour: 4,
     endHour: 12,
     color: ZONE_COLORS.catabolic,
-    icon: '🔥',
+    icon: 'Flame',
   },
   {
     id: 'fatBurning',
@@ -75,7 +80,7 @@ const ZONES: MetabolicZone[] = [
     startHour: 12,
     endHour: 18,
     color: ZONE_COLORS.fatBurning,
-    icon: '⚡',
+    icon: 'Zap',
   },
   {
     id: 'ketosis',
@@ -86,7 +91,7 @@ const ZONES: MetabolicZone[] = [
     startHour: 18,
     endHour: 24,
     color: ZONE_COLORS.ketosis,
-    icon: '🧠',
+    icon: 'Brain',
   },
   {
     id: 'autophagy',
@@ -97,7 +102,7 @@ const ZONES: MetabolicZone[] = [
     startHour: 24,
     endHour: 48,
     color: ZONE_COLORS.autophagy,
-    icon: '✨',
+    icon: 'Sparkles',
   },
   {
     id: 'deepRenewal',
@@ -108,7 +113,7 @@ const ZONES: MetabolicZone[] = [
     startHour: 48,
     endHour: null,
     color: ZONE_COLORS.deepRenewal,
-    icon: '🌱',
+    icon: 'Leaf',
   },
 ];
 
@@ -152,10 +157,16 @@ function formatElapsed(hours: number): string {
 }
 
 const PulsingDot: React.FC<{ color: string; size?: number }> = ({ color, size = 20 }) => {
+  const reduceMotion = useReducedMotion();
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (reduceMotion) {
+      scale.setValue(1);
+      opacity.setValue(1);
+      return;
+    }
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -170,7 +181,7 @@ const PulsingDot: React.FC<{ color: string; size?: number }> = ({ color, size = 
     );
     pulse.start();
     return () => pulse.stop();
-  }, [scale, opacity]);
+  }, [scale, opacity, reduceMotion]);
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -199,9 +210,14 @@ const PulsingDot: React.FC<{ color: string; size?: number }> = ({ color, size = 
 };
 
 const RiverLiveBadge: React.FC = () => {
+  const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      return;
+    }
     const blink = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.3, duration: 700, useNativeDriver: true }),
@@ -210,7 +226,7 @@ const RiverLiveBadge: React.FC = () => {
     );
     blink.start();
     return () => blink.stop();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   return (
     <View style={riverStyles.liveBadge}>
@@ -313,7 +329,7 @@ const ZoneNode: React.FC<{
         ) : (
           <View style={[riverStyles.nodeCircle, { borderColor: zone.color, backgroundColor: colors.card, opacity: cardOpacity }]}>
             {isPast ? (
-              <Text style={{ fontSize: 10, color: zone.color }}>✓</Text>
+              <Check size={10} color={zone.color} strokeWidth={3} />
             ) : (
               <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: zone.color, opacity: 0.4 }} />
             )}
@@ -341,7 +357,9 @@ const ZoneNode: React.FC<{
       >
         <View style={riverStyles.zoneHeader}>
           <View style={riverStyles.zoneNameRow}>
-            <Text style={riverStyles.zoneIcon}>{zone.icon}</Text>
+            <View style={[riverStyles.zoneIconCircle, { backgroundColor: `${zone.color}15` }]}>
+              {(() => { const Icon = ZONE_ICON_MAP[zone.icon]; return Icon ? <Icon size={16} color={zone.color} /> : null; })()}
+            </View>
             <Text style={[riverStyles.zoneName, { color: colors.text }, isActive && { color: zone.color }]}>
               {zone.name}
             </Text>
@@ -359,8 +377,8 @@ const ZoneNode: React.FC<{
             )}
             <Text style={[riverStyles.zoneTimeText, { color: colors.textSecondary }]}>
               {zone.endHour ? `${zone.startHour}–${zone.endHour}h` : `${zone.startHour}h+`}
-              {isPast ? ' ✓' : ''}
             </Text>
+            {isPast && <Check size={12} color={colors.success} strokeWidth={3} />}
           </View>
         </View>
 
@@ -408,11 +426,16 @@ const ZoneNode: React.FC<{
   );
 };
 
-const MetabolicZoneRiver: React.FC<MetabolicZoneRiverProps> = ({ hoursElapsed, isActive, colors }) => {
+const MetabolicZoneRiver: React.FC<MetabolicZoneRiverProps> = ({
+  hoursElapsed,
+  isActive,
+  colors,
+  variant = 'card',
+}) => {
   const [selectedZone, setSelectedZone] = useState<MetabolicZone | null>(null);
   const [breakdownExpanded, setBreakdownExpanded] = useState(false);
-  const activeZone = useMemo(() =>
-    ZONES.find((z) => hoursElapsed >= z.startHour && hoursElapsed < (z.endHour ?? Infinity)),
+  const activeZone = useMemo(
+    () => ZONES.find((z) => hoursElapsed >= z.startHour && hoursElapsed < (z.endHour ?? Infinity)),
     [hoursElapsed]
   );
 
@@ -431,6 +454,86 @@ const MetabolicZoneRiver: React.FC<MetabolicZoneRiverProps> = ({ hoursElapsed, i
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBreakdownExpanded((v) => !v);
   }, []);
+
+  if (variant === 'embedded') {
+    if (!isActive || !activeZone) return null;
+    const countdownLabel = formatHoursToNext(activeZone, hoursElapsed);
+
+    return (
+      <View style={embeddedStyles.wrap}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={toggleBreakdown}
+          accessibilityRole="button"
+          accessibilityLabel={`${activeZone.name}, ${activeZone.subtitle}. Tap to ${breakdownExpanded ? 'hide' : 'show'} fasting stages`}
+          accessibilityState={{ expanded: breakdownExpanded }}
+        >
+          <View
+            style={[
+              embeddedStyles.strip,
+              {
+                borderColor: `${colors.primary}40`,
+                backgroundColor: `${colors.primary}0D`,
+              },
+            ]}
+          >
+            <View style={embeddedStyles.stripLeft}>
+              <View style={[embeddedStyles.stripDot, { backgroundColor: activeZone.color }]} />
+              <Text style={[embeddedStyles.stripName, { color: activeZone.color }]} numberOfLines={1}>
+                {activeZone.name}
+              </Text>
+              <Text style={[embeddedStyles.stripSep, { color: colors.textMuted }]}>·</Text>
+              <Text
+                style={[embeddedStyles.stripSub, { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {activeZone.subtitle}
+              </Text>
+            </View>
+            <View style={embeddedStyles.stripRight}>
+              <Text style={[embeddedStyles.stripCountdown, { color: colors.text }]} numberOfLines={1}>
+                {countdownLabel}
+              </Text>
+              <ChevronDown
+                size={18}
+                color={colors.textSecondary}
+                style={{
+                  transform: [{ rotate: breakdownExpanded ? '180deg' : '0deg' }],
+                }}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {breakdownExpanded && (
+          <ScrollView
+            style={embeddedStyles.riverScroll}
+            contentContainerStyle={embeddedStyles.riverScrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {ZONES.map((zone, idx) => (
+              <ZoneNode
+                key={zone.id}
+                zone={zone}
+                state={getZoneState(zone, hoursElapsed)}
+                isLast={idx === ZONES.length - 1}
+                hoursElapsed={hoursElapsed}
+                colors={colors}
+                onPress={() => setSelectedZone(zone)}
+              />
+            ))}
+          </ScrollView>
+        )}
+
+        <MetabolicZoneModal
+          visible={selectedZone !== null}
+          zone={selectedZone}
+          onClose={() => setSelectedZone(null)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={riverStyles.container}>
@@ -469,7 +572,7 @@ const MetabolicZoneRiver: React.FC<MetabolicZoneRiverProps> = ({ hoursElapsed, i
               <RiverLiveBadge />
             ) : (
               <View style={[riverStyles.idleBadge, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight }]}>
-                <Text style={[riverStyles.idleText, { color: colors.textSecondary }]}>NOT STARTED</Text>
+                <Text style={[riverStyles.idleText, { color: colors.textSecondary }]}>Not fasting</Text>
               </View>
             )}
           </View>
@@ -540,14 +643,14 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   expandHint: {
-    fontSize: 13,
+    fontSize: fs(13),
     marginTop: 6,
     fontWeight: '500',
     lineHeight: 18,
   } as TextStyle,
 
   headerTitle: {
-    fontSize: 24,
+    fontSize: fs(24),
     fontWeight: '700',
     letterSpacing: -0.4,
     marginBottom: 4,
@@ -555,7 +658,7 @@ const riverStyles = StyleSheet.create({
   } as TextStyle,
 
   headerSub: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '500',
     letterSpacing: 0.2,
     lineHeight: 20,
@@ -582,7 +685,7 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   liveText: {
-    fontSize: 13,
+    fontSize: fs(13),
     color: '#3aaa6e',
     fontWeight: '600',
     letterSpacing: 0.4,
@@ -597,7 +700,7 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   idleText: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '700',
     letterSpacing: 0.5,
   } as TextStyle,
@@ -621,12 +724,12 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   activePillText: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '600',
   } as TextStyle,
 
   activePillSub: {
-    fontSize: 13,
+    fontSize: fs(13),
     lineHeight: 18,
   } as TextStyle,
 
@@ -691,12 +794,16 @@ const riverStyles = StyleSheet.create({
     gap: 6,
   } as ViewStyle,
 
-  zoneIcon: {
-    fontSize: 18,
-  } as TextStyle,
+  zoneIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
 
   zoneName: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '600',
     lineHeight: 22,
   } as TextStyle,
@@ -714,7 +821,7 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   nowBadgeText: {
-    fontSize: 10,
+    fontSize: fs(10),
     color: '#FFFFFF',
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -728,19 +835,19 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   nextBadgeText: {
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: '600',
     letterSpacing: 0.3,
   } as TextStyle,
 
   zoneTimeText: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '500',
     lineHeight: 18,
   } as TextStyle,
 
   zoneSubtitle: {
-    fontSize: 14,
+    fontSize: fs(14),
     marginBottom: 2,
     lineHeight: 20,
     fontWeight: '400',
@@ -769,7 +876,7 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   progressLabel: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '500',
   } as TextStyle,
 
@@ -782,10 +889,82 @@ const riverStyles = StyleSheet.create({
   } as ViewStyle,
 
   benefitText: {
-    fontSize: 14,
+    fontSize: fs(14),
     lineHeight: 20,
     fontStyle: 'italic',
   } as TextStyle,
+});
+
+const embeddedStyles = StyleSheet.create({
+  wrap: {
+    width: '100%',
+    marginTop: 10,
+    marginBottom: 0,
+  } as ViewStyle,
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    gap: 10,
+  } as ViewStyle,
+  stripLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 0,
+    gap: 6,
+  } as ViewStyle,
+  stripDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
+  } as ViewStyle,
+  stripName: {
+    fontSize: fs(15),
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    flexShrink: 1,
+    minWidth: 56,
+  } as TextStyle,
+  stripSep: {
+    fontSize: fs(13),
+    fontWeight: '500',
+    opacity: 0.85,
+    flexShrink: 0,
+  } as TextStyle,
+  stripSub: {
+    fontSize: fs(13),
+    fontWeight: '500',
+    flex: 1,
+    minWidth: 0,
+    lineHeight: 18,
+  } as TextStyle,
+  stripRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  } as ViewStyle,
+  stripCountdown: {
+    fontSize: fs(13),
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    flexShrink: 0,
+  } as TextStyle,
+  riverScroll: {
+    marginTop: 10,
+    width: '100%',
+    maxHeight: 300,
+  } as ViewStyle,
+  riverScrollContent: {
+    paddingBottom: 4,
+  } as ViewStyle,
 });
 
 export default MetabolicZoneRiver;

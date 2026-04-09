@@ -4,37 +4,39 @@ import {
   TouchableOpacity, ViewStyle, TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Dna, Flame, Clock, Target, Check } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, fs, lh } from '@/constants/theme';
+import type { ColorScheme } from '@/constants/colors';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface StepBuildingPlanProps {
   userName: string;
-  /** Called when the animation finishes — parent should advance to the plan reveal step */
   onComplete: () => void;
 }
 
 // ─── Analysis stages ──────────────────────────────────────────────────────────
 
-const STAGES = [
-  { icon: '🧬', label: 'Analysing your profile…' },
-  { icon: '🔥', label: 'Calculating metabolic rate…' },
-  { icon: '🕐', label: 'Designing your fasting window…' },
-  { icon: '🎯', label: 'Personalising daily targets…' },
-  { icon: '✦',  label: 'Your plan is ready' },
+const STAGES: { Icon: typeof Dna | null; label: string }[] = [
+  { Icon: Dna,    label: 'Analysing your profile…' },
+  { Icon: Flame,  label: 'Calculating metabolic rate…' },
+  { Icon: Clock,  label: 'Designing your fasting window…' },
+  { Icon: Target, label: 'Personalising daily targets…' },
+  { Icon: null,   label: 'Your plan is ready' },
 ];
 
-const STAGE_DELAY   = 850;  // ms between each stage appearing
+const STAGE_DELAY = 850;
 
 // ─── Single stage row ─────────────────────────────────────────────────────────
 
 const StageRow: React.FC<{
-  icon:    string;
+  Icon:    typeof Dna | null;
   label:   string;
-  isDark:  boolean;
+  colors:  ColorScheme;
   index:   number;
   active:  boolean;
   isLast:  boolean;
-}> = ({ icon, label, isDark, index, active, isLast }) => {
+}> = ({ Icon, label, colors, index, active, isLast }) => {
   const opacity = useRef(new Animated.Value(0)).current;
   const slideY  = useRef(new Animated.Value(12)).current;
   const scale   = useRef(new Animated.Value(0.92)).current;
@@ -55,17 +57,15 @@ const StageRow: React.FC<{
         toValue: 1, speed: 16, bounciness: 4, useNativeDriver: true,
       }),
     ]).start(() => {
-      // Show checkmark after the row has appeared
       Animated.timing(checkOpacity, {
         toValue: 1, duration: 260, delay: 200, useNativeDriver: true,
       }).start();
     });
   }, [active]);
 
-  const cream  = isDark ? '#f0e0c0' : '#1e1004';
-  const gold   = isDark ? '#e8a84c' : '#a06820';
-  const muted  = isDark ? 'rgba(240,224,192,0.45)' : 'rgba(60,35,10,0.5)';
-  const check  = isDark ? '#7AAE79' : '#187040';
+  const gold   = colors.primary;
+  const muted  = colors.textMuted;
+  const checkColor = colors.success;
 
   return (
     <Animated.View style={[
@@ -75,7 +75,19 @@ const StageRow: React.FC<{
         transform: [{ translateY: slideY }, { scale }],
       },
     ]}>
-      <Text style={[styles.stageIcon, isLast && { color: gold }]}>{icon}</Text>
+      <View style={styles.stageIconWrap}>
+        {Icon ? (
+          <Icon size={18} color={isLast ? gold : muted} />
+        ) : (
+          <Text
+            style={[styles.stageBrandMark, { color: gold }]}
+            accessible={false}
+            importantForAccessibility="no"
+          >
+            ✦
+          </Text>
+        )}
+      </View>
       <Text style={[
         styles.stageLabel,
         { color: isLast ? gold : muted },
@@ -84,9 +96,9 @@ const StageRow: React.FC<{
         {label}
       </Text>
       {!isLast && (
-        <Animated.Text style={[styles.stageCheck, { opacity: checkOpacity, color: check }]}>
-          ✓
-        </Animated.Text>
+        <Animated.View style={{ opacity: checkOpacity }}>
+          <Check size={14} color={checkColor} strokeWidth={3} />
+        </Animated.View>
       )}
     </Animated.View>
   );
@@ -95,28 +107,21 @@ const StageRow: React.FC<{
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, onComplete }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isComplete, setIsComplete] = useState(false);
 
-  // Progress bar
   const progressAnim = useRef(new Animated.Value(0)).current;
-
-  // Title fade-in
   const titleOpacity = useRef(new Animated.Value(0)).current;
   const titleSlide   = useRef(new Animated.Value(16)).current;
-
-  // Glow pulse
-  const glowOpacity = useRef(new Animated.Value(0.03)).current;
-
-  // CTA button entrance
-  const ctaOpacity = useRef(new Animated.Value(0)).current;
-  const ctaSlide   = useRef(new Animated.Value(20)).current;
-  const ctaScale   = useRef(new Animated.Value(0.9)).current;
+  const glowOpacity  = useRef(new Animated.Value(0.03)).current;
+  const ctaOpacity   = useRef(new Animated.Value(0)).current;
+  const ctaSlide     = useRef(new Animated.Value(20)).current;
+  const ctaScale     = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
-    // Title entrance
     Animated.parallel([
       Animated.timing(titleOpacity, {
         toValue: 1, duration: 500, easing: Easing.out(Easing.ease), useNativeDriver: true,
@@ -126,15 +131,6 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
       }),
     ]).start();
 
-    // Pulsing glow
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowOpacity, { toValue: 0.08, duration: 1200, useNativeDriver: true }),
-        Animated.timing(glowOpacity, { toValue: 0.03, duration: 1200, useNativeDriver: true }),
-      ]),
-    ).start();
-
-    // Progress bar — smooth fill over the full duration
     const totalDuration = STAGES.length * STAGE_DELAY;
     Animated.timing(progressAnim, {
       toValue: 1,
@@ -143,18 +139,15 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
       useNativeDriver: false,
     }).start();
 
-    // Reveal stages one by one
     const timers: ReturnType<typeof setTimeout>[] = [];
     STAGES.forEach((_, i) => {
       const timer = setTimeout(() => {
         setActiveIndex(i);
 
-        // After the last stage appears, show the CTA
         if (i === STAGES.length - 1) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setIsComplete(true);
 
-          // Animate CTA button in
           Animated.parallel([
             Animated.timing(ctaOpacity, {
               toValue: 1, duration: 420, delay: 300,
@@ -176,27 +169,40 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  useEffect(() => {
+    if (reduceMotion) {
+      glowOpacity.setValue(0.055);
+      return;
+    }
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowOpacity, { toValue: 0.08, duration: 1200, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.03, duration: 1200, useNativeDriver: true }),
+      ]),
+    );
+    glowLoop.start();
+    return () => glowLoop.stop();
+  }, [reduceMotion, glowOpacity]);
+
   const handleRevealPlan = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onComplete();
   }, [onComplete]);
 
-  const cream    = isDark ? '#f0e0c0' : '#1e1004';
-  const gold     = isDark ? '#c8872a' : '#a06820';
-  const goldLt   = isDark ? '#e8a84c' : '#b07020';
-  const mutedSub = isDark ? 'rgba(240,224,192,0.38)' : 'rgba(60,35,10,0.42)';
+  const cream    = colors.text;
+  const gold     = colors.primary;
+  const goldLt   = colors.trackWeight;
+  const mutedSub = colors.textSecondary;
 
   const firstName = userName?.trim().split(' ')[0] || '';
 
   return (
     <View style={styles.container}>
-      {/* Ambient glow */}
       <Animated.View style={[
         styles.glow,
         { backgroundColor: gold, opacity: glowOpacity },
       ]} />
 
-      {/* Title */}
       <Animated.View style={[
         styles.titleWrap,
         { opacity: titleOpacity, transform: [{ translateY: titleSlide }] },
@@ -210,9 +216,8 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
         </Text>
       </Animated.View>
 
-      {/* Progress bar */}
       <View style={[styles.progressTrack, {
-        backgroundColor: isDark ? 'rgba(200,135,42,0.1)' : 'rgba(200,135,42,0.14)',
+        backgroundColor: `${colors.primary}24`,
       }]}>
         <Animated.View style={[styles.progressFill, {
           backgroundColor: goldLt,
@@ -224,14 +229,13 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
         }]} />
       </View>
 
-      {/* Stage list */}
       <View style={styles.stageList}>
         {STAGES.map((stage, i) => (
           <StageRow
             key={i}
-            icon={stage.icon}
+            Icon={stage.Icon}
             label={stage.label}
-            isDark={isDark}
+            colors={colors}
             index={i}
             active={i <= activeIndex}
             isLast={i === STAGES.length - 1}
@@ -239,7 +243,6 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
         ))}
       </View>
 
-      {/* CTA — appears after all stages complete */}
       <Animated.View style={[
         styles.ctaWrap,
         {
@@ -253,15 +256,17 @@ export const StepBuildingPlan: React.FC<StepBuildingPlanProps> = ({ userName, on
           style={[
             styles.ctaBtn,
             {
-              backgroundColor: isDark ? gold : '#b07020',
-              shadowColor: gold,
+              backgroundColor: colors.fastAction,
+              shadowColor: colors.fastAction,
               shadowOpacity: isDark ? 0.35 : 0.25,
             },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="See my personalised plan"
         >
           <Text style={[
             styles.ctaText,
-            { color: isDark ? '#1a0d04' : '#fff8ed' },
+            { color: colors.onFastAction },
           ]}>
             See my personalised plan ✦
           </Text>
@@ -297,8 +302,8 @@ const styles = StyleSheet.create({
 
   title: {
     fontFamily: FONTS.displayLight,
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: fs(32),
+    lineHeight: lh(32),
     letterSpacing: 0.2,
     textAlign: 'center',
     marginBottom: SPACING.xs + 2,
@@ -306,17 +311,17 @@ const styles = StyleSheet.create({
 
   titleAccent: {
     fontFamily: FONTS.displayItalic,
-    fontSize: 32,
+    fontSize: fs(32),
+    lineHeight: lh(32),
   } as TextStyle,
 
   subtitle: {
     fontFamily: FONTS.bodyRegular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(13, 1.35),
     textAlign: 'center',
   } as TextStyle,
 
-  // Progress bar
   progressTrack: {
     width: '80%',
     height: 4,
@@ -333,7 +338,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   } as ViewStyle,
 
-  // Stage list
   stageList: {
     width: '100%',
     gap: SPACING.md + 2,
@@ -346,15 +350,19 @@ const styles = StyleSheet.create({
     gap: SPACING.sm + 4,
   } as ViewStyle,
 
-  stageIcon: {
-    fontSize: 18,
+  stageIconWrap: {
     width: 26,
-    textAlign: 'center',
+    alignItems: 'center',
+  } as ViewStyle,
+
+  stageBrandMark: {
+    fontSize: fs(18),
+    fontFamily: FONTS.bodyRegular,
   } as TextStyle,
 
   stageLabel: {
     fontFamily: FONTS.bodyRegular,
-    fontSize: 14,
+    fontSize: fs(14),
     letterSpacing: 0.1,
     flex: 1,
   } as TextStyle,
@@ -364,13 +372,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   } as TextStyle,
 
-  stageCheck: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
-    fontWeight: '600',
-  } as TextStyle,
-
-  // CTA button
   ctaWrap: {
     width: '100%',
     paddingHorizontal: SPACING.md,
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
 
   ctaText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '600',
     letterSpacing: 0.2,
   } as TextStyle,

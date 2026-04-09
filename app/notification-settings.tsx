@@ -1,3 +1,4 @@
+import { fs } from '@/constants/theme';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -311,7 +312,7 @@ function makeStyles(colors: ColorScheme) {
     },
     section: { marginBottom: 24 },
     sectionTitle: {
-      fontSize: 12,
+      fontSize: fs(12),
       fontWeight: '600' as const,
       color: colors.textMuted,
       letterSpacing: 1,
@@ -335,13 +336,13 @@ function makeStyles(colors: ColorScheme) {
     rowMuted: { opacity: 0.45 },
     rowContent: { flex: 1 },
     rowLabel: {
-      fontSize: 16,
+      fontSize: fs(16),
       fontWeight: '600' as const,
       color: colors.text,
       marginBottom: 4,
     },
     rowDesc: {
-      fontSize: 13,
+      fontSize: fs(13),
       color: colors.textMuted,
       lineHeight: 18,
     },
@@ -351,14 +352,14 @@ function makeStyles(colors: ColorScheme) {
       marginLeft: 16,
     },
     banner: {
-      fontSize: 13,
+      fontSize: fs(13),
       lineHeight: 19,
       paddingHorizontal: 16,
       paddingTop: 14,
       paddingBottom: 8,
     },
     footerNote: {
-      fontSize: 13,
+      fontSize: fs(13),
       lineHeight: 20,
       padding: 16,
     },
