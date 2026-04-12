@@ -9,6 +9,7 @@ import {
   WeightUnit,
   hasBodyMetrics,
   type PlanTemplateId,
+  type LastMealTime,
 } from '@/types/user';
 import { calculatePlan } from '@/utils/calculatePlan';
 import { detectCurrencyFromLocale, getCurrencyInfo } from '@/constants/currencies';
@@ -106,8 +107,9 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
           current_weight_kg: p.currentWeightKg ?? null,
           goal_weight_kg:    p.goalWeightKg ?? null,
           weight_unit:       p.weightUnit ?? 'kg',
-          fasting_purpose:   p.fastingPurpose ?? null,
-          plan:              p.plan ?? null,
+          fasting_purpose:            p.fastingPurpose ?? null,
+          fast_window_start_minutes:  p.fastWindowStartMinutes ?? null,
+          plan:                       p.plan ?? null,
         },
         { onConflict: 'id' }
       )
@@ -137,6 +139,8 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
     goalWeightKg?:   number;
     weightUnit?:     WeightUnit;
     fastingPurpose?: FastingPurpose;
+    lastMealTime?:   LastMealTime;
+    fastWindowStartMinutes?: number;
   }) => {
     setProfile((prev) => {
       if (!prev) return prev;

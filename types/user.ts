@@ -117,6 +117,8 @@ export interface UserProfile {
   activityLevel?:    ActivityLevel;
   healthConcerns?:   HealthConcern[];
   lastMealTime?:     LastMealTime;
+  /** Minutes from local midnight (0–1439) when the fast starts; overrides coarse `lastMealTime` when set. */
+  fastWindowStartMinutes?: number;
   safetyFlags?:      SafetyFlags;
 
   // ── Cached plan ───────────────────────────────────────────────────────────

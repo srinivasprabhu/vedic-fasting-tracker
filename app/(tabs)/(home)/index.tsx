@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Play, Square, Flame, Clock, Trophy, Settings, ChevronRight, Sun, Moon, Bell, Sparkles, Edit3, Scale, Check, Smartphone, Droplet, Footprints } from 'lucide-react-native';
+import { Play, Square, Flame, Clock, Trophy, Calendar, ChevronRight, Sun, Moon, Bell, Sparkles, Edit3, Scale, Check, Smartphone, Droplet, Footprints } from 'lucide-react-native';
 
 import { useTheme }        from '@/contexts/ThemeContext';
 
@@ -31,7 +31,11 @@ import type { ColorScheme } from '@/constants/colors';
 import { TRADITIONAL_INSIGHTS_KEY } from '@/constants/storageKeys';
 import { StatTile } from '@/components/ui/StatTile';
 import { formatInsightHours } from '@/utils/analytics-helpers';
-import { formatNextFastTimingPhrase } from '@/utils/fastingPlanSchedule';
+import {
+  formatNextFastHomeLabel,
+  getPlannedFastStartMinutes,
+  nearestLastMealTimeFromMinutes,
+} from '@/utils/fastingPlanSchedule';
 
 // ─── Storage keys ─────────────────────────────────────────────────────────────
 
@@ -97,7 +101,7 @@ export default function HomeScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { activeFast, startFast, endFast, streak, totalHours, completedRecords } = useFasting();
-  const { profile, getGreeting, getInitial, updateFastPlan, isProUser } = useUserProfile();
+  const { profile, getInitial, updateFastPlan, updateProfile, isProUser } = useUserProfile();
   const { presentPaywall } = useRevenueCat();
   const completedFastCount = completedRecords.filter(r => r.completed).length;
   const { visible: showReview, handleReview, handleDismiss: dismissReview } = useReviewPrompt(completedFastCount, streak);
@@ -112,8 +116,6 @@ export default function HomeScreen() {
   const [showWeeklyDaysModal, setShowWeeklyDaysModal] = useState(false);
   const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<FastPlanOption | null>(null);
   const [traditionalInsights, setTraditionalInsights] = useState(false);
-  /** Bumps on focus and every minute while idle so the “Next fast …” clause stays in sync with the clock. */
-  const [nextFastPhraseTick, setNextFastPhraseTick] = useState(0);
 
   // ── Water and weight (not from pedometer, still AsyncStorage) ─────────────
   const [waterMl, setWaterMl]     = useState(0);
@@ -132,7 +134,6 @@ export default function HomeScreen() {
     useCallback(() => {
       // Refresh manual steps from storage (may have been added on detail page)
       pedometer.refreshManual();
-      setNextFastPhraseTick((t) => t + 1);
 
       AsyncStorage.getItem(TRADITIONAL_INSIGHTS_KEY).then((v) => {
         setTraditionalInsights(v === '1' || v === 'true');
@@ -178,12 +179,6 @@ export default function HomeScreen() {
       Animated.timing(slideAnim, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]).start();
   }, []);
-
-  useEffect(() => {
-    if (activeFast || !plan?.fastLabel) return;
-    const id = setInterval(() => setNextFastPhraseTick((x) => x + 1), 60_000);
-    return () => clearInterval(id);
-  }, [activeFast, plan?.fastLabel]);
 
   const timer = useFastTimer(activeFast ? { startTime: activeFast.startTime, onZoneChange: () => {} } : null);
 
@@ -234,10 +229,10 @@ export default function HomeScreen() {
   const progress  = activeFast ? timer.elapsedMs / activeFast.targetDuration : 0;
   const remaining = activeFast ? Math.max(0, activeFast.targetDuration - timer.elapsedMs) : 0;
 
-  const nextFastTimingPhrase = useMemo(
-    () => formatNextFastTimingPhrase(profile, new Date()),
-    [profile, nextFastPhraseTick],
-  );
+  const nextFastTimingLabel = useMemo(() => {
+    if (!profile?.plan?.fastHours) return null;
+    return formatNextFastHomeLabel(profile);
+  }, [profile]);
 
   const waterPct    = waterTarget > 0 ? (waterMl / waterTarget) * 100 : 0;
   const stepsPct    = stepsTarget > 0 ? (pedometer.steps / stepsTarget) * 100 : 0;
@@ -270,9 +265,19 @@ export default function HomeScreen() {
         <View style={[styles.headerSticky, { backgroundColor: colors.background }]}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
-              <View style={styles.avatar} accessibilityLabel={`User avatar, ${profile?.name ?? 'Friend'}`}>
+              <TouchableOpacity
+                style={styles.avatar}
+                accessibilityLabel={`User avatar, ${profile?.name ?? 'Friend'}. Open settings`}
+                accessibilityRole="button"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/settings' as any);
+                }}
+                activeOpacity={0.75}
+                hitSlop={HEADER_ICON_HIT_SLOP}
+              >
                 <Text style={styles.avatarText}>{getInitial()}</Text>
-              </View>
+              </TouchableOpacity>
               <View style={styles.headerTextCol}>
                 <Text style={[styles.greeting, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
                   {profile?.name ?? 'Friend'}
@@ -305,13 +310,16 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.iconHeaderBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
-                onPress={() => router.push('/settings' as any)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(tabs)/calendar' as any);
+                }}
                 activeOpacity={0.7}
-                accessibilityLabel="Settings"
-                accessibilityHint="Open app settings"
+                accessibilityLabel="Calendar"
+                accessibilityHint="Open your fasting calendar"
                 hitSlop={HEADER_ICON_HIT_SLOP}
               >
-                <Settings size={18} color={colors.textSecondary} />
+                <Calendar size={18} color={colors.textSecondary} strokeWidth={2} />
               </TouchableOpacity>
             </View>
           </View>
@@ -321,29 +329,39 @@ export default function HomeScreen() {
 
           {showReview && <ReviewPromptCard onReview={handleReview} onDismiss={dismissReview} />}
 
-          {/* My plan pill */}
-          {plan?.fastLabel && (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setShowPlanPicker(true)}
-              style={[styles.myPlanPill, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
-            >
-              <Text style={[styles.myPlanLabel, { color: colors.textSecondary }]}>My plan</Text>
-              <Text style={[styles.myPlanValue, { color: colors.primary }]}>{plan.fastLabel}</Text>
-              <Edit3 size={14} color={colors.textMuted} style={{ opacity: 0.7 }} />
-            </TouchableOpacity>
-          )}
-
           {/* Timer card */}
           <View style={[styles.timerCard, { backgroundColor: colors.card, borderColor: activeFast ? `${colors.primary}35` : colors.borderLight }]}>
             {activeFast ? (
-              <Text style={[styles.timerEyebrow, { color: colors.textSecondary }]}>{activeFast.label} · {formatShortDuration(remaining)} remaining</Text>
-            ) : plan?.fastLabel ? (
-              <Text style={[styles.timerEyebrow, { color: colors.textSecondary }]}>Next fast · {plan.fastLabel} · {nextFastTimingPhrase}</Text>
+              <Text style={[styles.timerEyebrow, { color: colors.textSecondary }]}>
+                {activeFast.label} · {formatShortDuration(remaining)} remaining
+              </Text>
             ) : null}
             <CircularTimer progress={progress} elapsed={activeFast ? timer.formatted : '00:00:00'} remaining={formatShortDuration(remaining)} label={activeFast ? activeFast.label : 'READY TO FAST'} isActive={!!activeFast} />
             <MetabolicZoneRiver hoursElapsed={timer.hoursElapsed} isActive={!!activeFast} colors={colors} variant="embedded" />
-            <Animated.View style={[styles.timerCtaWrap, { marginTop: activeFast ? 10 : 20 }, { transform: [{ scale: buttonScale }] }]}>
+            {!activeFast && plan?.fastLabel && nextFastTimingLabel ? (
+              <View style={styles.nextPlanMetaRow}>
+                <Text style={[styles.nextPlanLead, { color: colors.textMuted }]}>Next fast</Text>
+                <Text style={[styles.nextPlanDot, { color: colors.textMuted }]}>·</Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowPlanPicker(true);
+                  }}
+                  style={[styles.homePlanPill, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Plan ${plan.fastLabel}, change fasting plan`}
+                >
+                  <Text style={[styles.homePlanPillText, { color: colors.text }]} numberOfLines={1}>
+                    {plan.fastLabel} Plan
+                  </Text>
+                  <Edit3 size={13} color={colors.textMuted} />
+                </TouchableOpacity>
+                <Text style={[styles.nextPlanDot, { color: colors.textMuted }]}>·</Text>
+                <Text style={[styles.nextPlanTiming, { color: colors.textMuted }]}>{nextFastTimingLabel}</Text>
+              </View>
+            ) : null}
+            <Animated.View style={[styles.timerCtaWrap, { marginTop: activeFast ? 10 : 14 }, { transform: [{ scale: buttonScale }] }]}>
               {activeFast ? (
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.fastAction }]} onPress={handleEndFast} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={0.85} testID="stop-fast-button" accessibilityLabel="End fast">
                   <Square size={18} color={colors.onFastAction} fill={colors.onFastAction} />
@@ -527,6 +545,18 @@ export default function HomeScreen() {
         isProUser={isProUser}
         maxFastHours={planMaxFastHours}
         restrictionReason={planRestrictionReason}
+        fastWindowInitialMinutes={getPlannedFastStartMinutes(profile)}
+        onSaveFastWindowStart={
+          profile
+            ? (m) => {
+                updateProfile({
+                  ...profile,
+                  fastWindowStartMinutes: m,
+                  lastMealTime: nearestLastMealTimeFromMinutes(m),
+                });
+              }
+            : undefined
+        }
         onSelect={(p: FastPlanOption) => {
           if (p.id === 'if_5_2' || p.id === 'if_4_3') {
             setWeeklyPlanDraft(p);
@@ -586,14 +616,17 @@ function makeStyles(colors: ColorScheme) {
     headerActions:     { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, flexShrink: 0 } as ViewStyle,
     themeBtn:          { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
     iconHeaderBtn:     { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const } as ViewStyle,
-    myPlanPill:        { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, alignSelf: 'center' as const, gap: 8, paddingHorizontal: 16, minHeight: 44, borderRadius: 22, borderWidth: 1, marginBottom: 16 } as ViewStyle,
-    myPlanLabel:       { fontSize: fs(17), fontWeight: '600' as const, color: colors.text } as TextStyle,
-    myPlanValue:       { fontSize: fs(18), fontWeight: '600' as const, color: colors.primary } as TextStyle,
+    nextPlanMetaRow:   { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, justifyContent: 'center' as const, alignSelf: 'stretch' as const, gap: 6, marginTop: 14, marginBottom: 2, paddingHorizontal: 4 } as ViewStyle,
+    nextPlanLead:      { fontSize: fs(13), fontWeight: '500' as const } as TextStyle,
+    nextPlanDot:       { fontSize: fs(13), fontWeight: '600' as const, opacity: 0.45 } as TextStyle,
+    nextPlanTiming:    { fontSize: fs(13), fontWeight: '500' as const } as TextStyle,
+    homePlanPill:      { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, maxWidth: '48%' as const } as ViewStyle,
+    homePlanPillText:  { fontSize: fs(14), fontWeight: '600' as const, letterSpacing: -0.2, flexShrink: 1 } as TextStyle,
     quoteCard:         { borderRadius: 16, padding: 16, marginBottom: 16, borderLeftWidth: 3, minHeight: 112 } as ViewStyle,
     quoteText:         { fontSize: fs(16), fontStyle: 'italic' as const, lineHeight: 24, fontWeight: '400' as const } as TextStyle,
     quoteSrc:          { fontSize: fs(13), fontWeight: '500' as const, marginTop: 8, lineHeight: 18 } as TextStyle,
     timerCard:         { borderRadius: 28, borderWidth: 1, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 18, marginBottom: 20, alignItems: 'center' as const } as ViewStyle,
-    timerEyebrow:      { fontSize: fs(14), fontWeight: '500' as const, lineHeight: 20, alignSelf: 'center' as const, textAlign: 'center' as const, marginBottom: 14, paddingHorizontal: 4 } as TextStyle,
+    timerEyebrow:      { fontSize: fs(13), fontWeight: '500' as const, lineHeight: 18, alignSelf: 'center' as const, textAlign: 'center' as const, marginBottom: 12, paddingHorizontal: 4 } as TextStyle,
     timerCtaWrap:      { marginTop: 20, width: '100%' as const, alignItems: 'center' as const } as ViewStyle,
     actionBtn:         { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, width: '100%' as const, height: 54, paddingHorizontal: 28, borderRadius: 14, gap: 10 } as ViewStyle,
     actionBtnText:     { fontSize: fs(18), fontWeight: '600' as const, lineHeight: 22 } as TextStyle,

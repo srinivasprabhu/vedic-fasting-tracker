@@ -31,6 +31,7 @@ import { useAuth }        from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { FONTS, SPACING, fs } from '@/constants/theme';
 import { calculatePlan }  from '@/utils/calculatePlan';
+import { lastMealTimeToHour } from '@/utils/fastingPlanSchedule';
 import type {
   FastingPurpose, UserSex, WeightUnit,
   ActivityLevel, HealthConcern, FastingLevel, UserPlan,
@@ -86,7 +87,7 @@ export default function ProfileSetupScreen() {
       lastMealTime: lastMealTime ?? undefined,
       safetyFlags: Object.keys(safetyFlags).length > 0 ? safetyFlags : undefined,
     });
-  }, [sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, fastingLevel, activityLevel, healthConcerns, name]);
+  }, [sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, fastingLevel, activityLevel, healthConcerns, name, lastMealTime]);
 
   const progressAnim   = useRef(new Animated.Value(1 / TOTAL_STEPS)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -134,10 +135,24 @@ export default function ProfileSetupScreen() {
     const base = { name: name.trim() || 'Friend', ageGroup: null as null, fastingLevel, fastingPath: 'if' as const, createdAt: Date.now(), dob };
     if (sex && heightCm && !isNaN(kg)) {
       updateProfile(base);
-      updateBodyMetrics({ sex, dob, heightCm: parseFloat(heightCm), currentWeightKg: kg, goalWeightKg: gkg, weightUnit, fastingPurpose: purpose ?? undefined });
-    } else { updateProfile(base); }
+      const mealMin = lastMealTime ? lastMealTimeToHour(lastMealTime) * 60 : undefined;
+      updateBodyMetrics({
+        sex,
+        dob,
+        heightCm: parseFloat(heightCm),
+        currentWeightKg: kg,
+        goalWeightKg: gkg,
+        weightUnit,
+        fastingPurpose: purpose ?? undefined,
+        ...(lastMealTime
+          ? { lastMealTime, ...(mealMin != null ? { fastWindowStartMinutes: mealMin } : {}) }
+          : {}),
+      });
+    } else {
+      updateProfile(base);
+    }
     router.replace('/(tabs)/(home)' as any);
-  }, [name, fastingLevel, sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, updateProfile, updateBodyMetrics]);
+  }, [name, fastingLevel, sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, lastMealTime, updateProfile, updateBodyMetrics]);
 
   const handleSkip = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -232,8 +247,7 @@ export default function ProfileSetupScreen() {
         const gwKg = targetWeight
           ? (weightUnit === 'lbs' ? parseFloat(targetWeight) / 2.20462 : parseFloat(targetWeight))
           : undefined;
-        const mealHourMap: Record<string, number> = { '7pm': 19, '8pm': 20, '9pm': 21, '10pm': 22, 'later': 23 };
-        const mealHour = lastMealTime ? mealHourMap[lastMealTime] ?? 20 : 20;
+        const mealHour = lastMealTime ? lastMealTimeToHour(lastMealTime) : 19;
         return (
           <StepPlanReveal
             plan={plan}

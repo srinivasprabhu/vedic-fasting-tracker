@@ -15,7 +15,8 @@ interface Props {
   onChange: (v: LastMealTime) => void;
 }
 
-const OPTIONS: { id: LastMealTime; Icon: typeof Clock; label: string; desc: string }[] = [
+/** Shared with home/settings pickers */
+export const LAST_MEAL_OPTIONS: { id: LastMealTime; Icon: typeof Clock; label: string; desc: string }[] = [
   { id: '7pm',   Icon: Sunrise,          label: '7:00 pm',  desc: 'Early dinner, early to bed' },
   { id: '8pm',   Icon: UtensilsCrossed,  label: '8:00 pm',  desc: 'Most common dinner time' },
   { id: '9pm',   Icon: Moon,             label: '9:00 pm',  desc: 'Late dinner, moderate schedule' },
@@ -57,7 +58,7 @@ export const StepLastMeal: React.FC<Props> = ({ value, onChange }) => {
       </Text>
 
       <View style={s.list}>
-        {OPTIONS.map((opt) => {
+        {LAST_MEAL_OPTIONS.map((opt) => {
           const sel = value === opt.id;
           return (
             <TouchableOpacity

@@ -1,6 +1,6 @@
 import { fs } from '@/constants/theme';
 import { Tabs } from 'expo-router';
-import { Clock, BarChart3, Lightbulb, BookOpen } from 'lucide-react-native';
+import { Clock, BarChart3, Lightbulb, BookOpen, Calendar } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  // On Android, account for the software nav bar; on iOS, the home indicator
   const tabBarHeight = 56 + Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
 
   return (
@@ -61,18 +60,18 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <BookOpen size={size - 1} color={color} />,
         }}
       />
-      {/* Daily hidden — detailed views accessible via tap-through from Today */}
       <Tabs.Screen
         name="daily"
         options={{
           href: null,
         }}
       />
-      {/* Calendar hidden — only accessible from settings if Vedic mode is on */}
       <Tabs.Screen
         name="calendar"
         options={{
+          title: 'Calendar',
           href: null,
+          tabBarIcon: ({ color, size }) => <Calendar size={size - 1} color={color} strokeWidth={2} />,
         }}
       />
     </Tabs>

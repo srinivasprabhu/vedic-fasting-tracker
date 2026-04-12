@@ -145,6 +145,16 @@ function RootStack() {
         }}
       />
       <Stack.Screen
+        name="vedic-calendar"
+        options={{
+          title: 'Vedic calendar',
+          headerBackTitle: 'Back',
+          headerStyle: { backgroundColor: colors.background } as const,
+          headerTintColor: colors.primary,
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen
         name="notification-settings"
         options={{
           presentation: 'card',

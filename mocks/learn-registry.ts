@@ -265,6 +265,7 @@ const ARTICLE_LEARN_AUTOPHAGY: ArticleDetail = {
   readMinutes: 8,
   sectionIds: ['on_a_fast', 'start_here'],
   featured: true,
+  heroImage: 'biological_clock',
   hubIcon: 'Clock',
   hubIconColor: '#E85D4C',
   topicTag: 'AUTOPHAGY',
@@ -282,6 +283,7 @@ const ARTICLE_LEARN_IF: ArticleDetail = {
   readMinutes: 12,
   sectionIds: ['protocols', 'start_here'],
   featured: true,
+  heroImage: 'balance_wellness',
   hubIcon: 'Timer',
   hubIconColor: '#C97B2A',
   topicTag: 'IF METHODS',
@@ -299,6 +301,7 @@ const ARTICLE_LEARN_FOODS: ArticleDetail = {
   readMinutes: 6,
   sectionIds: ['on_a_fast', 'start_here'],
   featured: true,
+  heroImage: 'balance_wellness',
   hubIcon: 'Droplets',
   hubIconColor: '#2E86AB',
   topicTag: 'NUTRITION',
@@ -329,6 +332,7 @@ const ARTICLE_LEARN_CORTISOL: ArticleDetail = {
   difficulty: 'intermediate',
   readMinutes: 8,
   sectionIds: ['hormones_longevity'],
+  heroImage: 'biological_clock',
   topicTag: 'HORMONES',
   hubIcon: 'Moon',
   hubIconColor: '#D4A03C',
@@ -400,6 +404,7 @@ export const LEARN_ARTICLE_SUMMARIES: ArticleSummary[] = LEARN_ARTICLES.map((a) 
   topicTag: a.topicTag,
   hubIcon: a.hubIcon,
   hubIconColor: a.hubIconColor,
+  heroImage: a.heroImage,
 }));
 
 /** Hub card — quick protocol comparison (subset of 16:8, 18:6, 5:2, OMAD). */

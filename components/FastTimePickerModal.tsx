@@ -10,11 +10,17 @@ import {
   ScrollView,
   Dimensions,
   Easing,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Clock, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { ColorScheme } from '@/constants/colors';
+import {
+  checkLoggingTimestamp,
+  needsBackdateConfirmation,
+  oldestAllowedLocalDayStartMs,
+} from '@/utils/loggingEligibility';
 
 interface FastTimePickerModalProps {
   visible: boolean;
@@ -41,6 +47,12 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+function startOfLocalDay(d: Date): number {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x.getTime();
+}
+
 export default function FastTimePickerModal({
   visible,
   onClose,
@@ -54,14 +66,14 @@ export default function FastTimePickerModal({
   const dayCellSize = Math.min(Math.floor((SCREEN_WIDTH - 40 - 12) / 7), 44);
   const styles = useMemo(() => makeStyles(colors, dayCellSize), [colors, dayCellSize]);
 
-  const now = new Date();
-  const max = maxDate ?? now;
+  const [minDate, setMinDate] = useState<Date>(() => new Date(oldestAllowedLocalDayStartMs()));
+  const [calendarMax, setCalendarMax] = useState<Date>(() => new Date());
 
   const [step, setStep] = useState<'choice' | 'date' | 'time'>('choice');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(max));
-  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(max.getFullYear(), max.getMonth(), 1));
-  const [selectedHour, setSelectedHour] = useState<number>(max.getHours());
-  const [selectedMinute, setSelectedMinute] = useState<number>(Math.floor(max.getMinutes() / 5) * 5);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [selectedHour, setSelectedHour] = useState<number>(new Date().getHours());
+  const [selectedMinute, setSelectedMinute] = useState<number>(Math.floor(new Date().getMinutes() / 5) * 5);
 
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -72,11 +84,16 @@ export default function FastTimePickerModal({
   useEffect(() => {
     if (visible) {
       const d = maxDateRef.current ?? new Date();
+      const minD = new Date(oldestAllowedLocalDayStartMs(d.getTime()));
+      setMinDate(minD);
+      setCalendarMax(d);
       setStep('choice');
-      setSelectedDate(new Date(d));
-      setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
-      setSelectedHour(d.getHours());
-      setSelectedMinute(Math.floor(d.getMinutes() / 5) * 5);
+      let sel = new Date(d);
+      if (sel.getTime() < minD.getTime()) sel = minD;
+      setSelectedDate(sel);
+      setCalendarMonth(new Date(sel.getFullYear(), sel.getMonth(), 1));
+      setSelectedHour(sel.getHours());
+      setSelectedMinute(Math.floor(sel.getMinutes() / 5) * 5);
 
       slideAnim.setValue(SCREEN_HEIGHT);
       backdropAnim.setValue(0);
@@ -108,7 +125,7 @@ export default function FastTimePickerModal({
         }),
       ]).start();
     }
-  }, [visible, slideAnim, backdropAnim]);
+  }, [visible, slideAnim, backdropAnim, maxDate]);
 
   const closeModal = useCallback(() => {
     Animated.parallel([
@@ -156,20 +173,44 @@ export default function FastTimePickerModal({
       0,
       0
     ).getTime();
-    closeModal();
-    setTimeout(() => onSelectCustom(ts), 100);
+    const gate = checkLoggingTimestamp(ts);
+    if (!gate.ok) {
+      Alert.alert('Cannot log this time', gate.message);
+      return;
+    }
+    const commit = () => {
+      closeModal();
+      setTimeout(() => onSelectCustom(ts), 100);
+    };
+    if (needsBackdateConfirmation(ts)) {
+      Alert.alert(
+        'Log this time?',
+        'You are logging a fast from more than 3 days ago.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: commit },
+        ],
+      );
+      return;
+    }
+    commit();
   }, [selectedDate, selectedHour, selectedMinute, closeModal, onSelectCustom]);
 
   const prevMonth = useCallback(() => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  }, []);
+    setCalendarMonth(prev => {
+      const candidate = new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
+      const minMonthStart = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+      if (candidate.getTime() < minMonthStart.getTime()) return prev;
+      return candidate;
+    });
+  }, [minDate]);
 
   const nextMonth = useCallback(() => {
     const next = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
-    if (next <= new Date(max.getFullYear(), max.getMonth() + 1, 0)) {
+    if (next <= new Date(calendarMax.getFullYear(), calendarMax.getMonth() + 1, 0)) {
       setCalendarMonth(next);
     }
-  }, [calendarMonth, max]);
+  }, [calendarMonth, calendarMax]);
 
   const renderCalendar = () => {
     const year = calendarMonth.getFullYear();
@@ -178,7 +219,9 @@ export default function FastTimePickerModal({
     const firstDayOfWeek = new Date(year, month, 1).getDay();
     const today = new Date();
 
-    const canGoNext = new Date(year, month + 1, 1) <= new Date(max.getFullYear(), max.getMonth() + 1, 0);
+    const canGoNext = new Date(year, month + 1, 1) <= new Date(calendarMax.getFullYear(), calendarMax.getMonth() + 1, 0);
+    const canGoPrev =
+      new Date(year, month, 1) > new Date(minDate.getFullYear(), minDate.getMonth(), 1);
 
     const weeks: (number | null)[][] = [];
     let currentWeek: (number | null)[] = Array(firstDayOfWeek).fill(null);
@@ -198,8 +241,13 @@ export default function FastTimePickerModal({
     return (
       <View style={styles.calendar}>
         <View style={styles.calendarHeader}>
-          <TouchableOpacity onPress={prevMonth} style={styles.monthArrow} activeOpacity={0.6}>
-            <ChevronLeft size={20} color={colors.text} />
+          <TouchableOpacity
+            onPress={prevMonth}
+            style={[styles.monthArrow, !canGoPrev && styles.monthArrowDisabled]}
+            activeOpacity={0.6}
+            disabled={!canGoPrev}
+          >
+            <ChevronLeft size={20} color={canGoPrev ? colors.text : colors.textMuted} />
           </TouchableOpacity>
           <Text style={styles.monthLabel}>{formatMonth(calendarMonth)}</Text>
           <TouchableOpacity
@@ -223,7 +271,9 @@ export default function FastTimePickerModal({
             {week.map((day, di) => {
               if (day === null) return <View key={di} style={styles.dayCell} />;
               const dateObj = new Date(year, month, day);
-              const isAfterMax = dateObj > max;
+              const isAfterMax = dateObj > calendarMax;
+              const isBeforeMin = startOfLocalDay(dateObj) < startOfLocalDay(minDate);
+              const dayDisabled = isAfterMax || isBeforeMin;
               const isSelected = isSameDay(dateObj, selectedDate);
               const isToday = isSameDay(dateObj, today);
 
@@ -235,14 +285,14 @@ export default function FastTimePickerModal({
                     isSelected && styles.dayCellSelected,
                     isToday && !isSelected && styles.dayCellToday,
                   ]}
-                  onPress={() => !isAfterMax && handleDateSelect(day)}
-                  disabled={isAfterMax}
+                  onPress={() => !dayDisabled && handleDateSelect(day)}
+                  disabled={dayDisabled}
                   activeOpacity={0.6}
                 >
                   <Text
                     style={[
                       styles.dayText,
-                      isAfterMax && styles.dayTextDisabled,
+                      dayDisabled && styles.dayTextDisabled,
                       isSelected && styles.dayTextSelected,
                       isToday && !isSelected && styles.dayTextToday,
                     ]}
@@ -259,9 +309,10 @@ export default function FastTimePickerModal({
   };
 
   const renderTimePicker = () => {
-    const isToday = isSameDay(selectedDate, new Date());
-    const currentHour = new Date().getHours();
-    const currentMinute = new Date().getMinutes();
+    const nowClock = new Date();
+    const isToday = isSameDay(selectedDate, nowClock);
+    const currentHour = nowClock.getHours();
+    const currentMinute = nowClock.getMinutes();
 
     return (
       <View style={styles.timePicker}>
@@ -373,7 +424,7 @@ export default function FastTimePickerModal({
                 </View>
                 <View style={styles.choiceTextWrap}>
                   <Text style={styles.choiceTitle}>Custom Time</Text>
-                  <Text style={styles.choiceDesc}>Pick a date & time in the past</Text>
+                  <Text style={styles.choiceDesc}>Within the last 7 days (not in the future)</Text>
                 </View>
               </TouchableOpacity>
             </View>

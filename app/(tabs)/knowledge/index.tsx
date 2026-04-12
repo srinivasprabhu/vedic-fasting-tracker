@@ -1,3 +1,4 @@
+import { resolveLearnHeroImage } from '@/constants/learnHeroImages';
 import { fs, RADIUS } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -13,6 +14,7 @@ import {
   Bean,
   BookOpen,
   Brain,
+  Calendar,
   ChevronRight,
   CircleDot,
   Clock,
@@ -26,11 +28,13 @@ import {
   User,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   FlatList,
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -168,24 +172,42 @@ export default function KnowledgeScreen() {
 
   const renderFeatured = ({ item }: { item: ArticleSummary }) => {
     const fb = featureDifficultyBadge(item.difficulty);
+    const hero = resolveLearnHeroImage(item.heroImage);
+    const fg = hero ? '#FFFFFF' : onDarkCard;
+    const cardBody = (
+      <>
+        <View style={[styles.featureBadge, { backgroundColor: fb.bg }]}>
+          <Text style={[styles.featureBadgeText, { color: fb.fg }]}>{difficultyLabel(item.difficulty)}</Text>
+        </View>
+        <Text style={[styles.featureTitle, { color: fg }]} numberOfLines={3}>
+          {item.title}
+        </Text>
+        <View style={styles.featureMeta}>
+          <Clock size={14} color={fg} style={{ opacity: 0.9 }} />
+          <Text style={[styles.featureMetaText, { color: fg }]}>{item.readMinutes} min read</Text>
+        </View>
+      </>
+    );
     return (
-    <TouchableOpacity
-      style={[styles.featureCard, { backgroundColor: darkCardBg }]}
-      onPress={() => openArticle(item.id)}
-      activeOpacity={0.85}
-    >
-      <View style={[styles.featureBadge, { backgroundColor: fb.bg }]}>
-        <Text style={[styles.featureBadgeText, { color: fb.fg }]}>{difficultyLabel(item.difficulty)}</Text>
-      </View>
-      <Text style={[styles.featureTitle, { color: onDarkCard }]} numberOfLines={3}>
-        {item.title}
-      </Text>
-      <View style={styles.featureMeta}>
-        <Clock size={14} color={onDarkCard} style={{ opacity: 0.9 }} />
-        <Text style={[styles.featureMetaText, { color: onDarkCard }]}>{item.readMinutes} min read</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      <TouchableOpacity
+        style={[styles.featureCard, hero ? styles.featureCardHero : { backgroundColor: darkCardBg }]}
+        onPress={() => openArticle(item.id)}
+        activeOpacity={0.85}
+      >
+        {hero ? (
+          <ImageBackground source={hero} style={styles.featureHeroBg} imageStyle={styles.featureHeroImage}>
+            <LinearGradient
+              colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.88)']}
+              style={styles.featureHeroGradient}
+            >
+              {cardBody}
+            </LinearGradient>
+          </ImageBackground>
+        ) : (
+          cardBody
+        )}
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -198,6 +220,7 @@ export default function KnowledgeScreen() {
               <Text style={[styles.screenSub, { color: colors.textSecondary }]}>Wisdom for body, mind & spirit.</Text>
             </View>
           </View>
+
 
           <View style={[styles.searchRow, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
             <Search size={18} color={colors.textMuted} />
@@ -374,6 +397,24 @@ function makeStyles(colors: ColorScheme) {
     },
     screenTitle: { fontSize: fs(28), fontWeight: '700' as const, letterSpacing: -0.5 },
     screenSub: { fontSize: fs(14), marginTop: 4 },
+    vedicLink: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+      padding: 14,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      marginBottom: 14,
+    },
+    vedicLinkIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    vedicLinkTitle: { fontSize: fs(15), fontWeight: '600' as const },
+    vedicLinkSub: { fontSize: fs(12), marginTop: 4 },
     searchRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -424,6 +465,27 @@ function makeStyles(colors: ColorScheme) {
       padding: 18,
       borderRadius: RADIUS.xl,
       minHeight: 140,
+      justifyContent: 'space-between' as const,
+      overflow: 'hidden' as const,
+    },
+    featureCardHero: {
+      padding: 0,
+      minHeight: 168,
+    },
+    featureHeroBg: {
+      flex: 1,
+      minHeight: 168,
+      borderRadius: RADIUS.xl,
+      overflow: 'hidden' as const,
+    },
+    featureHeroImage: {
+      borderRadius: RADIUS.xl,
+      resizeMode: 'cover' as const,
+    },
+    featureHeroGradient: {
+      flex: 1,
+      minHeight: 168,
+      padding: 18,
       justifyContent: 'space-between' as const,
     },
     featureBadge: { alignSelf: 'flex-start' as const, paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.pill },

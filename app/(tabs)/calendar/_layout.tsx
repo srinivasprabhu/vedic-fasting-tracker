@@ -1,15 +1,15 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import { Stack } from 'expo-router';
 import React from 'react';
-import Colors from '@/constants/colors';
 
 export default function CalendarLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.background },
-        headerTintColor: Colors.text,
-        headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: '600' },
+        contentStyle: { backgroundColor: colors.background },
+        headerShown: false,
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />

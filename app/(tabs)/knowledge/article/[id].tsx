@@ -1,3 +1,4 @@
+import { resolveLearnHeroImage } from '@/constants/learnHeroImages';
 import { fs, RADIUS } from '@/constants/theme';
 import { ArticleRenderer } from '@/components/learn/ArticleRenderer';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -12,8 +13,10 @@ import {
   Share2,
   Sparkles,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
 import {
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -57,58 +60,76 @@ export default function LearnArticleScreen() {
 
   const diff = DIFFICULTY_STYLE[article.difficulty];
   const heroBg = isDark ? colors.surfaceWarm : colors.text;
-  const heroFg = isDark ? colors.text : colors.textLight;
+  const heroFgSolid = isDark ? colors.text : colors.textLight;
+  const heroImage = resolveLearnHeroImage(article.heroImage);
+  const heroFg = heroImage ? '#FFFFFF' : heroFgSolid;
+
+  const heroInner = (
+    <>
+      <View style={styles.heroTop}>
+        <TouchableOpacity
+          style={[styles.iconCircle, { backgroundColor: '#FFFFFF22' }]}
+          onPress={() => router.back()}
+          accessibilityLabel="Back"
+        >
+          <Text style={{ color: heroFg, fontSize: 22, fontWeight: '600' as const }}>‹</Text>
+        </TouchableOpacity>
+        <View style={styles.heroTopRight}>
+          <TouchableOpacity style={[styles.iconCircle, { backgroundColor: '#FFFFFF22' }]} accessibilityLabel="Share">
+            <Share2 size={18} color={heroFg} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.iconCircle, { backgroundColor: '#FFFFFF22' }]} accessibilityLabel="Save">
+            <Sparkles size={18} color={heroFg} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.tagRow}>
+        {article.topicTag ? (
+          <View style={[styles.tag, { backgroundColor: '#FFFFFF22' }]}>
+            <Text style={[styles.tagText, { color: heroImage ? '#FFE8CC' : colors.primary }]}>{article.topicTag}</Text>
+          </View>
+        ) : null}
+        <View style={[styles.tag, { backgroundColor: diff.bg, borderWidth: 1, borderColor: diff.border }]}>
+          <Text style={[styles.tagText, { color: diff.fg }]}>{DIFFICULTY_LABEL[article.difficulty]}</Text>
+        </View>
+      </View>
+      <Text style={[styles.title, { color: heroFg }]}>{article.title}</Text>
+      <View style={styles.metaRow}>
+        <View style={styles.metaItem}>
+          <Clock size={14} color={heroFg} style={{ opacity: 0.85 }} />
+          <Text style={[styles.metaText, { color: heroFg }]}>{article.readMinutes} min read</Text>
+        </View>
+        {article.badges?.includes('Science-backed') ? (
+          <View style={styles.metaItem}>
+            <FlaskConical size={14} color={heroFg} style={{ opacity: 0.85 }} />
+            <Text style={[styles.metaText, { color: heroFg }]}>Science-backed</Text>
+          </View>
+        ) : null}
+        {article.updatedYear ? (
+          <Text style={[styles.metaText, { color: heroFg, opacity: 0.85 }]}>Updated {article.updatedYear}</Text>
+        ) : null}
+      </View>
+    </>
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView edges={['top']} style={[styles.heroSafe, { backgroundColor: heroBg }]}>
-        <View style={styles.heroTop}>
-          <TouchableOpacity
-            style={[styles.iconCircle, { backgroundColor: '#FFFFFF22' }]}
-            onPress={() => router.back()}
-            accessibilityLabel="Back"
-          >
-            <Text style={{ color: heroFg, fontSize: 22, fontWeight: '600' as const }}>‹</Text>
-          </TouchableOpacity>
-          <View style={styles.heroTopRight}>
-            <TouchableOpacity style={[styles.iconCircle, { backgroundColor: '#FFFFFF22' }]} accessibilityLabel="Share">
-              <Share2 size={18} color={heroFg} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconCircle, { backgroundColor: '#FFFFFF22' }]} accessibilityLabel="Save">
-              <Sparkles size={18} color={heroFg} />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.tagRow}>
-          {article.topicTag ? (
-            <View style={[styles.tag, { backgroundColor: '#FFFFFF18' }]}>
-              <Text style={[styles.tagText, { color: colors.primary }]}>{article.topicTag}</Text>
-            </View>
-          ) : null}
-          <View style={[styles.tag, { backgroundColor: diff.bg, borderWidth: 1, borderColor: diff.border }]}>
-            <Text style={[styles.tagText, { color: diff.fg }]}>{DIFFICULTY_LABEL[article.difficulty]}</Text>
-          </View>
-        </View>
-        <Text style={[styles.title, { color: heroFg }]}>{article.title}</Text>
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Clock size={14} color={heroFg} style={{ opacity: 0.85 }} />
-            <Text style={[styles.metaText, { color: heroFg }]}>{article.readMinutes} min read</Text>
-          </View>
-          {article.badges?.includes('Science-backed') ? (
-            <View style={styles.metaItem}>
-              <FlaskConical size={14} color={heroFg} style={{ opacity: 0.85 }} />
-              <Text style={[styles.metaText, { color: heroFg }]}>Science-backed</Text>
-            </View>
-          ) : null}
-          {article.updatedYear ? (
-            <Text style={[styles.metaText, { color: heroFg, opacity: 0.85 }]}>
-              Updated {article.updatedYear}
-            </Text>
-          ) : null}
-        </View>
-      </SafeAreaView>
+      {heroImage ? (
+        <ImageBackground source={heroImage} style={styles.heroImageWrap} imageStyle={styles.heroImage}>
+          <LinearGradient
+            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.88)']}
+            style={StyleSheet.absoluteFill}
+          />
+          <SafeAreaView edges={['top']} style={styles.heroSafeImage}>
+            {heroInner}
+          </SafeAreaView>
+        </ImageBackground>
+      ) : (
+        <SafeAreaView edges={['top']} style={[styles.heroSafe, { backgroundColor: heroBg }]}>
+          {heroInner}
+        </SafeAreaView>
+      )}
 
       <ScrollView
         style={[styles.scroll, { backgroundColor: colors.background }]}
@@ -174,6 +195,17 @@ function makeStyles(colors: ColorScheme) {
     safe: { flex: 1, padding: 20 },
     miss: { fontSize: fs(16), textAlign: 'center' as const, marginTop: 40 },
     backBtn: { marginTop: 16, alignSelf: 'center' as const },
+    heroImageWrap: {
+      width: '100%' as const,
+      minHeight: 260,
+    },
+    heroImage: {
+      resizeMode: 'cover' as const,
+    },
+    heroSafeImage: {
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+    },
     heroSafe: { paddingHorizontal: 20, paddingBottom: 20 },
     heroTop: {
       flexDirection: 'row' as const,

@@ -48,19 +48,66 @@ export function lastMealTimeToHour(last: LastMealTime | null | undefined): numbe
     case 'later':
       return 22;
     default:
-      return 20;
+      return 19;
   }
 }
 
-/** Hour (0–23) when the daily fast typically starts = last meal ends. */
-export function getPlannedFastStartHour(profile: UserProfile | null | undefined): number {
-  if (!profile) return 20;
-  return lastMealTimeToHour(profile.lastMealTime ?? null);
+/** Map a concrete start time to the closest onboarding bucket (for optional lastMealTime sync). */
+export function nearestLastMealTimeFromMinutes(totalMinutes: number): LastMealTime {
+  const m = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
+  const buckets: { id: LastMealTime; min: number }[] = [
+    { id: '7pm', min: 19 * 60 },
+    { id: '8pm', min: 20 * 60 },
+    { id: '9pm', min: 21 * 60 },
+    { id: '10pm', min: 22 * 60 },
+    { id: 'later', min: 23 * 60 },
+  ];
+  let best = buckets[0]!;
+  let bestD = Math.abs(m - best.min);
+  for (const b of buckets) {
+    const d = Math.abs(m - b.min);
+    if (d < bestD) {
+      best = b;
+      bestD = d;
+    }
+  }
+  return best.id;
 }
 
-/** Clock hour (0–23) when the fast ends, given same-day start hour and fast length. */
+const DEFAULT_FAST_START_MINUTES = 19 * 60;
+
+/** Minutes from local midnight (0–1439) when the fast starts (last meal ends). */
+export function getPlannedFastStartMinutes(profile: UserProfile | null | undefined): number {
+  if (!profile) return DEFAULT_FAST_START_MINUTES;
+  const m = profile.fastWindowStartMinutes;
+  if (typeof m === 'number' && Number.isFinite(m) && m >= 0 && m < 1440) {
+    return Math.floor(m);
+  }
+  return lastMealTimeToHour(profile.lastMealTime ?? null) * 60;
+}
+
+/** Hour (0–23) when the daily fast typically starts — floor of minute-based start. */
+export function getPlannedFastStartHour(profile: UserProfile | null | undefined): number {
+  return Math.floor(getPlannedFastStartMinutes(profile) / 60);
+}
+
+/** End time in minutes from midnight (wraps within the day). */
+export function getPlannedFastEndMinutes(startMinutes: number, fastHours: number): number {
+  return (startMinutes + fastHours * 60) % 1440;
+}
+
+/** Clock hour (0–23) when the fast ends; use `getPlannedFastEndMinutes` when minutes matter. */
 export function getPlannedFastEndHour(startHour: number, fastHours: number): number {
   return (startHour + fastHours) % 24;
+}
+
+/** “7:00 PM → 3:00 PM” style range for Settings / summaries. */
+export function formatFastingWindowSummary(profile: UserProfile | null | undefined): string | null {
+  const plan = profile?.plan;
+  if (!plan?.fastHours) return null;
+  const sm = getPlannedFastStartMinutes(profile);
+  const em = getPlannedFastEndMinutes(sm, plan.fastHours);
+  return `${formatReminderTimeLabel(Math.floor(sm / 60), sm % 60)} → ${formatReminderTimeLabel(Math.floor(em / 60), em % 60)}`;
 }
 
 /** 1 hour before fast starts — reminder hour (0–23). */
@@ -95,9 +142,10 @@ export function describePlanReminderSchedule(profile: UserProfile): {
 } | null {
   const plan = profile.plan;
   if (!plan?.fastHours) return null;
-  const startH = getPlannedFastStartHour(profile);
-  const beforeStartH = getReminderHourBeforeFastStart(startH);
-  const beforeEndH = getReminderHourBeforeFastEnd(startH, plan.fastHours);
+  const startM = getPlannedFastStartMinutes(profile);
+  const beforeStartM = (startM - 60 + 1440) % 1440;
+  const endM = getPlannedFastEndMinutes(startM, plan.fastHours);
+  const beforeEndM = (endM - 60 + 1440) % 1440;
   const weeklyDaysNote =
     isWeeklyPlanTemplateId(plan.planTemplateId) && plan.weeklyFastDays?.length
       ? `Fasting days: ${formatWeeklyFastDaysShort(plan.weeklyFastDays)}`
@@ -106,14 +154,15 @@ export function describePlanReminderSchedule(profile: UserProfile): {
         : undefined;
   return {
     fastLabel: plan.fastLabel,
-    beforeStartLabel: formatReminderTimeLabel(beforeStartH),
-    beforeEndLabel: formatReminderTimeLabel(beforeEndH),
+    beforeStartLabel: formatReminderTimeLabel(Math.floor(beforeStartM / 60), beforeStartM % 60),
+    beforeEndLabel: formatReminderTimeLabel(Math.floor(beforeEndM / 60), beforeEndM % 60),
     ...(weeklyDaysNote ? { weeklyDaysNote } : {}),
   };
 }
 
 export type PlanScheduleInput = {
-  lastMealHour: number;
+  /** Minutes from midnight when fast starts. */
+  fastStartMinutes: number;
   fastHours: number;
   fastLabel: string;
   mode: 'daily' | 'weekly';
@@ -131,7 +180,7 @@ function normalizeWeeklyDays(days: number[] | undefined, templateId: 'if_5_2' | 
 export function buildPlanScheduleInput(profile: UserProfile | null | undefined): PlanScheduleInput | null {
   if (!profile?.plan?.fastHours) return null;
   const base = {
-    lastMealHour: getPlannedFastStartHour(profile),
+    fastStartMinutes: getPlannedFastStartMinutes(profile),
     fastHours: profile.plan.fastHours,
     fastLabel: profile.plan.fastLabel,
   };
@@ -153,13 +202,14 @@ export function formatNextFastTimingPhrase(
 
   const todayDow = now.getDay();
   const minutesNow = now.getHours() * 60 + now.getMinutes();
-  const startMinutes = input.lastMealHour * 60;
+  const startMinutes = input.fastStartMinutes;
+  const startHour = Math.floor(startMinutes / 60);
 
   const beforeFastStartToday = (): string => {
-    if (input.lastMealHour >= 17) {
+    if (startHour >= 17) {
       return 'starts tonight';
     }
-    return `starts today · ${formatReminderTimeLabel(input.lastMealHour)}`;
+    return `starts today · ${formatReminderTimeLabel(Math.floor(startMinutes / 60), startMinutes % 60)}`;
   };
 
   if (input.mode === 'daily') {
@@ -184,6 +234,46 @@ export function formatNextFastTimingPhrase(
   }
 
   return 'pick fasting days';
+}
+
+/**
+ * Short label for the Today timer row (e.g. Tonight, Tomorrow, Mon).
+ * Weekly (5:2 / 4:3): weekday until the calendar day before the next fast, then "Tonight".
+ */
+export function formatNextFastHomeLabel(
+  profile: UserProfile | null | undefined,
+  now: Date = new Date(),
+): string {
+  const input = buildPlanScheduleInput(profile);
+  if (!input) return 'Tonight';
+
+  const todayDow = now.getDay();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const sm = input.fastStartMinutes;
+  const startH = Math.floor(sm / 60);
+  const startEvening = startH >= 17;
+
+  if (input.mode === 'daily') {
+    if (mins < sm) return startEvening ? 'Tonight' : 'Today';
+    return 'Tomorrow';
+  }
+
+  const days = input.weeklyFastDays;
+  if (!days?.length) return 'Pick days';
+
+  const set = new Set(days);
+
+  for (let offset = 0; offset <= 7; offset++) {
+    const dow = (todayDow + offset) % 7;
+    if (!set.has(dow)) continue;
+    const isToday = offset === 0;
+    if (isToday && mins >= sm) continue;
+    if (offset === 0) return startEvening ? 'Tonight' : 'Today';
+    if (offset === 1) return 'Tonight';
+    return DAY_SHORT[dow] ?? '?';
+  }
+
+  return 'Tonight';
 }
 
 export function profileUsesWeeklyFastDays(profile: UserProfile | null | undefined): boolean {

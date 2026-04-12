@@ -4,7 +4,6 @@ import { Platform } from 'react-native';
 import type { UserProfile } from '@/types/user';
 import {
   buildPlanScheduleInput,
-  getReminderHourBeforeFastStart,
   jsWeekdayToExpoCalendarWeekday,
 } from '@/utils/fastingPlanSchedule';
 
@@ -192,7 +191,9 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
 
   if (planInput && beforeStart) {
     const startIds: string[] = [];
-    const startHour = getReminderHourBeforeFastStart(planInput.lastMealHour);
+    const reminderM = (planInput.fastStartMinutes - 60 + 1440) % 1440;
+    const reminderHour = Math.floor(reminderM / 60);
+    const reminderMinute = reminderM % 60;
     if (planInput.mode === 'weekly' && planInput.weeklyFastDays?.length) {
       for (const jsDay of planInput.weeklyFastDays) {
         try {
@@ -206,8 +207,8 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
             trigger: {
               type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
               weekday: jsWeekdayToExpoCalendarWeekday(jsDay),
-              hour: startHour,
-              minute: 0,
+              hour: reminderHour,
+              minute: reminderMinute,
             },
           });
           startIds.push(id);
@@ -226,8 +227,8 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour: startHour,
-            minute: 0,
+            hour: reminderHour,
+            minute: reminderMinute,
           },
         });
         startIds.push(id);

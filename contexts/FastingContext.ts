@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Alert } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
@@ -12,6 +13,9 @@ import {
   cancelPostFastNotifications,
 } from '@/utils/notifications';
 import { FASTING_RECORDS_STORAGE_KEY } from '@/constants/storageKeys';
+import { checkFastEndAfterStart, checkLoggingTimestamp } from '@/utils/loggingEligibility';
+import { checkNewFastStartDoesNotOverlap } from '@/utils/fastIntervalOverlap';
+import { computeJourneyStreak } from '@/utils/journeyModel';
 
 const STORAGE_KEY = FASTING_RECORDS_STORAGE_KEY;
 
@@ -70,6 +74,18 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
 
   const startFast = useCallback((type: FastType, label: string, targetDuration: number, customStartTime?: number) => {
     const startTime = customStartTime ?? Date.now();
+    if (customStartTime !== undefined) {
+      const g = checkLoggingTimestamp(customStartTime);
+      if (!g.ok) {
+        Alert.alert('Cannot start fast', g.message);
+        return;
+      }
+    }
+    const ov = checkNewFastStartDoesNotOverlap(startTime, recordsRef.current);
+    if (!ov.ok) {
+      Alert.alert('Cannot start fast', ov.message);
+      return;
+    }
     const newFast: FastRecord = {
       id: `fast-${Date.now()}`,
       type,
@@ -111,6 +127,18 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
     const currentActive = activeFastRef.current;
     if (!currentActive) return;
     const endTime = customEndTime ?? Date.now();
+    if (customEndTime !== undefined) {
+      const g = checkLoggingTimestamp(customEndTime);
+      if (!g.ok) {
+        Alert.alert('Cannot log end time', g.message);
+        return;
+      }
+    }
+    const order = checkFastEndAfterStart(endTime, currentActive.startTime);
+    if (!order.ok) {
+      Alert.alert('Cannot log end time', order.message);
+      return;
+    }
     const finishedFast: FastRecord = { ...currentActive, endTime, completed };
     const updated = recordsRef.current.map(r =>
       r.id === currentActive.id
@@ -151,28 +179,7 @@ export const [FastingProvider, useFasting] = createContextHook(() => {
     [records]
   );
 
-  const streak = useMemo(() => {
-    const completed = completedRecords
-      .filter(r => r.completed)
-      .sort((a, b) => (b.endTime ?? 0) - (a.endTime ?? 0));
-
-    if (completed.length === 0) return 0;
-
-    let count = 0;
-    const now = new Date();
-    const dayMs = 86400000;
-
-    for (let i = 0; i < completed.length; i++) {
-      const fastDate = new Date(completed[i].endTime ?? 0);
-      const daysDiff = Math.floor((now.getTime() - fastDate.getTime()) / dayMs);
-      if (daysDiff <= count + 7) {
-        count++;
-      } else {
-        break;
-      }
-    }
-    return count;
-  }, [completedRecords]);
+  const streak = useMemo(() => computeJourneyStreak(records, Date.now()), [records]);
 
   const totalHours = useMemo(() => {
     return completedRecords.reduce((sum, r) => {

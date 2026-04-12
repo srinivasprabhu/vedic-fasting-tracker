@@ -4,6 +4,9 @@
 
 export type ArticleDifficulty = 'beginner' | 'intermediate' | 'advanced';
 
+/** Decorative hero art for Learn hub & article screens (mapped in `constants/learnHeroImages`). */
+export type LearnHeroImageKey = 'biological_clock' | 'balance_wellness';
+
 export type LearnSectionId =
   | 'start_here'
   | 'on_a_fast'
@@ -61,6 +64,8 @@ export interface ArticleSummary {
   hubIcon?: string;
   /** Icon circle tint (hex). */
   hubIconColor?: string;
+  /** Optional hero illustration (article detail + featured strip). */
+  heroImage?: LearnHeroImageKey;
 }
 
 export interface ArticleDetail extends ArticleSummary {

@@ -2,15 +2,17 @@
 // Bottom sheet modal for changing fasting plan — with Pro tier upsell.
 
 import { fs } from '@/constants/theme';
-import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Modal, Animated, Easing, ViewStyle, TextStyle, Dimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { X, Lock, Check, AlertTriangle } from 'lucide-react-native';
+import { X, Lock, Check, AlertTriangle, Clock, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { ColorScheme } from '@/constants/colors';
+import { FastWindowStartPickerPanel } from '@/components/FastWindowStartSheet';
+import { formatReminderTimeLabel } from '@/utils/fastingPlanSchedule';
 
 // ─── Plan data ────────────────────────────────────────────────────────────────
 
@@ -205,19 +207,33 @@ interface FastPlanPickerModalProps {
   maxFastHours?: number | null;
   /** Reason shown when a plan exceeds maxFastHours */
   restrictionReason?: string;
+  /** Minutes from midnight when the fast usually starts (for time row + sheet). */
+  fastWindowInitialMinutes?: number;
+  /** Persist start time when user saves from the sheet (omit to hide the row). */
+  onSaveFastWindowStart?: (minutesFromMidnight: number) => void;
 }
 
 export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
   visible, currentPlan, isProUser, onSelect, onClose, onUpgrade,
   maxFastHours = null, restrictionReason,
+  fastWindowInitialMinutes = 19 * 60,
+  onSaveFastWindowStart,
 }) => {
   const { colors, isDark } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const [showFastStartSheet, setShowFastStartSheet] = useState(false);
+  const [liveFastStartMinutes, setLiveFastStartMinutes] = useState(fastWindowInitialMinutes);
+
+  useEffect(() => {
+    if (visible) setLiveFastStartMinutes(fastWindowInitialMinutes);
+  }, [visible, fastWindowInitialMinutes]);
 
   useEffect(() => {
     if (visible) {
       slideAnim.setValue(0);
       Animated.spring(slideAnim, { toValue: 1, tension: 65, friction: 11, useNativeDriver: true }).start();
+    } else {
+      setShowFastStartSheet(false);
     }
   }, [visible]);
 
@@ -266,10 +282,13 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
     outputRange: [screenH, 0],
   });
 
-  if (!visible) return null;
+  const startLabel = formatReminderTimeLabel(
+    Math.floor(liveFastStartMinutes / 60),
+    liveFastStartMinutes % 60,
+  );
 
   return (
-    <Modal visible transparent animationType="none" statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
       <View style={s.overlay}>
         <TouchableOpacity style={s.overlayBg} activeOpacity={1} onPress={handleClose} />
 
@@ -293,6 +312,33 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
               <X size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
+
+          {onSaveFastWindowStart ? (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowFastStartSheet(true);
+              }}
+              style={[
+                s.fastStartRow,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)',
+                  borderColor: colors.borderLight,
+                },
+              ]}
+              accessibilityLabel={`Fast starts at ${startLabel}, change start time`}
+            >
+              <View style={[s.fastStartIcon, { backgroundColor: `${C_GOLD}22` }]}>
+                <Clock size={16} color={C_GOLD} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[s.fastStartMeta, { color: colors.textMuted }]}>FAST STARTS</Text>
+                <Text style={[s.fastStartValue, { color: colors.text }]}>{startLabel} · tap to change</Text>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          ) : null}
 
           {/* Plans */}
           <ScrollView
@@ -345,6 +391,27 @@ export const FastPlanPickerModal: React.FC<FastPlanPickerModalProps> = ({
             <View style={{ height: 40 }} />
           </ScrollView>
         </Animated.View>
+
+        {showFastStartSheet && onSaveFastWindowStart ? (
+          <View style={s.timePickerLayer} pointerEvents="box-none">
+            <TouchableOpacity
+              style={s.timePickerScrim}
+              activeOpacity={1}
+              onPress={() => setShowFastStartSheet(false)}
+              accessibilityLabel="Dismiss time picker"
+            />
+            <FastWindowStartPickerPanel
+              colors={colors}
+              isDark={isDark}
+              initialMinutes={liveFastStartMinutes}
+              onDismiss={() => setShowFastStartSheet(false)}
+              onConfirm={(m) => {
+                setLiveFastStartMinutes(m);
+                onSaveFastWindowStart(m);
+              }}
+            />
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -361,6 +428,18 @@ const s = StyleSheet.create({
   overlayBg: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,.55)',
+  } as ViewStyle,
+
+  timePickerLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    elevation: 24,
+    justifyContent: 'flex-end',
+  } as ViewStyle,
+
+  timePickerScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   } as ViewStyle,
 
   sheet: {
@@ -404,6 +483,38 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   } as ViewStyle,
+
+  fastStartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  } as ViewStyle,
+
+  fastStartIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
+
+  fastStartMeta: {
+    fontSize: fs(10),
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  } as TextStyle,
+
+  fastStartValue: {
+    fontSize: fs(15),
+    fontWeight: '600',
+  } as TextStyle,
 
   scrollContent: {
     paddingHorizontal: 20,

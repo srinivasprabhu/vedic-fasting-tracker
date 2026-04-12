@@ -27,6 +27,8 @@ import type { ColorScheme } from '@/constants/colors';
 import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY, TRADITIONAL_INSIGHTS_KEY } from '@/constants/storageKeys';
 import { uploadLocalRecords } from '@/lib/sync';
 import { applyDevFastingSeed } from '@/utils/dev-seed-fasting-history';
+import { formatFastingWindowSummary, getPlannedFastStartMinutes, nearestLastMealTimeFromMinutes } from '@/utils/fastingPlanSchedule';
+import { FastWindowStartSheet } from '@/components/FastWindowStartSheet';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,20 +74,6 @@ function displayHeight(cm: number | undefined): string {
 function displaySex(sex: string | undefined): string {
   if (!sex) return 'Not set';
   return sex === 'male' ? 'Male' : sex === 'female' ? 'Female' : 'Not specified';
-}
-
-function fastingWindowDisplay(lastMealTime: string | undefined, fastHours: number | undefined): string | null {
-  if (!lastMealTime || !fastHours) return null;
-  const mealHourMap: Record<string, number> = { '7pm': 19, '8pm': 20, '9pm': 21, '10pm': 22, 'later': 23 };
-  const startHour = mealHourMap[lastMealTime];
-  if (!startHour) return null;
-  const endHour = (startHour + fastHours) % 24;
-  const fmt = (h: number) => {
-    const period = h >= 12 ? 'PM' : 'AM';
-    const display = h > 12 ? h - 12 : h === 0 ? 12 : h;
-    return `${display} ${period}`;
-  };
-  return `${fmt(startHour)} → ${fmt(endHour)}`;
 }
 
 // ─── Row components ───────────────────────────────────────────────────────────
@@ -146,6 +134,7 @@ export default function SettingsScreen() {
   const [editName, setEditName] = useState(profile?.name ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [traditionalInsights, setTraditionalInsights] = useState(false);
+  const [showFastWindowPicker, setShowFastWindowPicker] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   React.useEffect(() => { Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start(); }, []);
@@ -221,7 +210,7 @@ export default function SettingsScreen() {
   const weightUnit = profile?.weightUnit ?? 'kg';
   const bmi = (profile?.currentWeightKg && profile?.heightCm) ? calcBMI(profile.currentWeightKg, profile.heightCm) : null;
   const bmiCat = bmi ? getBMICategory(bmi) : null;
-  const fastWindow = fastingWindowDisplay(profile?.lastMealTime, plan?.fastHours);
+  const fastWindowSummary = formatFastingWindowSummary(profile);
 
   const handleSaveName = useCallback(() => {
     if (editName.trim().length === 0) { Alert.alert('Name required'); return; }
@@ -315,13 +304,23 @@ export default function SettingsScreen() {
               <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
                 <InfoRow icon={<Clock size={15} color={goldColor} />} iconBg="rgba(232,168,76,0.12)" label="Fasting plan" value={`${plan.fastLabel} Intermittent Fasting`}
                   sublabel={profile?.fastingPurpose ? purposeLabel(profile.fastingPurpose) : undefined} colors={colors} />
-                {fastWindow && (
+                {plan.fastHours ? (
                   <>
                     <Divider colors={colors} />
-                    <InfoRow icon={<Moon size={15} color="#5b8dd9" />} iconBg="rgba(91,141,217,0.12)" label="Fasting window" value={fastWindow}
-                      sublabel="Based on your usual last meal" colors={colors} />
+                    <InfoRow
+                      icon={<Moon size={15} color="#5b8dd9" />}
+                      iconBg="rgba(91,141,217,0.12)"
+                      label="Fasting window"
+                      value={fastWindowSummary ?? '—'}
+                      sublabel="When your fast begins · tap to change"
+                      colors={colors}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setShowFastWindowPicker(true);
+                      }}
+                    />
                   </>
-                )}
+                ) : null}
                 <Divider colors={colors} />
                 <InfoRow icon={<Flame size={15} color="#E8913A" />} iconBg="rgba(232,145,58,0.12)" label="Daily calories" value={`${plan.dailyCalories.toLocaleString()} kcal`}
                   sublabel={plan.dailyDeficit > 0 ? `${plan.dailyDeficit} kcal deficit` : undefined} colors={colors} />
@@ -539,6 +538,21 @@ export default function SettingsScreen() {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      <FastWindowStartSheet
+        visible={showFastWindowPicker}
+        colors={colors}
+        initialMinutes={getPlannedFastStartMinutes(profile)}
+        onClose={() => setShowFastWindowPicker(false)}
+        onConfirm={(m) => {
+          if (!profile) return;
+          updateProfile({
+            ...profile,
+            fastWindowStartMinutes: m,
+            lastMealTime: nearestLastMealTimeFromMinutes(m),
+          });
+        }}
+      />
     </View>
   );
 }

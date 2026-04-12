@@ -158,7 +158,7 @@ export const Step1Name: React.FC<Step1NameProps> = ({
       ]}>
         <Check size={14} color={colors.success} strokeWidth={3} />
         <Text style={[styles.hint, { color: colors.success }]}>
-          Namaste, {value.trim() || '…'}! Your journey awaits.
+          Welcome, {value.trim() || '…'}! Your journey awaits.
         </Text>
       </Animated.View>
     </View>

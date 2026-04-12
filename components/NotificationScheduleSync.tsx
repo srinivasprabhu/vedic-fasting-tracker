@@ -20,6 +20,7 @@ export function NotificationScheduleSync() {
     const days = (p?.weeklyFastDays ?? []).slice().sort((a, b) => a - b).join(',');
     return [
       profile.lastMealTime ?? '',
+      profile.fastWindowStartMinutes ?? '',
       p?.fastHours ?? '',
       p?.fastLabel ?? '',
       p?.planTemplateId ?? '',
@@ -27,6 +28,7 @@ export function NotificationScheduleSync() {
     ].join('\u0001');
   }, [
     profile?.lastMealTime,
+    profile?.fastWindowStartMinutes,
     profile?.plan?.fastHours,
     profile?.plan?.fastLabel,
     profile?.plan?.planTemplateId,

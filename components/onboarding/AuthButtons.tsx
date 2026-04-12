@@ -139,11 +139,11 @@ export const AuthButtons: React.FC<AuthButtonsProps> = ({
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.dividerRow}>
+      {/* <View style={styles.dividerRow}>
         <View style={[styles.dividerLine, themed.dividerLine]} />
         <Text style={[styles.dividerText, themed.dividerText]}>sign in to save your journey</Text>
         <View style={[styles.dividerLine, themed.dividerLine]} />
-      </View>
+      </View> */}
 
       <Animated.View style={{ opacity: anim1, transform: [{ translateY: slide1 }] }}>
         <PressableButton
