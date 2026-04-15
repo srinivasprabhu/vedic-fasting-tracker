@@ -10,13 +10,16 @@ export const FAST_OVERLAP_MESSAGE =
  * Whether starting a new fast at `newStartMs` would overlap any **completed** fast
  * `[startTime, endTime]` when the new fast is modeled as `[newStartMs, +∞)`.
  *
- * Equivalent to: exists r with endTime set such that `newStartMs < r.endTime`
- * (open-ended new interval intersects a past closed interval).
+ * Intersection of ray [newStart, ∞) with closed [s, e] is non-empty iff max(newStart, s) < e
+ * (strict end so back-to-back at the same instant is allowed).
  */
 export function newFastStartOverlapsCompleted(newStartMs: number, records: FastRecord[]): boolean {
   for (const r of records) {
-    if (r.endTime === null) continue;
-    if (newStartMs < r.endTime) return true;
+    if (r.endTime == null) continue;
+    const s = Number(r.startTime);
+    const e = Number(r.endTime);
+    if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) continue;
+    if (Math.max(newStartMs, s) < e) return true;
   }
   return false;
 }

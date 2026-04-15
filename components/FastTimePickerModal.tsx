@@ -75,6 +75,21 @@ export default function FastTimePickerModal({
   const [selectedHour, setSelectedHour] = useState<number>(new Date().getHours());
   const [selectedMinute, setSelectedMinute] = useState<number>(Math.floor(new Date().getMinutes() / 5) * 5);
 
+  /** 12h + weekday so users don’t confuse hour 05 (5 AM) with 5 PM (hour 17). */
+  const selectedInstantPreview = useMemo(
+    () =>
+      new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        selectedHour,
+        selectedMinute,
+        0,
+        0,
+      ).toLocaleTimeString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true }),
+    [selectedDate, selectedHour, selectedMinute],
+  );
+
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -125,7 +140,9 @@ export default function FastTimePickerModal({
         }),
       ]).start();
     }
-  }, [visible, slideAnim, backdropAnim, maxDate]);
+    // Intentionally omit `maxDate` from deps: parent may pass `new Date()` each render; we read
+    // `maxDateRef.current` when `visible` flips true (ref is updated every render before this runs).
+  }, [visible]);
 
   const closeModal = useCallback(() => {
     Animated.parallel([
@@ -160,8 +177,20 @@ export default function FastTimePickerModal({
   }, [calendarMonth]);
 
   const handleDateConfirm = useCallback(() => {
+    const now = new Date();
+    const picked = selectedDate;
+    if (isSameDay(picked, now)) {
+      // Same calendar day as “now”: use current clock (sensible default for “today”).
+      setSelectedHour(now.getHours());
+      setSelectedMinute(Math.floor(now.getMinutes() / 5) * 5);
+    } else {
+      // Backdated day: do not reuse today’s hour on another calendar day — that produced
+      // accidental times (e.g. Apr 14 9am → Apr 12 9am) inside an earlier fast’s window.
+      setSelectedHour(17);
+      setSelectedMinute(0);
+    }
     setStep('time');
-  }, []);
+  }, [selectedDate]);
 
   const handleTimeConfirm = useCallback(() => {
     const ts = new Date(
@@ -323,6 +352,7 @@ export default function FastTimePickerModal({
           <Text style={styles.timeDisplayText}>
             {selectedHour.toString().padStart(2, '0')}:{selectedMinute.toString().padStart(2, '0')}
           </Text>
+          <Text style={[styles.timeDisplayHint, { color: colors.primary }]}>{selectedInstantPreview}</Text>
         </View>
 
         <Text style={styles.timeSectionLabel}>Hour</Text>
@@ -664,6 +694,12 @@ function makeStyles(colors: ColorScheme, dayCellSize: number) {
       fontWeight: '700' as const,
       color: colors.text,
       letterSpacing: 2,
+    },
+    timeDisplayHint: {
+      fontSize: fs(15),
+      fontWeight: '600' as const,
+      marginTop: 8,
+      textAlign: 'center' as const,
     },
     timeSectionLabel: {
       fontSize: fs(12),

@@ -9,6 +9,7 @@ import {
   creditsByDayKey,
   creditsFromEndedFast,
   dayKeyInMonth,
+  formatOrdinalDayAndTime,
   localDayKeyFromMs,
   type BubbleKind,
   type JourneyCredit,
@@ -353,6 +354,7 @@ export default function CalendarScreen() {
         dateLabel: `Today · ${headerFmt}`,
         badge: 'active' as const,
         durationLine: `${h}h ${mi}m`,
+        timeRangeLine: `Started ${formatOrdinalDayAndTime(activeFast.startTime)}`,
         planLine: activeFast.label,
         targetSub: `${Math.round(activeFast.targetDuration / MS_HOUR)}h target`,
         sublineGoal: 'Fast in progress',
@@ -644,6 +646,11 @@ export default function CalendarScreen() {
                 {drawerModels.durationLine ? (
                   <Text style={[styles.drawerLine, { color: colors.text }]}>{drawerModels.durationLine}</Text>
                 ) : null}
+                {drawerModels.timeRangeLine ? (
+                  <Text style={[styles.drawerTimes, { color: colors.textSecondary }]}>
+                    {drawerModels.timeRangeLine}
+                  </Text>
+                ) : null}
                 {drawerModels.planLine ? (
                   <Text style={[styles.drawerSub, { color: colors.textSecondary }]}>
                     {drawerModels.planLine} · {drawerModels.targetSub}
@@ -903,6 +910,11 @@ function makeStyles() {
     drawerLine: {
       fontSize: fs(26),
       fontWeight: '600',
+    },
+    drawerTimes: {
+      fontSize: fs(14),
+      fontWeight: '500',
+      marginTop: 8,
     },
     drawerSub: {
       fontSize: fs(14),

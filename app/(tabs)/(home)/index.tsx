@@ -15,8 +15,8 @@ import { useTheme }        from '@/contexts/ThemeContext';
 import { useFasting }      from '@/contexts/FastingContext';
 import { useUserProfile }  from '@/contexts/UserProfileContext';
 import { useRevenueCat } from '@/contexts/RevenueCatContext';
-import { VEDIC_QUOTES, NEUTRAL_DAILY_QUOTES } from '@/mocks/vedic-data';
 import CircularTimer       from '@/components/CircularTimer';
+import YesterdayCard       from '@/components/YesterdayCard';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
 import MetabolicZoneRiver  from '@/components/MetabolicZoneRiver';
 import { useFastTimer }    from '@/hooks/useFastTimer';
@@ -28,7 +28,7 @@ import { FastType } from '@/types/fasting';
 import { FastPlanPickerModal, FastPlanOption } from '@/components/FastPlanPickerModal';
 import { WeeklyFastDaysModal } from '@/components/WeeklyFastDaysModal';
 import type { ColorScheme } from '@/constants/colors';
-import { TRADITIONAL_INSIGHTS_KEY } from '@/constants/storageKeys';
+import { loadYesterdayData, type YesterdayData } from '@/utils/yesterdayData';
 import { StatTile } from '@/components/ui/StatTile';
 import { formatInsightHours } from '@/utils/analytics-helpers';
 import {
@@ -115,7 +115,7 @@ export default function HomeScreen() {
   const [showPlanPicker, setShowPlanPicker] = useState(false);
   const [showWeeklyDaysModal, setShowWeeklyDaysModal] = useState(false);
   const [weeklyPlanDraft, setWeeklyPlanDraft] = useState<FastPlanOption | null>(null);
-  const [traditionalInsights, setTraditionalInsights] = useState(false);
+  const [yesterdayData, setYesterdayData] = useState<YesterdayData | null>(null);
 
   // ── Water and weight (not from pedometer, still AsyncStorage) ─────────────
   const [waterMl, setWaterMl]     = useState(0);
@@ -128,30 +128,39 @@ export default function HomeScreen() {
   const displayKg   = weightKg ?? profile?.currentWeightKg ?? null;
   const weightUnit  = profile?.weightUnit ?? 'kg';
 
-  // Re-read water + weight + steps every time the screen gains focus
-  // (handles coming back from detail pages where data was changed)
+  /** Reload yesterday summary whenever fasting records or targets change (e.g. backdated fast up to 7 days). */
+  const reloadYesterdayCard = useCallback(() => {
+    loadYesterdayData(completedRecords, {
+      waterTarget,
+      stepsTarget,
+      fastTargetHours: plan?.fastHours ?? 16,
+      streak,
+    }).then(setYesterdayData);
+  }, [completedRecords, streak, waterTarget, stepsTarget, plan?.fastHours]);
+
+  useEffect(() => {
+    reloadYesterdayCard();
+  }, [reloadYesterdayCard]);
+
+  // Re-read water + weight + pedometer every time the screen gains focus
+  // (detail pages / yesterday water & steps in AsyncStorage)
   useFocusEffect(
     useCallback(() => {
-      // Refresh manual steps from storage (may have been added on detail page)
       pedometer.refreshManual();
 
-      AsyncStorage.getItem(TRADITIONAL_INSIGHTS_KEY).then((v) => {
-        setTraditionalInsights(v === '1' || v === 'true');
-      });
-
-      // Water
       AsyncStorage.getItem(waterDayKey()).then(raw => {
         if (raw) {
           try { const entries: { ml: number }[] = JSON.parse(raw); setWaterMl(entries.reduce((s, e) => s + e.ml, 0)); } catch {}
         } else { setWaterMl(0); }
       });
-      // Weight
       AsyncStorage.getItem(WEIGHT_KEY).then(raw => {
         if (raw) {
           try { const log: { kg: number }[] = JSON.parse(raw); if (log.length > 0) setWeightKg(log[0].kg); } catch {}
         }
       });
-    }, [])
+
+      reloadYesterdayCard();
+    }, [reloadYesterdayCard, pedometer])
   );
 
   // Quick-add water inline from home card
@@ -164,21 +173,7 @@ export default function HomeScreen() {
   }, []);
 
   // ── Animations ─────────────────────────────────────────────────────────────
-  const fadeAnim    = useRef(new Animated.Value(0)).current;
-  const slideAnim   = useRef(new Animated.Value(20)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
-
-  const quote = useMemo(() => {
-    const pool = traditionalInsights ? VEDIC_QUOTES : NEUTRAL_DAILY_QUOTES;
-    return pool[Math.floor(Date.now() / 86400000) % pool.length];
-  }, [traditionalInsights]);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-    ]).start();
-  }, []);
 
   const timer = useFastTimer(activeFast ? { startTime: activeFast.startTime, onZoneChange: () => {} } : null);
 
@@ -237,6 +232,9 @@ export default function HomeScreen() {
   const waterPct    = waterTarget > 0 ? (waterMl / waterTarget) * 100 : 0;
   const stepsPct    = stepsTarget > 0 ? (pedometer.steps / stepsTarget) * 100 : 0;
 
+  /** Stable max date for end-fast picker — `new Date()` each render would retrigger FastTimePickerModal's open effect. */
+  const endFastPickerMaxDate = useMemo(() => new Date(), [showEndTimePicker]);
+
   // ── Plan picker safety restrictions ───────────────────────────────────────
   const userAge = profile ? getAge(profile) : 30;
   const userBmi = (profile?.currentWeightKg && profile?.heightCm)
@@ -277,6 +275,9 @@ export default function HomeScreen() {
                 hitSlop={HEADER_ICON_HIT_SLOP}
               >
                 <Text style={styles.avatarText}>{getInitial()}</Text>
+                <View style={[styles.avatarDot, {
+                  backgroundColor: activeFast ? colors.success : colors.warning,
+                }]} />
               </TouchableOpacity>
               <View style={styles.headerTextCol}>
                 <Text style={[styles.greeting, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
@@ -527,17 +528,16 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Quote — moved to bottom for better content priority */}
-          <Animated.View style={[styles.quoteCard, { opacity: fadeAnim, backgroundColor: colors.surface, borderLeftColor: colors.primary }]}>
-            <Text style={[styles.quoteText, { color: colors.text }]}>"{quote.text}"</Text>
-            <Text style={[styles.quoteSrc, { color: colors.textSecondary }]}>— {quote.source}</Text>
-          </Animated.View>
+          {/* Yesterday motivation card */}
+          {yesterdayData && completedFastCount > 0 && (
+            <YesterdayCard data={yesterdayData} />
+          )}
 
         </ScrollView>
       </SafeAreaView>
 
       <FastTimePickerModal visible={showStartTimePicker} onClose={() => { setShowStartTimePicker(false); setPendingFast(null); }} onSelectNow={handleStartNow} onSelectCustom={handleStartCustom} title="When did you start fasting?" />
-      <FastTimePickerModal visible={showEndTimePicker}   onClose={() => setShowEndTimePicker(false)} onSelectNow={handleEndNow} onSelectCustom={handleEndCustom} title="When did you break your fast?" maxDate={new Date()} />
+      <FastTimePickerModal visible={showEndTimePicker}   onClose={() => setShowEndTimePicker(false)} onSelectNow={handleEndNow} onSelectCustom={handleEndCustom} title="When did you break your fast?" maxDate={endFastPickerMaxDate} />
 
       <FastPlanPickerModal
         visible={showPlanPicker}
@@ -609,8 +609,9 @@ function makeStyles(colors: ColorScheme) {
     headerRow:         { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, minHeight: 52 } as ViewStyle,
     headerLeft:        { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, flex: 1, minWidth: 0 } as ViewStyle,
     headerTextCol:     { flex: 1, minWidth: 0, justifyContent: 'center' as const } as ViewStyle,
-    avatar:            { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0 } as ViewStyle,
-    avatarText:        { fontSize: fs(16), fontWeight: '700' as const, color: '#fff' } as TextStyle,
+    avatar:            { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary, alignItems: 'center' as const, justifyContent: 'center' as const, flexShrink: 0, borderWidth: 2, borderColor: colors.primaryLight } as ViewStyle,
+    avatarText:        { fontSize: fs(17), fontWeight: '700' as const, color: '#fff' } as TextStyle,
+    avatarDot:         { position: 'absolute' as const, bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, borderWidth: 2.5, borderColor: colors.background } as ViewStyle,
     greeting:          { fontSize: fs(18), fontWeight: '700' as const, lineHeight: 22 } as TextStyle,
     greetingDate:      { fontSize: fs(12), fontWeight: '500' as const, marginTop: 1, lineHeight: 16 } as TextStyle,
     headerActions:     { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, flexShrink: 0 } as ViewStyle,
@@ -622,9 +623,6 @@ function makeStyles(colors: ColorScheme) {
     nextPlanTiming:    { fontSize: fs(13), fontWeight: '500' as const } as TextStyle,
     homePlanPill:      { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, maxWidth: '48%' as const } as ViewStyle,
     homePlanPillText:  { fontSize: fs(14), fontWeight: '600' as const, letterSpacing: -0.2, flexShrink: 1 } as TextStyle,
-    quoteCard:         { borderRadius: 16, padding: 16, marginBottom: 16, borderLeftWidth: 3, minHeight: 112 } as ViewStyle,
-    quoteText:         { fontSize: fs(16), fontStyle: 'italic' as const, lineHeight: 24, fontWeight: '400' as const } as TextStyle,
-    quoteSrc:          { fontSize: fs(13), fontWeight: '500' as const, marginTop: 8, lineHeight: 18 } as TextStyle,
     timerCard:         { borderRadius: 28, borderWidth: 1, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 18, marginBottom: 20, alignItems: 'center' as const } as ViewStyle,
     timerEyebrow:      { fontSize: fs(13), fontWeight: '500' as const, lineHeight: 18, alignSelf: 'center' as const, textAlign: 'center' as const, marginBottom: 12, paddingHorizontal: 4 } as TextStyle,
     timerCtaWrap:      { marginTop: 20, width: '100%' as const, alignItems: 'center' as const } as ViewStyle,

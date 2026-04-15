@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   -- Body metrics
   sex                  text CHECK (sex IN ('male', 'female', 'prefer_not_to_say')),
   dob                  date,
+  age_years            integer CHECK (age_years IS NULL OR (age_years >= 14 AND age_years <= 120)),
   height_cm            numeric(5,1),
   current_weight_kg    numeric(5,2),
   starting_weight_kg   numeric(5,2),

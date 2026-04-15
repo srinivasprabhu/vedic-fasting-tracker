@@ -138,6 +138,7 @@ export async function uploadLocalProfile(userId: string): Promise<void> {
         currency:             p.currency ?? null,
         sex:                  p.sex ?? null,
         dob:                  p.dob ?? null,
+        age_years:            p.ageYears ?? null,
         height_cm:            p.heightCm ?? null,
         current_weight_kg:    p.currentWeightKg ?? null,
         starting_weight_kg:   p.startingWeightKg ?? null,
@@ -183,6 +184,10 @@ export async function fetchCloudProfile(userId: string): Promise<UserProfile | n
       createdAt:        data.created_at ? new Date(data.created_at).getTime() : Date.now(),
       sex:              data.sex ?? undefined,
       dob:              data.dob ?? undefined,
+      ageYears:
+        data.age_years != null && data.age_years !== ''
+          ? Number(data.age_years)
+          : undefined,
       heightCm:         data.height_cm ? Number(data.height_cm) : undefined,
       currentWeightKg:  data.current_weight_kg ? Number(data.current_weight_kg) : undefined,
       startingWeightKg: data.starting_weight_kg ? Number(data.starting_weight_kg) : undefined,

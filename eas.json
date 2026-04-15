@@ -17,7 +17,11 @@
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "SENTRY_ORG": "aayu-health",
+        "SENTRY_PROJECT": "react-native"
+      }
     }
   },
   "submit": {

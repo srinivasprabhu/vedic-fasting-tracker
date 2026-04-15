@@ -6,8 +6,6 @@ export interface MetricKnowledge {
   shortDesc: string;
   science: string;
   howFastingHelps: string;
-  vedicPerspective?: string;
-  /** Educational: what tends to be happening around ~12h into a fast (not personalized). */
   twelveHourGuide?: string;
   /** Optional rough anchor for slow-moving metrics (clearly non-medical). */
   longHorizonGuide?: string;
@@ -26,7 +24,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Around ~12 hours, many people are right at the glycogen → fat-burn crossover: lipolysis ramps up and fatty acids start feeding ketone production. The **illustration** above marks that transition—before it, you are still leaning on stored carbs; after it, fat oxidation contributes more with each hour.',
     science: 'During the first 12 hours of fasting, your body depletes its glycogen (sugar) stores in the liver. Once glycogen is exhausted, your body shifts to lipolysis — the breakdown of stored triglycerides in fat cells into free fatty acids and glycerol. These fatty acids are transported to the liver, where they are converted into ketone bodies (beta-hydroxybutyrate, acetoacetate) through a process called ketogenesis. Ketones then serve as an efficient fuel source for the brain and muscles.',
     howFastingHelps: 'Every hour after the 12-hour mark, your body burns approximately 0.14g of fat per kg of body weight. For a 70kg person, that is roughly 10g of fat per hour. Consistent intermittent fasting trains your body to become "metabolically flexible," meaning it can efficiently switch between glucose and fat burning. Over time, this improves your body composition and reduces visceral (belly) fat specifically.',
-    vedicPerspective: 'In Ayurveda, this process is called "Agni Deepana" — the kindling of digestive fire. When the body finishes processing food, Agni turns inward to burn Ama (toxins and accumulated waste), purifying the body from within.',
     keyFacts: [
       'Fat burning starts after ~12 hours of fasting',
       '1 gram of fat = 9 calories of energy',
@@ -49,7 +46,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Meaningful cumulative autophagy time builds over **many** fasts. Deep autophagy in research is often associated with **18–24h+** per episode, repeated over weeks—not something a single 12h fast fully captures.',
     science: 'Autophagy (from Greek "auto" = self, "phagein" = to eat) is a cellular recycling mechanism where cells break down and recycle their own damaged or dysfunctional components. This includes misfolded proteins, damaged mitochondria, and intracellular pathogens. The process is regulated by mTOR (mechanistic Target of Rapamycin) and AMPK pathways. When nutrients are scarce (during fasting), mTOR is inhibited and AMPK is activated, triggering autophagy. Yoshinori Ohsumi won the 2016 Nobel Prize in Physiology for discovering the mechanisms of autophagy.',
     howFastingHelps: 'Autophagy begins to ramp up significantly after 16 hours of fasting, reaching peak activity between 24-48 hours. During this window, cells aggressively recycle damaged components, which has been linked to reduced cancer risk, improved neurological health, slower aging, and enhanced immune function. Even regular 16:8 intermittent fasting provides meaningful autophagy benefits.',
-    vedicPerspective: 'The Vedic concept of "Shaucha" (purity/cleanliness) extends to the cellular level. Ancient texts describe fasting as a way to purify not just the mind but every cell of the body. Ekadashi fasts, lasting 24+ hours, align perfectly with peak autophagy activation.',
     keyFacts: [
       'Autophagy begins around 16 hours of fasting',
       'Peak activity occurs between 24-48 hours',
@@ -71,7 +67,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'By ~12 hours, insulin has usually fallen enough that **GH secretion can climb** compared to the fed state. You are on the early slope—bigger pulses are often reported deeper into the fast (e.g. overnight into 16–24h), which the bar marks as lying past the 12h notch.',
     science: 'Human Growth Hormone (HGH) is produced by the pituitary gland and plays a critical role in growth, cell repair, metabolism, and body composition. HGH stimulates the liver to produce IGF-1, which promotes cell growth and regeneration. During fasting, two key mechanisms boost HGH: (1) reduced insulin levels remove the suppressive effect on HGH secretion, and (2) increased ghrelin (hunger hormone) directly stimulates HGH release from the pituitary gland. Studies show HGH can increase by up to 2000% (20x) during a 24-hour fast.',
     howFastingHelps: 'After 12 hours of fasting, HGH levels begin to rise significantly. By 24 hours, levels can be 5-20 times higher than baseline. This massive surge helps preserve lean muscle mass during fasting (your body burns fat instead of muscle), accelerates fat metabolism, improves skin elasticity, strengthens bones, and enhances recovery from exercise. The HGH boost is one reason fasted individuals often report better workout recovery.',
-    vedicPerspective: 'In Yoga philosophy, this rejuvenating effect is associated with "Ojas" — the vital energy that governs immunity, strength, and vitality. Fasting is said to concentrate and purify Ojas, explaining why practitioners often feel energized rather than depleted after a fast.',
     keyFacts: [
       'HGH can increase up to 2000% during a 24-hour fast',
       'Peaks during sleep while fasting — amplifying overnight repair',
@@ -94,7 +89,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Trials often report meaningful CRP / cytokine changes after **8–12+ weeks** of regular time-restricted eating or alternate-day patterns—not from one long fast alone.',
     science: 'Chronic low-grade inflammation is implicated in nearly every major disease: heart disease, diabetes, cancer, Alzheimer\'s, and autoimmune conditions. Key inflammatory markers include C-reactive protein (CRP), IL-6, TNF-alpha, and NF-kB. During fasting, several anti-inflammatory mechanisms activate: (1) reduced oxidative stress through lower free radical production, (2) decreased production of pro-inflammatory cytokines, (3) activation of SIRT1 and SIRT3 (sirtuins) which suppress inflammation, and (4) the NLRP3 inflammasome is inhibited, reducing the inflammatory cascade.',
     howFastingHelps: 'Studies show that regular intermittent fasting can reduce CRP levels by 30-40% within 8-12 weeks. The anti-inflammatory benefits compound over time with consistent practice. Fasting also promotes the production of beta-hydroxybutyrate (BHB), a ketone body that directly blocks the NLRP3 inflammasome — one of the most potent triggers of systemic inflammation.',
-    vedicPerspective: 'Ayurveda identifies excess "Pitta" (fire/heat) as the source of inflammation in the body. Fasting is prescribed as one of the most effective ways to pacify aggravated Pitta, cooling the body and restoring balance to the doshas.',
     keyFacts: [
       'CRP levels can drop 30-40% with consistent fasting',
       'Ketone body BHB directly blocks inflammatory pathways',
@@ -115,7 +109,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Around ~12h, circulating insulin is typically **much lower** than after meals; the liver is burning through glycogen. That fasting chemistry is exactly what lets the next meal land on a “quieter” metabolic baseline—illustrated as crossing into the right half of the first day.',
     science: 'Insulin is a hormone that signals cells to absorb glucose from the bloodstream. When you eat frequently, insulin is constantly elevated, and over time cells become "resistant" to its signal — requiring more insulin to achieve the same effect. This is insulin resistance, the precursor to Type 2 diabetes. During fasting, insulin levels drop significantly, allowing cells to resensitize to insulin\'s signal. The enzyme AMPK is activated, improving glucose uptake in muscles. Simultaneously, liver glycogen is depleted, reducing hepatic insulin resistance.',
     howFastingHelps: 'Studies show intermittent fasting can reduce fasting insulin levels by 20-31% and improve insulin sensitivity by up to 50%. The longer and more consistent your fasting practice, the greater the improvement. Your score is calculated from fasting duration, consistency streak, completion rate, and total experience. A score above 70 indicates strong metabolic health.',
-    vedicPerspective: 'The concept of "Madhura Rasa" (sweet taste) balance is central to Ayurveda. Excess sweetness in the body leads to "Prameha" (urinary/metabolic disorders). Regular fasting is the ancient prescription for maintaining this balance — essentially what modern science now calls insulin sensitivity.',
     keyFacts: [
       'Fasting can reduce insulin levels by 20-31%',
       'Insulin sensitivity can improve by up to 50%',
@@ -138,7 +131,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       '**Rough anchor (educational, not medical):** Aayu estimates “years younger” from **cumulative hours past 16h** across your fasts. In that model, **~1 year** of biological-age credit ≈ **~1,200** such hours (~100h beyond 16h ≈ **~1 month**). So **~10 days** of credit is on the order of **~30–35** cumulative autophagy-hours in the same model. Real clocks (epigenetic tests) vary widely; use this only to reason about scale.',
     science: 'Biological age is determined by telomere length, epigenetic markers, and cellular damage accumulation. Fasting activates several anti-aging pathways: (1) Sirtuins (SIRT1-7) — proteins that repair DNA and regulate gene expression, (2) Autophagy — removes damaged cellular components, (3) Reduced oxidative stress — less free radical damage to DNA, and (4) Telomere protection — fasting may slow telomere shortening. Additionally, fasting promotes stem cell regeneration, particularly in the immune system, effectively "resetting" aging immune cells.',
     howFastingHelps: 'Every 100 hours spent in autophagy (fasting beyond 16 hours) is estimated to reduce biological age by approximately 1 month. This compounds over time — consistent fasters who accumulate significant autophagy hours can show measurable differences in biological vs. chronological age. The NAD+ pathway, critical for cellular repair, is significantly upregulated during fasting.',
-    vedicPerspective: 'The Vedic concept of "Rasayana" (rejuvenation therapy) describes practices that reverse aging and restore youthfulness. Fasting has been considered the most accessible and powerful Rasayana for millennia. The Charaka Samhita specifically recommends periodic fasting for longevity.',
     keyFacts: [
       'Fasting activates all 7 sirtuin anti-aging proteins',
       'NAD+ levels increase during fasting, boosting cellular repair',
@@ -151,7 +143,7 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
 
   gutRest: {
     id: 'gutRest',
-    title: 'Gut Rest (Agni)',
+    title: 'Gut Rest',
     iconName: 'Droplet',
     color: '#D4A03C',
     shortDesc: 'Giving your digestive system extended rest allows it to repair, reset, and strengthen its function.',
@@ -159,7 +151,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'By ~12h without food, the **migrating motor complex** has had multiple “cleaning waves”; you are well into digestive rest versus a short post-meal pause. Gut lining turnover and barrier repair scale with **how often** you repeat these longer quiet windows.',
     science: 'The gastrointestinal tract is one of the most metabolically active organs, with the intestinal lining replacing itself every 3-5 days. During fasting, the Migrating Motor Complex (MMC) — a pattern of electrical activity that sweeps through the intestines — becomes fully active. The MMC acts as a "housekeeper," clearing undigested food particles, bacteria, and debris from the small intestine. This process is suppressed during eating and only activates after 4+ hours without food. Extended rest also allows the gut barrier to repair, reducing intestinal permeability ("leaky gut").',
     howFastingHelps: 'Effective gut rest begins after 8 hours of fasting when the digestive system enters full maintenance mode. The longer the fast, the more complete the cleaning and repair cycle. Regular fasting has been shown to improve gut microbiome diversity, reduce bloating and digestive discomfort, strengthen the intestinal barrier, and improve nutrient absorption when eating resumes.',
-    vedicPerspective: 'Agni (digestive fire) is considered the foundation of health in Ayurveda. When Agni is strong, food is properly digested and Ama (toxins) do not accumulate. Fasting is the primary method prescribed to strengthen Agni — "Langhana" (lightening therapy). The Ashtanga Hridaya states that periodic fasting keeps Agni blazing bright.',
     keyFacts: [
       'The Migrating Motor Complex only fully activates during fasting',
       'Gut lining replaces itself every 3-5 days — fasting aids this',
@@ -198,7 +189,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
     shortDesc: 'Measures how well your fasting practice aligns with Vedic spiritual principles of purity and discipline.',
     science: 'In Vedic philosophy, Sattva represents purity, harmony, and balance — one of the three Gunas (qualities) that govern all of nature. A Sattvic lifestyle promotes clarity of mind, inner peace, and spiritual growth. The Bhagavad Gita (Chapter 17) describes Sattvic food as that which increases life, purity, strength, health, joy, and cheerfulness. Fasting, especially on auspicious days, is considered one of the highest Sattvic practices.',
     howFastingHelps: 'Your Sattvic score improves through: observing Vedic fasting days (Ekadashi, Pradosh, etc.), maintaining consistency in your practice, building long streaks of discipline, and completing fasts fully. Each component strengthens your connection to the Sattvic lifestyle. The score reflects not just physical fasting but the spiritual intention behind it.',
-    vedicPerspective: 'The Chandogya Upanishad states: "Ahara Shuddhi Sattva Shuddhi" — purity of food leads to purity of mind. Fasting is the ultimate expression of food purity, as it transcends even the choice of what to eat. On Ekadashi, Lord Vishnu is said to reside in all grains, making fasting a way to avoid consuming the divine presence.',
     keyFacts: [
       'Three Gunas: Sattva (purity), Rajas (activity), Tamas (inertia)',
       'Ekadashi fasting is mentioned in multiple Puranas',
@@ -217,7 +207,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
     shortDesc: 'Fasting enhances vital life force energy, improving mental clarity, physical vitality, and spiritual awareness.',
     science: 'While "Prana" is a Vedic concept, modern science validates its components. Mental clarity improves during fasting due to increased BDNF (Brain-Derived Neurotrophic Factor) production, which enhances neural connections and cognitive function. Physical vitality increases through improved mitochondrial efficiency — fasting triggers mitochondrial biogenesis (creation of new mitochondria) and removes damaged ones through mitophagy. Norepinephrine levels rise during fasting, increasing alertness and energy.',
     howFastingHelps: 'Your Prana scores are calculated from: Mental Clarity (based on average fast duration — longer fasts produce more BDNF), Vitality (based on streak and consistency — regular fasting improves baseline energy), and Spiritual awareness (based on Sattvic score and dedication to practice). These three pillars reflect the holistic benefits of a disciplined fasting practice.',
-    vedicPerspective: 'Prana is the cosmic life force that sustains all living beings. The Prasna Upanishad describes Prana as the fundamental energy from which all other life functions arise. Fasting concentrates Prana by redirecting the enormous energy normally used for digestion (up to 30% of total energy) toward healing, meditation, and spiritual practices.',
     keyFacts: [
       'Digestion uses up to 30% of total body energy',
       'BDNF increases by up to 400% during extended fasting',
@@ -238,7 +227,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'The strip marks **~12h** on a **0→24h** educational timeline. At that point many people are finishing glycogen-heavy use and **entering the fat-burn band** (see zones below). Your personal curve depends on diet, muscle glycogen, sleep, and activity.',
     science: 'As fasting progresses, your metabolism shifts through well-defined phases. In the Anabolic state (0-4h), insulin is high and nutrients are being absorbed. During the Catabolic phase (4-12h), glycogen stores are progressively depleted. Fat Burning begins at 12-18h as lipolysis accelerates. Ketosis (18-24h) marks deep ketone production. Autophagy Peak (24-48h) brings maximum cellular cleansing. Deep Renewal (48h+) triggers stem cell regeneration and profound healing.',
     howFastingHelps: 'Understanding which zone you are in helps you make informed decisions about your fast duration. Each zone offers distinct benefits, and knowing your current state provides motivation to continue. Even reaching the Fat Burning zone (12h+) provides significant health benefits. Longer fasts unlock deeper healing but should be approached gradually.',
-    vedicPerspective: 'The progression through metabolic zones mirrors the Vedic concept of "Tapas" (austerity/heat). Just as gold is purified by increasing heat, the body and mind are progressively purified through deeper fasting states. The Yoga Sutras describe Tapas as one of the three pillars of spiritual practice (Kriya Yoga).',
     keyFacts: [
       '0-4h: Digestion and nutrient absorption',
       '4-12h: Glycogen depletion, transition to fasting',
@@ -267,9 +255,7 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Together, these capture **discipline and pattern quality**, not a single hormone or blood value.',
     howFastingHelps:
       'Use the score as a **north star** for habits: lengthen averages toward your plan, hit your weekly rhythm, favor windows that include sleep, occasionally push into 16h+ when safe for you, and protect small daily streaks. Tap **See score breakdown** for pillar-by-pillar detail and how your window compares to the prior period.',
-    vedicPerspective:
-      'In the Vedic tradition, steady practice (**abhyasa**) with self-regulation (**tapas**) turns intention into lasting change. The Metabolic Discipline Score mirrors that idea: not one dramatic fast, but a **repeated, well-timed pattern** that supports clarity of mind and steadiness of metabolism.',
-    keyFacts: [
+   keyFacts: [
       'Maximum score is 100; components add up from the five pillars described above',
       'Changing the Insights range (7D / 30D / All) recalculates the score from different fast history',
       'This score is separate from the “Insulin Sensitivity” card, which uses a different 0–100 model',
@@ -290,8 +276,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'After meals, insulin rises to store and distribute nutrients. During fasting, insulin typically trends downward, and fuel shifts toward stored glycogen and then fat. Total hours fasted does not measure insulin directly, but it tracks how much of your life rhythm is spent in the low-insulin fasting arc versus frequent eating.',
     howFastingHelps:
       'Extending or repeating fasting windows (when appropriate for you) increases cumulative low-insulin time without needing a wearable. Pairing this with your Metabolic Discipline Score shows whether you are adding hours in a sustainable, consistent way.',
-    vedicPerspective:
-      'Ayurveda emphasizes gaps between meals so **Agni** can complete its cycle and **Ama** does not accumulate from constant grazing. Longer quiet windows echo the same principle modern metabolism describes as fewer post-meal insulin spikes.',
     keyFacts: [
       'Uses completed fast duration summed over the same range as the Insights toggle',
       'Does not replace blood tests (fasting insulin, HOMA-IR, etc.)',
@@ -311,8 +295,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Timing varies by person, but many guides place **glycogen use** in the earlier half of a day-long fast and increasing **fat-derived fuel** afterward. Sixteen hours is a practical milestone in intermittent-fasting plans (e.g. 16:8) for stacking more hours in a low-insulin, repair-favorable state.',
     howFastingHelps:
       'The count rewards how often you reach that depth in the window, not one heroic fast. Build gradually, hydrate, and break safely — the Metabolic Discipline “Deep fasts” pillar also reflects this behavior.',
-    vedicPerspective:
-      'Classical fasting days (e.g. Ekadashi) often imply full-day discipline; the modern 16h milestone is a gentler, daily rhythm that still honors extended digestive rest.',
     keyFacts: [
       'Count includes completed fasts ≥ ~16 hours in the selected range',
       'Not medical advice; medications and conditions change safety — consult your clinician',
@@ -331,8 +313,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Core clock genes regulate metabolism, hormone timing, and glucose control. Eating late constantly presses “daytime” signals into the night; shifting more fasting into sleep reduces that friction for many people. The app estimates overlap between each fast and that overnight window and rolls it into your Metabolic Discipline Score.',
     howFastingHelps:
       'Earlier dinners, stable sleep, and windows that end breakfast after morning often raise overlap without extreme duration. Small shifts (even 30–60 minutes) can move this metric over weeks.',
-    vedicPerspective:
-      'Dinacharya (daily routine) aligns activity, meals, and rest with solar rhythm. Letting the night be a time of sensory and digestive rest matches both circadian science and traditional schedule wisdom.',
     keyFacts: [
       'Uses local timestamps on your completed fasts',
       'One part of the overall score — not a measure of sleep quality by itself',
@@ -351,8 +331,6 @@ export const METRIC_KNOWLEDGE: Record<string, MetricKnowledge> = {
       'Behavior change research favors frequency and repeatability over occasional extreme efforts. A rhythm you can keep months-long drives most of the metabolic and inflammatory benefits seen in population studies of time-restricted eating and periodic fasting.',
     howFastingHelps:
       'Aim for predictable windows rather than perfect intensity. The target days line references your plan’s expected fasts per week; your streak rewards consecutive days with practice logged in the app.',
-    vedicPerspective:
-      'The Gunas teach that steady sattvic effort outperforms irregular bursts of rajasic intensity. Consistency in fasting is treated as training the mind as much as the body.',
     keyFacts: [
       'Weekly dots: Mon–Sun, filled if a completed fast ended on that calendar day',
       'Streak counts consecutive days meeting your practice (app-defined)',

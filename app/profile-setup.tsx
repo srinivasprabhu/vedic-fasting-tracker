@@ -35,7 +35,7 @@ import { lastMealTimeToHour } from '@/utils/fastingPlanSchedule';
 import type {
   FastingPurpose, UserSex, WeightUnit,
   ActivityLevel, HealthConcern, FastingLevel, UserPlan,
-  LastMealTime, SafetyFlags,
+  LastMealTime, SafetyFlags, UserProfile,
 } from '@/types/user';
 
 const TOTAL_STEPS = 14;
@@ -44,7 +44,7 @@ export default function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuth();
-  const { profile, updateProfile, updateBodyMetrics, isLoading } = useUserProfile();
+  const { profile, updateProfile, isLoading } = useUserProfile();
 
   const [step, setStep]                   = useState(1);
   const [name, setName]                   = useState('');
@@ -78,7 +78,8 @@ export default function ProfileSetupScreen() {
     if (isNaN(kg) || isNaN(parseFloat(heightCm))) return null;
     return calculatePlan({
       name, fastingLevel, fastingPath: 'if', createdAt: Date.now(),
-      ageGroup: null, dob: `${new Date().getFullYear() - age}-06-15`,
+      ageGroup: null,
+      ageYears: age,
       sex, heightCm: parseFloat(heightCm),
       currentWeightKg: kg, goalWeightKg: gkg,
       weightUnit, fastingPurpose: purpose ?? undefined,
@@ -87,7 +88,7 @@ export default function ProfileSetupScreen() {
       lastMealTime: lastMealTime ?? undefined,
       safetyFlags: Object.keys(safetyFlags).length > 0 ? safetyFlags : undefined,
     });
-  }, [sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, fastingLevel, activityLevel, healthConcerns, name, lastMealTime]);
+  }, [sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, fastingLevel, activityLevel, healthConcerns, name, lastMealTime, age, safetyFlags]);
 
   const progressAnim   = useRef(new Animated.Value(1 / TOTAL_STEPS)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -131,34 +132,41 @@ export default function ProfileSetupScreen() {
     const gkg = targetWeight
       ? (weightUnit === 'lbs' ? parseFloat(targetWeight) / 2.20462 : parseFloat(targetWeight))
       : undefined;
-    const dob = `${new Date().getFullYear() - age}-06-15`;
-    const base = { name: name.trim() || 'Friend', ageGroup: null as null, fastingLevel, fastingPath: 'if' as const, createdAt: Date.now(), dob };
+    const mealMin = lastMealTime ? lastMealTimeToHour(lastMealTime) * 60 : undefined;
+    const hasRealHealthConcern = healthConcerns.some((c) => c !== 'none');
+    const hasSafetyFlag = Object.values(safetyFlags).some(Boolean);
+    const common = {
+      name: name.trim() || 'Friend',
+      ageGroup: null as null,
+      fastingLevel,
+      fastingPath: 'if' as const,
+      createdAt: Date.now(),
+      ageYears: age,
+      healthConcerns: hasRealHealthConcern ? healthConcerns : undefined,
+      safetyFlags: hasSafetyFlag ? safetyFlags : undefined,
+      activityLevel: activityLevel ?? undefined,
+    };
     if (sex && heightCm && !isNaN(kg)) {
-      updateProfile(base);
-      const mealMin = lastMealTime ? lastMealTimeToHour(lastMealTime) * 60 : undefined;
-      updateBodyMetrics({
+      updateProfile({
+        ...common,
         sex,
-        dob,
         heightCm: parseFloat(heightCm),
         currentWeightKg: kg,
+        startingWeightKg: profile?.startingWeightKg ?? kg,
         goalWeightKg: gkg,
         weightUnit,
         fastingPurpose: purpose ?? undefined,
-        ...(lastMealTime
-          ? { lastMealTime, ...(mealMin != null ? { fastWindowStartMinutes: mealMin } : {}) }
-          : {}),
+        lastMealTime: lastMealTime ?? undefined,
+        ...(mealMin != null ? { fastWindowStartMinutes: mealMin } : {}),
       });
     } else {
-      updateProfile(base);
+      updateProfile({ ...common } as UserProfile);
     }
     router.replace('/(tabs)/(home)' as any);
-  }, [name, fastingLevel, sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, lastMealTime, updateProfile, updateBodyMetrics]);
-
-  const handleSkip = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    updateProfile({ name: 'Friend', ageGroup: null, fastingLevel: null, fastingPath: 'if', createdAt: Date.now() });
-    router.replace('/(tabs)/(home)' as any);
-  }, [updateProfile]);
+  }, [
+    name, fastingLevel, sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, lastMealTime,
+    age, healthConcerns, safetyFlags, activityLevel, profile?.startingWeightKg, updateProfile,
+  ]);
 
   // ── Safety checks ───────────────────────────────────────────────────────────
   const isMinor = age < 18;
@@ -318,12 +326,6 @@ export default function ProfileSetupScreen() {
                 {ctaLabel}
               </Text>
             </TouchableOpacity>
-
-            {step === 1 && (
-              <TouchableOpacity onPress={handleSkip} style={s.skipBtn}>
-                <Text style={[s.skipText, { color: isDark ? 'rgba(240,224,192,.28)' : 'rgba(60,35,10,.28)' }]}>Skip for now</Text>
-              </TouchableOpacity>
-            )}
           </View>
         )}
       </KeyboardAvoidingView>
@@ -341,8 +343,6 @@ const s = StyleSheet.create({
   bottomWrap:    { paddingHorizontal: 24, paddingTop: 12 }                               as ViewStyle,
   ctaBtn:        { borderRadius: 16, paddingVertical: 17, alignItems: 'center' as const, shadowOffset: { width: 0, height: 6 }, shadowRadius: 14 } as ViewStyle,
   ctaText:       { fontFamily: FONTS.bodyMedium, fontSize: fs(16), fontWeight: '600' as const, letterSpacing: .2 } as TextStyle,
-  skipBtn:       { alignItems: 'center' as const, paddingVertical: 14 }                  as ViewStyle,
-  skipText:      { fontFamily: FONTS.bodyRegular, fontSize: fs(13) }                         as TextStyle,
   safetyBanner:  { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 10, padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 16 } as ViewStyle,
   safetyText:    { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: 19, flex: 1 } as TextStyle,
 });

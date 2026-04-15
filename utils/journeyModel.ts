@@ -30,6 +30,40 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
+/** Local time for calendar / journey UI (12h or 24h per device locale). */
+export function formatLocalTimeShort(ms: number): string {
+  return new Date(ms).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function ordinalDay(n: number): string {
+  const j = n % 10;
+  const k = n % 100;
+  if (j === 1 && k !== 11) return `${n}st`;
+  if (j === 2 && k !== 12) return `${n}nd`;
+  if (j === 3 && k !== 13) return `${n}rd`;
+  return `${n}th`;
+}
+
+/**
+ * Short day + time for fast bounds, e.g. `14th 10:05AM` (no full date; AM/PM compact).
+ */
+export function formatOrdinalDayAndTime(ms: number): string {
+  const d = new Date(ms);
+  const ord = ordinalDay(d.getDate());
+  const t = d
+    .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+    .replace(/\s+(AM|PM)/gi, (_, ap) => ap.toUpperCase());
+  return `${ord} ${t}`;
+}
+
+/** `Start 14th 10:05AM - End 15th 12:07PM` */
+export function formatFastStartEndLine(startMs: number, endMs: number): string {
+  return `Start ${formatOrdinalDayAndTime(startMs)} - End ${formatOrdinalDayAndTime(endMs)}`;
+}
+
 /** Local calendar key YYYY-MM-DD */
 export function localDayKeyFromMs(ms: number): string {
   const d = new Date(ms);
@@ -375,6 +409,8 @@ export interface JourneyDayDrawer {
   dateLabel: string;
   badge: 'completed' | 'partial' | 'rest';
   durationLine: string;
+  /** Start and end local times for ended fasts */
+  timeRangeLine?: string;
   planLine: string;
   targetSub: string;
   sublineGoal: string;
@@ -435,6 +471,7 @@ export function buildDayDrawerForDay(
     dateLabel: headerFmt,
     badge,
     durationLine,
+    timeRangeLine: formatFastStartEndLine(r.startTime, r.endTime),
     planLine: primary.planLabel,
     targetSub: `${Math.round(targetH)}h target`,
     sublineGoal,

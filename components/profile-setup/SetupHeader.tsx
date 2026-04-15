@@ -48,9 +48,9 @@ export const SetupHeader: React.FC<SetupHeaderProps> = ({
       </View>
 
       <View style={styles.centre}>
-        <Text style={[styles.star, { color: goldColor }]} accessible={false} importantForAccessibility="no">
-          ✦
-        </Text>
+        <View accessibilityElementsHidden importantForAccessibility="no" accessible={false}>
+          <AayuMandala size={18} color={goldColor} animated={false} glow={false} />
+        </View>
         <Text style={[styles.wordmark, { color: goldColor }]}>Aayu</Text>
       </View>
 
@@ -104,13 +104,8 @@ const styles = StyleSheet.create({
   centre: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
   } as ViewStyle,
-
-  star: {
-    fontSize: fs(11),
-    fontFamily: FONTS.bodyRegular,
-  } as TextStyle,
 
   wordmark: {
     fontFamily: FONTS.displayLight,

@@ -5,13 +5,13 @@ import { fs } from '@/constants/theme';
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Easing, ViewStyle, TextStyle,
+  Animated, ViewStyle, TextStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Zap, TrendingUp, Heart, Sparkles, Droplets,
   Flame, Brain, Info, Lock, ChevronRight,
-  Moon, Clock, Activity,
+  Activity,
 } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
@@ -510,7 +510,6 @@ export default function InsightsScreen() {
   const periodCompleted = periodRecords.filter(r => r.completed).length;
 
   // Also keep this-week for the consistency dots (always 7-day)
-  const thisWeekHours = useMemo(() => thisWeekRecords.reduce((sum, r) => sum + ((r.endTime ?? 0) - r.startTime) / 3600000, 0), [thisWeekRecords]);
   const weekCompleted = thisWeekRecords.filter(r => r.completed).length;
 
   // ── Smart Projection (Pro feature) ────────────────────────────────────────
@@ -662,6 +661,53 @@ export default function InsightsScreen() {
             </View>
           </View>
 
+          {/* ─── Free Health Metrics ────────────────────────────────────── */}
+          <Text style={[styles.sectionHeader, { color: colors.text }]}>Health Metrics</Text>
+          <View style={styles.metricsGrid}>
+            <FreeMetricCard
+              icon={<Droplets size={18} color="#2E86AB" />}
+              value={`${insulinSensitivity}/100`}
+              label="Insulin Sensitivity"
+              sublabel="Metabolic health"
+              color="#2E86AB"
+              colors={colors}
+              onPress={() => handleInfoPress('insulinSensitivity')}
+            />
+            <FreeMetricCard
+              icon={<Sparkles size={18} color="#7B68AE" />}
+              value={`${autophagyDepth}%`}
+              label="Autophagy Depth"
+              sublabel="Cellular renewal"
+              color="#7B68AE"
+              colors={colors}
+              onPress={() => handleInfoPress('autophagy')}
+            />
+          </View>
+
+          {/* ─── Pro zone: upgrade CTA at entrance, then all Pro content ── */}
+
+          {/* Unlock banner — shown at top of Pro zone so free users see it
+              before encountering locked cards, not after */}
+          {!isProUser && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={openProPaywall}
+              style={[styles.proBanner, {
+                backgroundColor: isDark ? 'rgba(232,168,76,0.08)' : 'rgba(200,135,42,0.06)',
+                borderColor: isDark ? 'rgba(232,168,76,0.25)' : 'rgba(200,135,42,0.2)',
+              }]}
+            >
+              <View style={styles.proBannerLeft}>
+                <Sparkles size={16} color={colors.trackWeight} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.proBannerTitle, { color: colors.text }]}>Unlock Aayu Pro</Text>
+                  <Text style={[styles.proBannerSub, { color: colors.textSecondary }]}>Advanced metrics, AI coaching, weight forecast</Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
           {/* ─── Smart Weight Projection (Pro) ────────────────────── */}
           {isProUser ? (
             smartProjection?.available ? (
@@ -691,29 +737,6 @@ export default function InsightsScreen() {
 
           {/* ─── Monthly Report (Pro) ────────────────────────────────── */}
           <MonthlyReportCard />
-
-          {/* ─── Free Health Metrics ────────────────────────────────────── */}
-          <Text style={[styles.sectionHeader, { color: colors.text }]}>Health Metrics</Text>
-          <View style={styles.metricsGrid}>
-            <FreeMetricCard
-              icon={<Droplets size={18} color="#2E86AB" />}
-              value={`${insulinSensitivity}/100`}
-              label="Insulin Sensitivity"
-              sublabel="Metabolic health"
-              color="#2E86AB"
-              colors={colors}
-              onPress={() => handleInfoPress('insulinSensitivity')}
-            />
-            <FreeMetricCard
-              icon={<Sparkles size={18} color="#7B68AE" />}
-              value={`${autophagyDepth}%`}
-              label="Autophagy Depth"
-              sublabel="Cellular renewal"
-              color="#7B68AE"
-              colors={colors}
-              onPress={() => handleInfoPress('autophagy')}
-            />
-          </View>
 
           {/* ─── Pro Insights ───────────────────────────────────────────── */}
           <View style={styles.proSection}>
@@ -750,9 +773,9 @@ export default function InsightsScreen() {
           </View>
           <View style={styles.metricsGrid}>
             {isProUser ? (
-              <FreeMetricCard icon={<Activity size={16} color="#5B8C5A" />} value={formatInsightHours(gutRestHours)} label="Gut Rest (Agni)" sublabel="Digestive rest hours" color="#5B8C5A" colors={colors} onPress={() => handleInfoPress('gutRest')} />
+              <FreeMetricCard icon={<Activity size={16} color="#5B8C5A" />} value={formatInsightHours(gutRestHours)} label="Gut Rest" sublabel="Digestive rest hours" color="#5B8C5A" colors={colors} onPress={() => handleInfoPress('gutRest')} />
             ) : (
-              <ProLockedCard title="Gut Rest (Agni)" subtitle="Digestive rest hours" icon={<Activity size={16} color="#5B8C5A" />} previewValue="●●h" colors={colors} onPress={openProPaywall} />
+              <ProLockedCard title="Gut Rest" subtitle="Digestive rest hours" icon={<Activity size={16} color="#5B8C5A" />} previewValue="●●h" colors={colors} onPress={openProPaywall} />
             )}
             {isProUser ? (
               <FreeMetricCard icon={<Sparkles size={16} color="#7B68AE" />} value={formatInsightHours(totalAutophagyHours)} label="Deep Autophagy" sublabel="Cellular renewal time" color="#7B68AE" colors={colors} onPress={() => handleInfoPress('autophagy')} />
@@ -760,27 +783,6 @@ export default function InsightsScreen() {
               <ProLockedCard title="Deep Autophagy" subtitle="Cellular renewal time" icon={<Sparkles size={16} color="#7B68AE" />} previewValue="●●h" colors={colors} onPress={openProPaywall} />
             )}
           </View>
-
-          {/* ─── Unlock Banner ──────────────────────────────────────────── */}
-          {!isProUser && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={openProPaywall}
-              style={[styles.proBanner, {
-                backgroundColor: isDark ? 'rgba(232,168,76,0.08)' : 'rgba(200,135,42,0.06)',
-                borderColor: isDark ? 'rgba(232,168,76,0.25)' : 'rgba(200,135,42,0.2)',
-              }]}
-            >
-              <View style={styles.proBannerLeft}>
-                <Text style={{ fontSize: fs(20), color: colors.trackWeight }}>✦</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.proBannerTitle, { color: colors.text }]}>Unlock Aayu Pro</Text>
-                  <Text style={[styles.proBannerSub, { color: colors.textSecondary }]}>Advanced metrics, AI coaching, weight forecast</Text>
-                </View>
-              </View>
-              <ChevronRight size={18} color={colors.primary} />
-            </TouchableOpacity>
-          )}
 
           {/* Empty state */}
           {completedRecords.length === 0 && (

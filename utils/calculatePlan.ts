@@ -2,6 +2,8 @@ import type {
   UserProfile, UserPlan, UserSex,
   FastingPurpose, FastingLevel, ActivityLevel,
   BmiCategory, AgeGroup, WeightUnit,
+  HealthConcern,
+  SafetyFlags,
 } from '@/types/user';
 import { AGE_GROUP_TO_NUMBER } from '@/types/user';
 
@@ -35,6 +37,8 @@ export function getAgeFromDob(dob: string): number {
 }
 
 export function getAge(profile: UserProfile): number {
+  const y = profile.ageYears;
+  if (typeof y === 'number' && y >= 14 && y <= 120) return y;
   if (profile.dob) return getAgeFromDob(profile.dob);
   if (profile.ageGroup) return AGE_GROUP_TO_NUMBER[profile.ageGroup];
   return 30;
@@ -115,35 +119,43 @@ export function bmiCategoryColor(cat: BmiCategory | null, isDark: boolean): stri
 }
 
 // ─── IF Protocol ──────────────────────────────────────────────────────────────
-// Beginners always start at 12:12 — plan upgrades shown in-app over 4 weeks.
 
 interface IFProtocol { fastHours: number; eatHours: number; fastLabel: string; }
 
+const IF_12_12: IFProtocol = { fastHours: 12, eatHours: 12, fastLabel: '12:12' };
+const IF_14_10: IFProtocol = { fastHours: 14, eatHours: 10, fastLabel: '14:10' };
+const IF_16_8: IFProtocol = { fastHours: 16, eatHours: 8, fastLabel: '16:8' };
+const IF_18_6: IFProtocol = { fastHours: 18, eatHours: 6, fastLabel: '18:6' };
+
+/** True if user selected any health concern other than "none", or any safety flag. */
+export function requiresGentle12_12(
+  healthConcerns: HealthConcern[] | undefined,
+  safetyFlags: SafetyFlags | undefined,
+): boolean {
+  const hc = healthConcerns ?? [];
+  if (hc.some((c) => c !== 'none')) return true;
+  const f = safetyFlags ?? {};
+  return !!(f.pregnant || f.breastfeeding || f.eatingDisorder || f.fastingMedications);
+}
+
 export function selectIFProtocol(
   purpose: FastingPurpose | undefined,
-  level:   FastingLevel | null,
-  bmi:     number | null,
+  level: FastingLevel | null,
+  bmi: number | null,
+  healthConcerns?: HealthConcern[],
+  safetyFlags?: SafetyFlags,
 ): IFProtocol {
-  // Safety overrides
-  if (bmi !== null && bmi < 18.5) return { fastHours: 12, eatHours: 12, fastLabel: '12:12' };
-  if (bmi !== null && bmi >= 35)  return { fastHours: 14, eatHours: 10, fastLabel: '14:10' };
+  if (bmi !== null && bmi < 18.5) return IF_12_12;
+  if (requiresGentle12_12(healthConcerns, safetyFlags)) return IF_12_12;
+  if (bmi !== null && bmi >= 35) return IF_14_10;
 
-  // Beginners always start gentle
-  if (level === 'beginner') return { fastHours: 12, eatHours: 12, fastLabel: '12:12' };
-
-  switch (purpose) {
-    case 'weight_loss':
-      if (level === 'experienced')  return { fastHours: 18, eatHours: 6,  fastLabel: '18:6' };
-      return                               { fastHours: 16, eatHours: 8,  fastLabel: '16:8' };
-    case 'energy':
-    case 'metabolic':
-      if (level === 'experienced')  return { fastHours: 18, eatHours: 6,  fastLabel: '18:6' };
-      return                               { fastHours: 16, eatHours: 8,  fastLabel: '16:8' };
-    case 'spiritual':
-      return { fastHours: 16, eatHours: 8, fastLabel: '16:8' };
-    default:
-      return { fastHours: 16, eatHours: 8, fastLabel: '16:8' };
+  if (purpose === 'weight_loss') {
+    if (level === 'beginner') return IF_12_12;
+    if (level === 'experienced') return IF_18_6;
+    return IF_16_8;
   }
+
+  return IF_14_10;
 }
 
 // ─── Calories ─────────────────────────────────────────────────────────────────
@@ -328,7 +340,13 @@ export function calculatePlan(profile: UserProfile): UserPlan | null {
   const tdee    = calcTDEE(bmr, profile.activityLevel ?? null, profile.fastingLevel ?? null);
   const bmi     = calcBMI(currentWeightKg, heightCm);
   const bmiCat  = getBMICategory(bmi);
-  let protocol = selectIFProtocol(safePurpose, profile.fastingLevel ?? null, bmi);
+  let protocol = selectIFProtocol(
+    safePurpose,
+    profile.fastingLevel ?? null,
+    bmi,
+    profile.healthConcerns,
+    profile.safetyFlags,
+  );
   // Under 18: cap at 14:10 max — longer fasts not recommended for growing bodies
   if (age < 18 && protocol.fastHours > 14) {
     protocol = { fastHours: 14, eatHours: 10, fastLabel: '14:10' };
@@ -436,7 +454,7 @@ export function purposeLabel(purpose: FastingPurpose | undefined): string {
     case 'weight_loss': return 'Lose weight';
     case 'energy':      return 'Energy & focus';
     case 'metabolic':   return 'Metabolic health';
-    case 'spiritual':   return 'Spiritual practice';
+    case 'spiritual':   return 'Spiritual fasting';
     default:            return 'General health';
   }
 }

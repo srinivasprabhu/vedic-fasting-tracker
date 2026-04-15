@@ -47,6 +47,10 @@ function formatRenewalDate(iso: string | null): string {
 }
 
 function displayAge(profile: any): string {
+  const ay = profile?.ageYears;
+  if (typeof ay === 'number' && ay >= 14 && ay <= 120) {
+    return `${ay} years`;
+  }
   if (profile?.dob) {
     const age = getAge(profile);
     return `${age} years`;
@@ -459,7 +463,7 @@ export default function SettingsScreen() {
           <Text style={[s.sectionTitle, { color: colors.textMuted }]}>ABOUT</Text>
           <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
             <InfoRow icon={<Info size={15} color={colors.primary} />} iconBg={colors.primaryLight} label="Aayu" value="Intermittent Fasting"
-              sublabel="Version 1.0.3 · Designed in the United Kingdom" colors={colors} />
+              sublabel="Version 1.0.3" colors={colors} />
             <Divider colors={colors} />
             <InfoRow icon={<Star size={15} color={goldColor} />} iconBg="rgba(232,168,76,0.12)" label="Rate Aayu" value="Leave a review"
               colors={colors} onPress={() => {

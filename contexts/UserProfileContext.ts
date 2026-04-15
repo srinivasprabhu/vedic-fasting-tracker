@@ -103,6 +103,7 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
           // New body metric fields
           sex:               p.sex ?? null,
           dob:               p.dob ?? null,
+          age_years:         p.ageYears ?? null,
           height_cm:         p.heightCm ?? null,
           current_weight_kg: p.currentWeightKg ?? null,
           goal_weight_kg:    p.goalWeightKg ?? null,
@@ -134,6 +135,7 @@ export const [UserProfileProvider, useUserProfile] = createContextHook(() => {
   const updateBodyMetrics = useCallback((metrics: {
     sex:             UserSex;
     dob?:            string;
+    ageYears?:       number;
     heightCm:        number;
     currentWeightKg: number;
     goalWeightKg?:   number;

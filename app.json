@@ -49,6 +49,7 @@
       ],
       "expo-router",
       "expo-font",
+      "@sentry/react-native/expo",
       "expo-web-browser",
       "expo-apple-authentication",
       [

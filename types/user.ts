@@ -107,6 +107,8 @@ export interface UserProfile {
 
   // ── New fields ────────────────────────────────────────────────────────────
   sex?:              UserSex;
+  /** Exact age in years from profile setup (preferred over synthetic dob). */
+  ageYears?:         number;
   dob?:              string;
   heightCm?:         number;
   currentWeightKg?:  number;

@@ -17,7 +17,7 @@ const OPTIONS: { id: FastingPurpose; Icon: typeof Scale; name: string; desc: str
   { id: 'weight_loss', Icon: Scale,   name: 'Lose weight',       desc: 'Calorie deficit + fat burning window' },
   { id: 'energy',      Icon: Zap,     name: 'Energy & focus',    desc: 'Mental clarity, sustained energy' },
   { id: 'metabolic',   Icon: Droplet, name: 'Metabolic health',  desc: 'Blood sugar, insulin sensitivity' },
-  { id: 'spiritual',   Icon: Flame,   name: 'Spiritual practice', desc: 'Mindful rhythm and intentional rest' },
+  { id: 'spiritual',   Icon: Flame,   name: 'Spiritual fasting', desc: 'Fasting on particular days' },
 ];
 
 export const StepGoal: React.FC<Props> = ({ value, onChange }) => {

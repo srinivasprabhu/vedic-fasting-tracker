@@ -18,7 +18,6 @@ import {
   BarChart3,
   Flame,
   Zap,
-  Heart,
   Sparkles,
   Trophy,
   Star,
@@ -26,17 +25,12 @@ import {
   Shield,
   Sunrise,
   Moon,
-  Activity,
-  Brain,
   Droplets,
   Battery,
   CircleDot,
   Info,
   Leaf,
   Dumbbell,
-  Dna,
-  Droplet,
-  UtensilsCrossed,
   Flower2,
   Scale,
   Footprints,
@@ -45,14 +39,9 @@ import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useFasting } from '@/contexts/FastingContext';
-import { FAST_TYPE_COLORS } from '@/mocks/vedic-data';
 import { METRIC_KNOWLEDGE, MetricKnowledge } from '@/mocks/metric-knowledge';
 import MetricKnowledgeModal from '@/components/MetricKnowledgeModal';
-import {
-  ScoreGauge,
-  ImpactCard,
-  MilestoneRow,
-} from '@/components/AnalyticsComponents';
+import { MilestoneRow } from '@/components/AnalyticsComponents';
 import { TrendChartCard } from '@/components/TrendChartCard';
 import { useTrendData, TimeRange } from '@/hooks/useTrendData';
 import { usePedometer as __usePedometer } from '@/hooks/usePedometer';
@@ -61,17 +50,10 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import {
   WARRIOR_LEVELS,
   AUTOPHAGY_THRESHOLD_HOURS,
-  AVG_MEAL_COST,
   formatHours,
   formatInsightHours,
-  formatNumber,
-  getAutophagyScore,
-  getExtendedFastingSupportLevel,
   fastDurationHours,
-  calculateFatBurned,
-  toLocalDateString,
   MilestoneData,
-  BarData,
 } from '@/utils/analytics-helpers';
 import { getTargetFastsPerWeek } from '@/utils/metabolic-score';
 import AayuInsightCard from '@/components/AayuInsightCard';
@@ -261,7 +243,7 @@ export default function AnalyticsScreen() {
   const { profile } = useUserProfile();
   const showVedic = profile?.fastingPath === 'vedic' || profile?.fastingPath === 'both';
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { activeFast, completedRecords, streak, totalHours, thisWeekRecords, thisMonthRecords } = useFasting();
+  const { completedRecords, streak, totalHours, thisWeekRecords } = useFasting();
 
   // Live pedometer for today's steps in trend chart
   const pedometer = __usePedometer();
@@ -309,77 +291,12 @@ export default function AnalyticsScreen() {
     return total / completedRecords.length;
   }, [completedRecords]);
 
-  const weeklyData: BarData[] = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-    const data = days.map((label, i) => {
-      const diff = i - daysFromMonday;
-      const date = new Date(now);
-      date.setDate(date.getDate() + diff);
-      const dateStr = toLocalDateString(date);
-
-      const dayRecords = completedRecords.filter(r => {
-        const rDate = toLocalDateString(r.endTime ?? r.startTime);
-        return rDate === dateStr;
-      });
-
-      const hours = dayRecords.reduce((sum, r) => {
-        return sum + fastDurationHours(r);
-      }, 0);
-
-      return { label, value: hours, maxValue: 24 };
-    });
-
-    const maxVal = Math.max(...data.map(d => d.value), 1);
-    return data.map(d => ({ ...d, maxValue: maxVal }));
-  }, [completedRecords]);
-
-  const fastTypeBreakdown = useMemo(() => {
-    const counts: Record<string, number> = {};
-    completedRecords.forEach(r => {
-      counts[r.type] = (counts[r.type] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-  }, [completedRecords]);
-
   const longestFast = useMemo(() => {
     if (completedRecords.length === 0) return 0;
     return Math.max(
       ...completedRecords.map(r => fastDurationHours(r))
     );
   }, [completedRecords]);
-
-  const currentFastHours = useMemo(() => {
-    if (!activeFast) return 0;
-    return (Date.now() - activeFast.startTime) / 3600000;
-  }, [activeFast]);
-
-  const insulinSensitivity = useMemo(() => {
-    const durationScore = Math.min(35, (avgFastDuration / 16) * 35);
-    const streakScore = Math.min(25, (streak / 30) * 25);
-    const completionScore = (completionRate / 100) * 30;
-    const experienceScore = Math.min(10, (completedRecords.filter(r => r.completed).length / 50) * 10);
-    return Math.min(Math.round(durationScore + streakScore + completionScore + experienceScore), 100);
-  }, [avgFastDuration, streak, completionRate, completedRecords]);
-
-  const autophagyDepth = useMemo(() => {
-    if (completedRecords.length === 0) return 0;
-    const scores = completedRecords.map(r => {
-      const hours = fastDurationHours(r);
-      return getAutophagyScore(hours);
-    });
-    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  }, [completedRecords]);
-
-  const extendedFastingLevel = useMemo(
-    () => getExtendedFastingSupportLevel(longestFast),
-    [longestFast],
-  );
 
   const sattvicScore = useMemo(() => {
     let score = 0;
@@ -415,53 +332,6 @@ export default function AnalyticsScreen() {
     () => waterTrend.waterData.reduce((s, d) => s + d.value, 0),
     [waterTrend.waterData],
   );
-
-  const gutRestHours = useMemo(() => {
-    return completedRecords.reduce((sum, r) => {
-      const hours = fastDurationHours(r);
-      return sum + Math.max(0, hours - 8);
-    }, 0);
-  }, [completedRecords]);
-
-  const totalFatBurned = useMemo(() => {
-    return completedRecords.reduce((sum, r) => {
-      const hours = fastDurationHours(r);
-      return sum + calculateFatBurned(hours);
-    }, 0);
-  }, [completedRecords]);
-
-  const totalAutophagyHours = useMemo(() => {
-    let hours = 0;
-    completedRecords.forEach(r => {
-      const dur = fastDurationHours(r);
-      if (dur > AUTOPHAGY_THRESHOLD_HOURS) {
-        hours += dur - AUTOPHAGY_THRESHOLD_HOURS;
-      }
-    });
-    return hours;
-  }, [completedRecords]);
-
-  const cellularAgeReduction = useMemo(() => {
-    const monthsReduced = totalAutophagyHours / 100;
-    const yearsReduced = monthsReduced / 12;
-    return Math.round(yearsReduced * 10) / 10;
-  }, [totalAutophagyHours]);
-
-  const inflammationReduction = useMemo(() => {
-    const baseReduction = Math.min(40, (totalHours / 1000) * 40);
-    const consistencyBonus = Math.min(15, (streak / 30) * 15);
-    const qualityBonus = avgFastDuration >= 16 ? 10 : avgFastDuration >= 14 ? 5 : 0;
-    return Math.round(baseReduction + consistencyBonus + qualityBonus);
-  }, [totalHours, streak, avgFastDuration]);
-
-  const impactMetrics = useMemo(() => {
-    const fatBurnedCalories = totalFatBurned * 9;
-    const mealsSkipped = completedRecords.reduce((sum, r) => {
-      const durationHours = fastDurationHours(r);
-      return sum + Math.floor(durationHours / 6);
-    }, 0);
-    return { fatBurnedCalories, fatBurnedGrams: totalFatBurned, autophagyHours: totalAutophagyHours, mealsSkipped };
-  }, [totalFatBurned, totalAutophagyHours, completedRecords]);
 
   const milestones: MilestoneData[] = useMemo(() => {
     const completedCount = completedRecords.filter(r => r.completed).length;
@@ -543,13 +413,6 @@ export default function AnalyticsScreen() {
   }, [completedRecords, longestFast, totalHours, streak, colors.textMuted]);
 
   const unlockedCount = milestones.filter(m => m.unlocked).length;
-
-  const autophagyCount = useMemo(() => {
-    return completedRecords.filter(r => {
-      const hours = fastDurationHours(r);
-      return hours > AUTOPHAGY_THRESHOLD_HOURS;
-    }).length;
-  }, [completedRecords]);
 
   const thisWeekHours = useMemo(() => {
     return thisWeekRecords.reduce((sum, r) => {
@@ -704,17 +567,7 @@ export default function AnalyticsScreen() {
 
   const renderOverviewTab = () => (
     <>
-      <View style={styles.section}>
-        <AayuInsightCard
-          weekFasts={thisWeekRecords.length}
-          weekAvgHours={thisWeekAvgDuration}
-          weekLongestHours={thisWeekPersonalBest}
-          weekTotalHours={thisWeekHours}
-          streak={streak}
-          weekAutophagyCount={thisWeekAutophagyCount}
-        />
-      </View>
-
+      {/* 1. Key numbers — immediate at-a-glance context */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <View style={[styles.statIconWrap, { backgroundColor: colors.warningLight }]}>
@@ -757,11 +610,48 @@ export default function AnalyticsScreen() {
         </View>
       </View>
 
-      <View style={[styles.summaryStrip, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-        <Text style={[styles.summaryStripEyebrow, { color: colors.textSecondary }]}>THIS WEEK</Text>
-        <Text style={[styles.summaryStripBody, { color: colors.text }]}>{weekSummaryLine}</Text>
+      {/* 2. Identity anchor — who you are as a faster */}
+      <View style={styles.warriorCard}>
+        <View style={styles.warriorLeft}>
+          <View style={styles.warriorIconCircle}>
+            {(() => {
+              const Icon = WARRIOR_ICON_MAP[warriorLevel.icon];
+              return Icon ? <Icon size={22} color={warriorLevel.color} /> : null;
+            })()}
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.warriorLevelLabel}>FASTING LEVEL</Text>
+            <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
+            {warriorNextLevel ? (
+              <Text style={[styles.warriorNext, { color: colors.textSecondary }]}>
+                {warriorNextLevel.minFasts - completedFastCount} more to reach {warriorNextLevel.name}
+              </Text>
+            ) : (
+              <Text style={[styles.warriorNext, { color: colors.textSecondary }]}>Top level — keep the rhythm.</Text>
+            )}
+          </View>
+        </View>
+        <View style={styles.warriorRight}>
+          <Text style={styles.warriorFastCount}>{completedFastCount}</Text>
+          <Text style={styles.warriorFastLabel}>
+            {completedFastCount === 1 ? 'completed fast' : 'completed fasts'}
+          </Text>
+        </View>
       </View>
 
+      {/* 3. Coach insight — synthesis after user has their numbers + level in mind */}
+      <View style={styles.section}>
+        <AayuInsightCard
+          weekFasts={thisWeekRecords.length}
+          weekAvgHours={thisWeekAvgDuration}
+          weekLongestHours={thisWeekPersonalBest}
+          weekTotalHours={thisWeekHours}
+          streak={streak}
+          weekAutophagyCount={thisWeekAutophagyCount}
+        />
+      </View>
+
+      {/* 4. Next milestone — flows naturally from identity card above */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Star size={16} color="#D4A03C" />
@@ -774,7 +664,12 @@ export default function AnalyticsScreen() {
         />
       </View>
 
+      {/* 5. Deep trends — explore the data behind the numbers */}
       <View style={styles.section}>
+        <View style={[styles.sectionHeaderRow, { marginBottom: 12 }]}>
+          <BarChart3 size={16} color={colors.primary} />
+          <Text style={styles.sectionTitleInline}>Patterns & Trends</Text>
+        </View>
         <TrendChartCard
           title="Fasting"
           icon={<Clock size={17} color={colors.primary} />}
@@ -805,23 +700,6 @@ export default function AnalyticsScreen() {
           interpretation={weightInterpretation}
           formatValue={(v) => `${v.toFixed(1)}kg`}
           formatYLabel={(v) => `${Math.round(v * 10) / 10}`}
-        />
-        <TrendChartCard
-          title="Steps"
-          icon={<Footprints size={17} color={colors.success} />}
-          color={colors.success}
-          data={stepsTrend.stepsData}
-          unit="steps"
-          chartType="bar"
-          range={stepsRange}
-          onRangeChange={setStepsRange}
-          targetValue={stepsTrend.stepsTarget}
-          detailHint="Steps per day in this range"
-          referenceLineCaption={stepsReferenceCaption}
-          interpretation={stepsInterpretation}
-          barMetricKind="steps"
-          formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`}
-          formatYLabel={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`}
         />
         {waterRange === 'week' && waterWeekLoggedDays < 3 ? (
           <View style={[styles.compactWaterCard, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
@@ -874,228 +752,24 @@ export default function AnalyticsScreen() {
             formatYLabel={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${Math.round(v)}ml`}
           />
         )}
+        <TrendChartCard
+          title="Steps"
+          icon={<Footprints size={17} color={colors.success} />}
+          color={colors.success}
+          data={stepsTrend.stepsData}
+          unit="steps"
+          chartType="bar"
+          range={stepsRange}
+          onRangeChange={setStepsRange}
+          targetValue={stepsTrend.stepsTarget}
+          detailHint="Steps per day in this range"
+          referenceLineCaption={stepsReferenceCaption}
+          interpretation={stepsInterpretation}
+          barMetricKind="steps"
+          formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`}
+          formatYLabel={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`}
+        />
       </View>
-
-      <View style={styles.warriorCard}>
-        <View style={styles.warriorLeft}>
-          <View style={styles.warriorIconCircle}>
-            {(() => {
-              const Icon = WARRIOR_ICON_MAP[warriorLevel.icon];
-              return Icon ? <Icon size={22} color={warriorLevel.color} /> : null;
-            })()}
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.warriorLevelLabel}>FASTING LEVEL</Text>
-            <Text style={[styles.warriorLevelName, { color: warriorLevel.color }]}>{warriorLevel.name}</Text>
-            {warriorNextLevel ? (
-              <Text style={[styles.warriorNext, { color: colors.textSecondary }]}>
-                {warriorNextLevel.minFasts - completedFastCount} more to reach {warriorNextLevel.name}
-              </Text>
-            ) : (
-              <Text style={[styles.warriorNext, { color: colors.textSecondary }]}>Top level — keep the rhythm.</Text>
-            )}
-          </View>
-        </View>
-        <View style={styles.warriorRight}>
-          <Text style={styles.warriorFastCount}>{completedFastCount}</Text>
-          <Text style={styles.warriorFastLabel}>
-            {completedFastCount === 1 ? 'completed fast' : 'completed fasts'}
-          </Text>
-        </View>
-      </View>
-    </>
-  );
-
-  const renderBodyTab = () => (
-    <>
-      {totalHours > 0 && (
-        <>
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Zap size={16} color={colors.primary} />
-              <Text style={styles.sectionTitleInline}>Body Scores</Text>
-              <View style={styles.tapHintBadge}>
-                <Info size={10} color={colors.textMuted} />
-                <Text style={styles.tapHintText}>Tap to learn</Text>
-              </View>
-            </View>
-            <Text style={styles.sectionSubtext}>
-              Health metrics based on your fasting patterns
-            </Text>
-
-            <View style={styles.scoreGridRow}>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('insulinSensitivity')} style={styles.scoreGaugeTouchable}>
-                <ScoreGauge
-                  value={insulinSensitivity}
-                  maxValue={100}
-                  label="Insulin Sensitivity"
-                  color="#2E86AB"
-                  suffix="/100"
-                  icon={<Droplets size={16} color="#2E86AB" />}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('autophagy')} style={styles.scoreGaugeTouchable}>
-                <ScoreGauge
-                  value={autophagyDepth}
-                  maxValue={100}
-                  label="Avg Autophagy Depth"
-                  color="#7B68AE"
-                  suffix="%"
-                  icon={<Sparkles size={16} color="#7B68AE" />}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.scoreGridRow}>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('hghBoost')} style={styles.scoreGaugeTouchable}>
-                <ScoreGauge
-                  value={extendedFastingLevel.score}
-                  maxValue={100}
-                  label="Fasting depth"
-                  color="#E8913A"
-                  suffix="/100"
-                  icon={<TrendingUp size={16} color="#E8913A" />}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('inflammationReduction')} style={styles.scoreGaugeTouchable}>
-                <ScoreGauge
-                  value={inflammationReduction}
-                  maxValue={100}
-                  label="Inflammation Reduction"
-                  color="#C25450"
-                  suffix="/100"
-                  icon={<Heart size={16} color="#C25450" />}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Flame size={16} color={colors.primary} />
-              <Text style={styles.sectionTitleInline}>Physical Impact</Text>
-            </View>
-
-            <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('fatBurned')}>
-              <View style={styles.impactHeroCard}>
-                <View style={styles.impactHeroInner}>
-                  <Flame size={28} color="#E8913A" />
-                  <View style={styles.impactHeroTextWrap}>
-                    <Text style={styles.impactHeroValue}>
-                      {formatNumber(impactMetrics.fatBurnedGrams)}g
-                    </Text>
-                    <Text style={styles.impactHeroLabel}>estimated body fat burned</Text>
-                  </View>
-                  <View style={styles.infoBtn}>
-                    <Info size={15} color={colors.textMuted} />
-                  </View>
-                </View>
-                <View style={styles.impactHeroDivider} />
-                <Text style={styles.impactHeroEquiv}>
-                  {formatNumber(impactMetrics.fatBurnedCalories)} kcal from fat · Tap to learn more
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.impactGrid}>
-              <ImpactCard
-                icon={<Sparkles size={20} color="#7B68AE" />}
-                value={formatInsightHours(impactMetrics.autophagyHours)}
-                label="Deep Autophagy"
-                sublabel="Cellular renewal time"
-                color="#7B68AE"
-                index={0}
-                knowledgeId="autophagy"
-                onInfoPress={handleInfoPress}
-              />
-              <ImpactCard
-                icon={<Zap size={20} color="#E8913A" />}
-                value={extendedFastingLevel.label}
-                label="Metabolic phase"
-                sublabel={extendedFastingLevel.sublabel}
-                color="#E8913A"
-                index={1}
-                knowledgeId="hghBoost"
-                onInfoPress={handleInfoPress}
-              />
-              <ImpactCard
-                icon={<Heart size={20} color="#C25450" />}
-                value={`${inflammationReduction}%`}
-                label="Inflammation ↓"
-                sublabel="Cumulative reduction"
-                color="#C25450"
-                index={2}
-                knowledgeId="inflammationReduction"
-                onInfoPress={handleInfoPress}
-              />
-              <ImpactCard
-                icon={<Droplets size={20} color="#2E86AB" />}
-                value={`${insulinSensitivity}/100`}
-                label="Insulin Score"
-                sublabel="Metabolic sensitivity"
-                color="#2E86AB"
-                index={3}
-                knowledgeId="insulinSensitivity"
-                onInfoPress={handleInfoPress}
-              />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Brain size={16} color={colors.primary} />
-              <Text style={styles.sectionTitleInline}>Advanced Metrics</Text>
-            </View>
-
-            <View style={styles.advancedGrid}>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('cellularAge')} style={styles.advancedTouchable}>
-                <View style={styles.advancedCard}>
-                  <View style={styles.infoHintRight}>
-                    <Info size={13} color={colors.textMuted} />
-                  </View>
-                  <View style={[styles.advancedIconCircle, { backgroundColor: '#7B68AE15' }]}>
-                    <Dna size={20} color="#7B68AE" />
-                  </View>
-                  <StatValueText color={colors.text} size="lg">
-                    {`-${cellularAgeReduction}y`}
-                  </StatValueText>
-                  <Text style={styles.advancedLabel}>Cellular Age</Text>
-                  <Text style={styles.advancedSub}>Estimated biological age reduction</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('gutRest')} style={styles.advancedTouchable}>
-                <View style={styles.advancedCard}>
-                  <View style={styles.infoHintRight}>
-                    <Info size={13} color={colors.textMuted} />
-                  </View>
-                  <View style={[styles.advancedIconCircle, { backgroundColor: '#5B8C5A15' }]}>
-                    <Droplet size={20} color="#5B8C5A" />
-                  </View>
-                  <StatValueText color={colors.text} size="lg">
-                    {formatInsightHours(gutRestHours)}
-                  </StatValueText>
-                  <Text style={styles.advancedLabel}>Gut Rest (Agni)</Text>
-                  <Text style={styles.advancedSub}>Total digestive system rest</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.savingsCard}>
-              <View style={styles.savingsRow}>
-                <TouchableOpacity activeOpacity={0.7} onPress={() => handleInfoPress('mealsSkipped')} style={styles.savingsItem}>
-                  <View style={[styles.savingsIconCircle, { backgroundColor: '#E8913A15' }]}>
-                    <UtensilsCrossed size={18} color="#E8913A" />
-                  </View>
-                  <Text style={styles.savingsValue}>{impactMetrics.mealsSkipped}</Text>
-                  <Text style={styles.savingsLabel}>Meals Skipped</Text>
-                  <Info size={11} color={colors.textMuted} style={styles.savingsInfoIcon} />
-                </TouchableOpacity>
-
-              </View>
-            </View>
-          </View>
-        </>
-      )}
     </>
   );
 
@@ -1415,13 +1089,6 @@ function makeStyles(colors: ColorScheme) {
       alignItems: 'flex-start' as const,
       gap: 12,
     },
-    compactWaterIconWrap: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
     compactWaterTitle: {
       fontSize: fs(17),
       fontWeight: '700' as const,
@@ -1523,164 +1190,6 @@ function makeStyles(colors: ColorScheme) {
       color: colors.textMuted,
       marginBottom: 14,
       marginTop: 2,
-    },
-    sectionTitle: {
-      fontSize: fs(16),
-      fontWeight: '600' as const,
-      color: colors.text,
-      marginBottom: 12,
-    },
-    liveBadge: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 4,
-      backgroundColor: '#E8F8E820',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 8,
-    },
-    liveDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: '#4CAF50',
-    },
-    liveText: {
-      fontSize: fs(9),
-      fontWeight: '700' as const,
-      color: '#4CAF50',
-      letterSpacing: 0.8,
-    },
-    zonesCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    scoreGridRow: {
-      flexDirection: 'row' as const,
-      gap: 10,
-      marginBottom: 10,
-    },
-    impactHeroCard: {
-      backgroundColor: colors.surfaceWarm,
-      borderRadius: 16,
-      padding: 18,
-      borderWidth: 1,
-      borderColor: colors.primaryLight,
-      marginBottom: 12,
-    },
-    impactHeroInner: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 14,
-    },
-    impactHeroTextWrap: {
-      flex: 1,
-    },
-    impactHeroValue: {
-      fontSize: fs(32),
-      fontWeight: '800' as const,
-      color: colors.primary,
-      letterSpacing: -1,
-    },
-    impactHeroLabel: {
-      fontSize: fs(13),
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    impactHeroDivider: {
-      height: 1,
-      backgroundColor: colors.borderLight,
-      marginVertical: 12,
-    },
-    impactHeroEquiv: {
-      fontSize: fs(13),
-      color: colors.textSecondary,
-      lineHeight: 18,
-      textAlign: 'center' as const,
-    },
-    impactGrid: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      alignItems: 'stretch' as const,
-      gap: 10,
-      marginBottom: 12,
-    },
-    advancedGrid: {
-      flexDirection: 'row' as const,
-      alignItems: 'stretch' as const,
-      gap: 10,
-      marginBottom: 12,
-    },
-    advancedCard: {
-      flex: 1,
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 14,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      alignItems: 'center' as const,
-    },
-    advancedIconCircle: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      marginBottom: 6,
-    },
-    advancedLabel: {
-      fontSize: fs(12),
-      fontWeight: '600' as const,
-      color: colors.textSecondary,
-      marginTop: 2,
-      textAlign: 'center' as const,
-    },
-    advancedSub: {
-      fontSize: fs(11),
-      color: colors.textMuted,
-      marginTop: 2,
-      textAlign: 'center' as const,
-    },
-    savingsCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    savingsRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-    },
-    savingsItem: {
-      flex: 1,
-      alignItems: 'center' as const,
-    },
-    savingsIconCircle: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      marginBottom: 6,
-    },
-    savingsValue: {
-      fontSize: fs(20),
-      fontWeight: '700' as const,
-      color: colors.text,
-    },
-    savingsLabel: {
-      fontSize: fs(12),
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    savingsDivider: {
-      width: 1,
-      height: 48,
-      backgroundColor: colors.borderLight,
     },
     sattvicCard: {
       backgroundColor: colors.card,
@@ -1811,68 +1320,6 @@ function makeStyles(colors: ColorScheme) {
       fontWeight: '600' as const,
       color: colors.primary,
     },
-    chartCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      marginTop: 8,
-    },
-    summaryCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    summaryRow: {
-      flexDirection: 'row' as const,
-      justifyContent: 'space-between' as const,
-      alignItems: 'center' as const,
-      paddingVertical: 8,
-    },
-    summaryLabel: {
-      fontSize: fs(14),
-      color: colors.textSecondary,
-    },
-    summaryValue: {
-      fontSize: fs(14),
-      fontWeight: '600' as const,
-      color: colors.text,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.borderLight,
-    },
-    typeList: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    typeRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      marginBottom: 10,
-    },
-    typeDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      marginRight: 10,
-    },
-    typeName: {
-      flex: 1,
-      fontSize: fs(14),
-      color: colors.text,
-    },
-    typeCount: {
-      fontSize: fs(14),
-      fontWeight: '600' as const,
-      color: colors.textSecondary,
-    },
     emptyState: {
       alignItems: 'center' as const,
       paddingVertical: 48,
@@ -1899,34 +1346,6 @@ function makeStyles(colors: ColorScheme) {
       lineHeight: 20,
       paddingHorizontal: 32,
     },
-    infoHintRight: {
-      position: 'absolute' as const,
-      top: 10,
-      right: 10,
-      opacity: 0.5,
-    },
-    infoBtn: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: colors.surface,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    tapHintBadge: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 4,
-      backgroundColor: colors.surface,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 8,
-    },
-    tapHintText: {
-      fontSize: fs(11),
-      color: colors.textMuted,
-      fontWeight: '500' as const,
-    },
     learnMorePill: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -1939,18 +1358,6 @@ function makeStyles(colors: ColorScheme) {
     learnMoreText: {
       fontSize: fs(11),
       fontWeight: '600' as const,
-    },
-    scoreGaugeTouchable: {
-      flex: 1,
-    },
-    advancedTouchable: {
-      flex: 1,
-    },
-    savingsInfoIcon: {
-      marginTop: 4,
-    },
-    sectionTitleTouchable: {
-      flex: 1,
     },
   });
 }
