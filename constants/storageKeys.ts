@@ -14,3 +14,8 @@ export const THEME_LEGACY_DARK_KEY = 'vedic_theme_dark';
 /** When true, Today shows rotating traditional/Vedic quotes; default off (neutral copy). */
 export const TRADITIONAL_INSIGHTS_KEY = 'aayu_traditional_insights';
 
+/** Whether health sync (Apple Health / Health Connect) is enabled */
+export const HEALTH_SYNC_ENABLED_KEY = 'aayu_health_sync_enabled';
+/** Timestamp of last health sync (throttle guard) */
+export const HEALTH_SYNC_LAST_KEY = 'aayu_health_sync_last';
+

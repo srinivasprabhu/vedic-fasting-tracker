@@ -20,7 +20,8 @@
       "channel": "production",
       "env": {
         "SENTRY_ORG": "aayu-health",
-        "SENTRY_PROJECT": "react-native"
+        "SENTRY_PROJECT": "react-native",
+        "SENTRY_ALLOW_FAILURE": "true"
       }
     }
   },

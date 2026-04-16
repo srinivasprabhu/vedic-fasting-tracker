@@ -5,7 +5,7 @@
 // On first open of a new calendar day, prior days are sealed via OS history + manual.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Platform } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pedometer } from 'expo-sensors';
 import {
@@ -55,8 +55,60 @@ export function usePedometer(): UsePedometerResult {
 
   const subscriptionRef = useRef<ReturnType<typeof Pedometer.watchStepCount> | null>(null);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const snapshotRef = useRef<number>(0);
 
-  // ── Initialise + seal past days ───────────────────────────────────────────
+  // ── Helper: take a fresh snapshot from the OS pedometer ──────────────────
+  const takeSnapshot = useCallback(async (): Promise<number> => {
+    try {
+      const start = startOfToday();
+      const end = new Date();
+      const { steps } = await Pedometer.getStepCountAsync(start, end);
+      return steps ?? 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  // ── Helper: start the live watch subscription ───────────────────────────
+  const startLiveWatch = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+
+    subscriptionRef.current?.remove();
+    subscriptionRef.current = null;
+
+    try {
+      const isAvail = await Pedometer.isAvailableAsync().catch(() => false);
+      if (!isAvail) {
+        setAvailable(false);
+        setIsLive(false);
+        return;
+      }
+      setAvailable(true);
+
+      const snapshot = await takeSnapshot();
+      snapshotRef.current = snapshot;
+      setAutoSteps(snapshot);
+
+      subscriptionRef.current = Pedometer.watchStepCount(({ steps: delta }) => {
+        if (delta > 0) {
+          setAutoSteps(snapshotRef.current + delta);
+        }
+      });
+      setIsLive(true);
+    } catch {
+      setIsLive(false);
+    }
+  }, [takeSnapshot]);
+
+  // ── Helper: stop the live watch ─────────────────────────────────────────
+  const stopLiveWatch = useCallback(() => {
+    subscriptionRef.current?.remove();
+    subscriptionRef.current = null;
+    setIsLive(false);
+  }, []);
+
+  // ── Initialise: seal past days + start live watch ───────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -76,31 +128,8 @@ export function usePedometer(): UsePedometerResult {
       const manual = await loadManualSteps();
       if (!cancelled) setManualSteps(manual);
 
-      if (Platform.OS === 'web') return;
-
-      const isAvailable = await Pedometer.isAvailableAsync().catch(() => false);
-      if (!isAvailable || cancelled) {
-        setAvailable(false);
-        return;
-      }
-      setAvailable(true);
-
-      try {
-        const start = startOfToday();
-        const end = new Date();
-        const { steps } = await Pedometer.getStepCountAsync(start, end);
-        if (!cancelled) setAutoSteps(steps);
-      } catch {}
-
-      try {
-        subscriptionRef.current = Pedometer.watchStepCount(({ steps }) => {
-          if (!cancelled) {
-            setAutoSteps(prev => (steps > 0 ? prev + steps : prev));
-          }
-        });
-        if (!cancelled) setIsLive(true);
-      } catch {
-        setIsLive(false);
+      if (!cancelled && Platform.OS !== 'web') {
+        await startLiveWatch();
       }
     }
 
@@ -108,77 +137,51 @@ export function usePedometer(): UsePedometerResult {
 
     return () => {
       cancelled = true;
-      subscriptionRef.current?.remove();
-      subscriptionRef.current = null;
+      stopLiveWatch();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Re-snapshot every 5 minutes (midnight rollover while app open) ─────────
+  // ── AppState: pause live watch when backgrounded ────────────────────────
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    async function refreshSnapshot() {
-      try {
-        const isAvailable = await Pedometer.isAvailableAsync().catch(() => false);
-        if (!isAvailable) return;
-        const start = startOfToday();
-        const end = new Date();
-        const { steps } = await Pedometer.getStepCountAsync(start, end);
-        setAutoSteps(steps);
-      } catch {}
-    }
-
-    const interval = setInterval(refreshSnapshot, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // ── Live watch with correct delta handling ──────────────────────────────────
-  useEffect(() => {
-    if (Platform.OS === 'web' || !available) return;
-
-    let cancelled = false;
-    let snapshotAtSubscription = 0;
-
-    async function setupLiveWatch() {
-      subscriptionRef.current?.remove();
-
-      try {
-        const start = startOfToday();
-        const end = new Date();
-        const { steps: snapshot } = await Pedometer.getStepCountAsync(start, end);
-        snapshotAtSubscription = snapshot;
-        if (!cancelled) setAutoSteps(snapshot);
-
-        subscriptionRef.current = Pedometer.watchStepCount(({ steps: delta }) => {
-          if (!cancelled && delta > 0) {
-            setAutoSteps(snapshotAtSubscription + delta);
-          }
-        });
-
-        if (!cancelled) setIsLive(true);
-      } catch {
-        if (!cancelled) setIsLive(false);
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active' && appStateRef.current !== 'active') {
+        void startLiveWatch();
+      } else if (nextState !== 'active' && appStateRef.current === 'active') {
+        stopLiveWatch();
       }
-    }
+      appStateRef.current = nextState;
+    });
 
-    setupLiveWatch();
+    return () => subscription.remove();
+  }, [startLiveWatch, stopLiveWatch]);
 
-    return () => {
-      cancelled = true;
-      subscriptionRef.current?.remove();
-      subscriptionRef.current = null;
-    };
-  }, [available]);
+  // ── Hourly re-snapshot for accuracy (replaces old 5-minute interval) ────
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const interval = setInterval(async () => {
+      if (appStateRef.current !== 'active') return;
+      try {
+        const snapshot = await takeSnapshot();
+        snapshotRef.current = snapshot;
+        setAutoSteps(snapshot);
+      } catch {}
+    }, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [takeSnapshot]);
 
   const steps = autoSteps + manualSteps;
 
-  // ── Persist auto + manual total for today (debounced) ─────────────────────
+  // ── Persist total (debounced at 30 seconds, was 2 seconds) ──────────────
   useEffect(() => {
     if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
     persistTimerRef.current = setTimeout(() => {
       persistTimerRef.current = null;
       void saveDayTotal(new Date(), steps);
-    }, 2000);
+    }, 30_000);
     return () => {
       if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
     };
@@ -188,7 +191,8 @@ export function usePedometer(): UsePedometerResult {
     const updated = manualSteps + amount;
     setManualSteps(updated);
     await saveManualSteps(updated);
-  }, [manualSteps]);
+    void saveDayTotal(new Date(), autoSteps + updated);
+  }, [manualSteps, autoSteps]);
 
   const refreshManual = useCallback(async () => {
     const manual = await loadManualSteps();

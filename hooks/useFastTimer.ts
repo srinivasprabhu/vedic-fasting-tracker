@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 
 export interface FastTimerState {
   hoursElapsed: number;
@@ -166,6 +167,7 @@ export function useFastTimer(options: UseFastTimerOptions | null): FastTimerStat
   const prevZoneId = useRef<string>(state.currentZoneId);
   const hasCompleted = useRef<boolean>(false);
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const onZoneChangeRef = useRef(onZoneChange);
   const onCompleteRef = useRef(onComplete);
@@ -209,17 +211,35 @@ export function useFastTimer(options: UseFastTimerOptions | null): FastTimerStat
 
     hasCompleted.current = false;
     prevZoneId.current = '';
-    tick();
 
-    if (!hasCompleted.current) {
-      tickIntervalRef.current = setInterval(tick, tickInterval);
+    function startTicking() {
+      tick();
+      if (!hasCompleted.current && !tickIntervalRef.current) {
+        tickIntervalRef.current = setInterval(tick, tickInterval);
+      }
     }
 
-    return () => {
+    function stopTicking() {
       if (tickIntervalRef.current) {
         clearInterval(tickIntervalRef.current);
         tickIntervalRef.current = null;
       }
+    }
+
+    startTicking();
+
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active' && appStateRef.current !== 'active') {
+        startTicking();
+      } else if (nextState !== 'active' && appStateRef.current === 'active') {
+        stopTicking();
+      }
+      appStateRef.current = nextState;
+    });
+
+    return () => {
+      stopTicking();
+      subscription.remove();
     };
   }, [tick, tickInterval, startDate]);
 

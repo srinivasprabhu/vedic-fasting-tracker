@@ -18,11 +18,16 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.vedicintermittentfasting.app",
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "Aayu",
         "CFBundleName": "Aayu",
-        "NSMotionUsageDescription": "Aayu uses motion data to automatically count your steps and help you reach your daily activity target."
+        "NSMotionUsageDescription": "Aayu uses motion data to automatically count your steps and help you reach your daily activity target.",
+        "NSHealthShareUsageDescription": "Aayu reads your steps, weight, and active energy to enhance your fasting insights and show your progress in one place."
       }
     },
     "android": {
@@ -32,7 +37,10 @@
       },
       "package": "com.vedicintermittentfasting.app",
       "permissions": [
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
       ],
       "softwareKeyboardLayoutMode": "pan"
     },
@@ -57,7 +65,23 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.174313447601-brnan6k03ufofi4oa6ask4g4k3tf0hl1"
         }
-      ]
+      ],
+      [
+        "react-native-health",
+        { "isClinicalDataEnabled": false }
+      ],
+      "expo-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "./plugins/withHealthConnect"
     ],
     "experiments": {
       "typedRoutes": true

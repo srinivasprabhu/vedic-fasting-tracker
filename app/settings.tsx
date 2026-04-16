@@ -25,6 +25,7 @@ import { getAge, calcBMI, getBMICategory, bmiCategoryLabel, kgToLbs, cmToFtIn, f
 import type { WeightUnit } from '@/types/user';
 import type { ColorScheme } from '@/constants/colors';
 import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY, TRADITIONAL_INSIGHTS_KEY } from '@/constants/storageKeys';
+import { useHealthSync } from '@/hooks/useHealthSync';
 import { uploadLocalRecords } from '@/lib/sync';
 import { applyDevFastingSeed } from '@/utils/dev-seed-fasting-history';
 import { formatFastingWindowSummary, getPlannedFastStartMinutes, nearestLastMealTimeFromMinutes } from '@/utils/fastingPlanSchedule';
@@ -132,6 +133,7 @@ export default function SettingsScreen() {
     hasStoreEntitlement, devProOverride, subscriptionInfo,
     presentPaywall, presentCustomerCenter, restorePurchases,
   } = useRevenueCat();
+  const healthSync = useHealthSync(isProUser);
   const s = useMemo(() => makeStyles(colors), [colors]);
 
   const [editingName, setEditingName] = useState(false);
@@ -442,6 +444,101 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* ─── Health Integration (Pro) ────────────────────────────── */}
+          <Text style={[s.sectionTitle, { color: colors.textMuted }]}>HEALTH INTEGRATION</Text>
+          <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+            <TouchableOpacity
+              style={s.settingRow}
+              activeOpacity={0.75}
+              onPress={async () => {
+                if (!isProUser) {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  void presentPaywall();
+                  return;
+                }
+
+                if (healthSync.isEnabled) {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  Alert.alert(
+                    `Disconnect ${healthSync.platformLabel}?`,
+                    'Aayu will stop reading health data. Your existing data stays.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Disconnect',
+                        style: 'destructive',
+                        onPress: () => void healthSync.disconnect(),
+                      },
+                    ],
+                  );
+                  return;
+                }
+
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+                if (!healthSync.isAvailable) {
+                  Alert.alert(
+                    `${healthSync.platformLabel} Not Available`,
+                    Platform.OS === 'ios'
+                      ? 'HealthKit is not available on this device, or the dev build does not have the HealthKit capability enabled. Rebuild the app with: npx expo prebuild --clean && npx expo run:ios'
+                      : 'Google Health Connect is not installed or enabled. Install it from the Play Store.',
+                  );
+                  return;
+                }
+
+                const granted = await healthSync.connect();
+
+                if (granted) {
+                  Alert.alert(
+                    'Connected',
+                    `${healthSync.platformLabel} is now syncing with Aayu.`,
+                  );
+                } else if (healthSync.status === 'denied') {
+                  Alert.alert(
+                    'Permission Denied',
+                    Platform.OS === 'ios'
+                      ? 'Aayu needs access to Apple Health. Open the Apple Health app → Sharing tab → Apps → Aayu and enable the permissions.'
+                      : 'Open Health Connect → Permissions → Aayu and enable the permissions.',
+                  );
+                } else {
+                  Alert.alert(
+                    'Connection Failed',
+                    'Could not connect to the health store. Please try again.',
+                  );
+                }
+              }}
+            >
+              <View style={s.settingRowLeft}>
+                <Heart size={20} color={isProUser ? colors.error : colors.textMuted} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[s.settingLabel, { color: colors.text }]}>
+                      {healthSync.platformLabel}
+                    </Text>
+                    {!isProUser && (
+                      <View style={[s.proBadge, { backgroundColor: `${colors.primary}20` }]}>
+                        <Text style={[s.proBadgeText, { color: colors.primary }]}>PRO</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[s.settingSub, { color: colors.textMuted }]}>
+                    {healthSync.isEnabled
+                      ? healthSync.status === 'syncing'
+                        ? 'Syncing...'
+                        : `Connected · Last sync ${healthSync.data.lastSyncTime ? new Date(healthSync.data.lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'never'}`
+                      : 'Sync steps, weight & energy'}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {healthSync.isEnabled && (
+                  <View style={[s.connectedDot, { backgroundColor: colors.success }]} />
+                )}
+                <ChevronRight size={18} color={colors.textMuted} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* ─── Account ─────────────────────────────────────────────── */}
           <Text style={[s.sectionTitle, { color: colors.textMuted }]}>ACCOUNT</Text>
           <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
@@ -581,5 +678,12 @@ function makeStyles(colors: ColorScheme) {
     card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' } as ViewStyle,
     actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 4 } as ViewStyle,
     actionText: { fontSize: fs(14), fontWeight: '600' } as TextStyle,
+    settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 } as ViewStyle,
+    settingRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 } as ViewStyle,
+    settingLabel: { fontSize: fs(15), fontWeight: '600' } as TextStyle,
+    settingSub: { fontSize: fs(12), marginTop: 2 } as TextStyle,
+    proBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 } as ViewStyle,
+    proBadgeText: { fontSize: fs(9), fontWeight: '700' as const, letterSpacing: 0.5 } as TextStyle,
+    connectedDot: { width: 8, height: 8, borderRadius: 4 } as ViewStyle,
   });
 }
