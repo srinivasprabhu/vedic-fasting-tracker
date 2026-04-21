@@ -6,40 +6,22 @@ import { fs } from '@/constants/theme';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
-  Animated, Easing, ActivityIndicator, Share, Platform,
+  Animated, Easing, Platform,
   ViewStyle, TextStyle,
 } from 'react-native';
-import { FileText, Lock, Download, Check, Share2, BarChart3 } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { FileText, Lock, Download, Check, BarChart3 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFasting } from '@/contexts/FastingContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import {
   getReportAvailability,
-  generateMonthlyReport,
   wasReportGeneratedThisMonth,
-  markReportGenerated,
   ReportAvailability,
 } from '@/utils/monthly-report';
-import { buildReportHTML } from '@/utils/report-html-template';
 import type { ColorScheme } from '@/constants/colors';
-
-// ─── PDF generation ───────────────────────────────────────────────────────────
-// We use expo-print to convert HTML → PDF, then expo-sharing to share.
-
-async function generatePDF(html: string, _fileName: string): Promise<string | null> {
-  try {
-    const Print = await import('expo-print');
-    const { uri } = await Print.printToFileAsync({ html, base64: false });
-    // expo-print returns a temp file URI that works with expo-sharing directly
-    return uri;
-  } catch (e) {
-    console.warn('PDF generation failed:', e);
-    return null;
-  }
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -49,9 +31,7 @@ export default function MonthlyReportCard() {
   const { presentPaywall } = useRevenueCat();
   const { completedRecords } = useFasting();
 
-  const [generating, setGenerating] = useState(false);
   const [alreadyGenerated, setAlreadyGenerated] = useState(false);
-  const [lastPdfPath, setLastPdfPath] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -68,81 +48,17 @@ export default function MonthlyReportCard() {
     }
   }, [availability.month, availability.year]);
 
-  const handleGenerate = useCallback(async () => {
-    if (!availability.available || !profile || availability.month === undefined || availability.year === undefined) return;
-
-    // Free users: once per month
-    if (!isProUser && alreadyGenerated) {
-      Alert.alert(
-        'Report already generated',
-        `You've already generated your ${availability.monthLabel} report. Upgrade to Aayu Pro for unlimited report downloads.`,
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
+  const handleOpenRecap = useCallback(() => {
+    if (!availability.available || availability.month === undefined || availability.year === undefined) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setGenerating(true);
-
-    try {
-      // 1. Aggregate data
-      const reportData = await generateMonthlyReport(
-        availability.month,
-        availability.year,
-        profile,
-        completedRecords,
-      );
-
-      // 2. Build HTML
-      const html = buildReportHTML(reportData);
-
-      // 3. Generate PDF
-      const fileName = `Aayu_Report_${reportData.monthLabel.replace(/\s/g, '_')}.pdf`;
-      const pdfPath = await generatePDF(html, fileName);
-
-      if (!pdfPath) {
-        Alert.alert('Error', 'Failed to generate PDF. Please try again.');
-        setGenerating(false);
-        return;
-      }
-
-      setLastPdfPath(pdfPath);
-
-      // 4. Mark as generated (for free user throttling)
-      await markReportGenerated(availability.month, availability.year);
-      setAlreadyGenerated(true);
-
-      // 5. Share
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(pdfPath, {
-          mimeType: 'application/pdf',
-          dialogTitle: `Aayu Monthly Report — ${reportData.monthLabel}`,
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        Alert.alert('Report Ready', `Your report has been saved to ${pdfPath}`);
-      }
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {
-      console.warn('Report generation error:', e);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    } finally {
-      setGenerating(false);
-    }
-  }, [availability, profile, completedRecords, isProUser, alreadyGenerated]);
-
-  const handleShare = useCallback(async () => {
-    if (!lastPdfPath) return;
-    try {
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(lastPdfPath, {
-          mimeType: 'application/pdf',
-          UTI: 'com.adobe.pdf',
-        });
-      }
-    } catch {}
-  }, [lastPdfPath]);
+    router.push({
+      pathname: '/monthly-recap',
+      params: {
+        month: String(availability.month),
+        year: String(availability.year),
+      },
+    });
+  }, [availability]);
 
   // ── Locked state (free users) ─────────────────────────────────────────────
   if (!isProUser && !availability.available) {
@@ -230,33 +146,18 @@ export default function MonthlyReportCard() {
           <View style={s.actionRow}>
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleGenerate}
-              disabled={generating}
+              onPress={handleOpenRecap}
               style={[s.generateBtn, {
-                backgroundColor: generating ? colors.surface : (isDark ? '#7AAE79' : '#3a7a39'),
+                backgroundColor: isDark ? '#7AAE79' : '#3a7a39',
               }]}
             >
-              {generating ? (
-                <ActivityIndicator size="small" color={colors.text} />
-              ) : (
-                <>
-                  <Download size={15} color="#fff" />
-                  <Text style={s.generateText}>
-                    {alreadyGenerated ? 'Download again' : 'Generate report'}
-                  </Text>
-                </>
-              )}
+              <Download size={15} color="#fff" />
+              <Text style={s.generateText}>
+                {availability.monthLabel
+                  ? `View your ${availability.monthLabel} recap`
+                  : 'View monthly recap'}
+              </Text>
             </TouchableOpacity>
-
-            {alreadyGenerated && lastPdfPath && (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={handleShare}
-                style={[s.shareBtn, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
-              >
-                <Share2 size={15} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
           </View>
 
           {!isProUser && (

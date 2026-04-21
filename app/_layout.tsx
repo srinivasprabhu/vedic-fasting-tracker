@@ -59,8 +59,12 @@ function RootLayoutNav() {
       if (__DEV__) console.log('Notification received:', notification.request.content.title);
     });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       if (__DEV__) console.log('Notification tapped:', response.notification.request.content.title);
+      const data = response.notification.request.content.data as { type?: string } | undefined;
+      if (data?.type === 'monthly_recap') {
+        router.push('/monthly-recap' as any);
+      }
     });
 
     return () => {
@@ -72,6 +76,25 @@ function RootLayoutNav() {
       }
     };
   }, []);
+
+  // Cold start: open recap when the user launched the app from the monthly recap notification.
+  useEffect(() => {
+    if (!isReady || showOnboarding || needsProfile) return;
+    let cancelled = false;
+    void Notifications.getLastNotificationResponseAsync().then(async (response) => {
+      if (cancelled || !response) return;
+      const data = response.notification.request.content.data as { type?: string } | undefined;
+      if (data?.type === 'monthly_recap') {
+        router.push('/monthly-recap' as any);
+        try {
+          await Notifications.clearLastNotificationResponseAsync();
+        } catch {}
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, showOnboarding, needsProfile]);
 
   useEffect(() => {
     async function checkOnboarding() {
@@ -187,6 +210,15 @@ function RootStack() {
           },
         }}
       />
+      <Stack.Screen
+        name="monthly-recap"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          contentStyle: { flex: 1, backgroundColor: colors.background },
+        }}
+      />
     </Stack>
   );
 }
@@ -199,9 +231,9 @@ export default function RootLayout() {
           <AuthProvider>
             <RevenueCatProvider>
               <UserProfileProvider>
-                <NotificationScheduleSync />
                 <DailySyncManager />
                 <FastingProvider>
+                  <NotificationScheduleSync />
                   <RootLayoutNav />
                 </FastingProvider>
               </UserProfileProvider>

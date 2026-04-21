@@ -2,6 +2,9 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import type { UserProfile } from '@/types/user';
+import type { FastRecord } from '@/types/fasting';
+import { FASTING_RECORDS_STORAGE_KEY } from '@/constants/storageKeys';
+import { getReportAvailability } from '@/utils/monthly-report';
 import {
   buildPlanScheduleInput,
   jsWeekdayToExpoCalendarWeekday,
@@ -17,6 +20,8 @@ const POST_FAST_IDS_KEY = 'aayu_post_fast_notif_ids';
 const REMINDER_BEFORE_START_KEY = 'aayu_notif_before_fast_start';
 const REMINDER_BEFORE_END_KEY = 'aayu_notif_before_fast_end';
 const WATER_REMINDERS_ENABLED_KEY = 'aayu_notif_water_enabled';
+const MONTHLY_RECAP_ENABLED_KEY = 'aayu_notif_monthly_recap';
+const MONTHLY_RECAP_NOTIF_ID_KEY = 'aayu_monthly_recap_notif_id';
 
 /** JSON string array of notification ids (supports multiple weekdays for 5:2 / 4:3). */
 const BEFORE_FAST_START_IDS_KEY = 'aayu_before_fast_start_notif_ids';
@@ -126,6 +131,31 @@ export async function getWaterRemindersEnabled(): Promise<boolean> {
 
 export async function setWaterRemindersEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(WATER_REMINDERS_ENABLED_KEY, String(enabled));
+}
+
+export async function getMonthlyRecapEnabled(): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(MONTHLY_RECAP_ENABLED_KEY);
+    if (v === null) return true;
+    return v === 'true';
+  } catch {
+    return true;
+  }
+}
+
+export async function setMonthlyRecapEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(MONTHLY_RECAP_ENABLED_KEY, String(enabled));
+}
+
+async function loadFastingRecordsForNotifs(): Promise<FastRecord[]> {
+  try {
+    const raw = await AsyncStorage.getItem(FASTING_RECORDS_STORAGE_KEY);
+    if (!raw) return [];
+    const all = JSON.parse(raw) as FastRecord[];
+    return all.filter((r) => r.endTime !== null);
+  } catch {
+    return [];
+  }
 }
 
 async function cancelBeforeFastStartNotifications(): Promise<void> {
@@ -281,6 +311,12 @@ export async function syncRecurringNotifications(profile: UserProfile | null): P
     await scheduleWeeklySummary();
   } catch (e) {
     console.log('Weekly summary reschedule error:', e);
+  }
+
+  try {
+    await scheduleMonthlyRecap(profile);
+  } catch (e) {
+    console.log('Monthly recap reschedule error:', e);
   }
 }
 
@@ -535,6 +571,66 @@ export async function cancelWeeklySummary(): Promise<void> {
   } catch {}
 }
 
+// ─── Monthly recap (1st of month, 9:00 local) ───────────────────────────────
+
+const MONTHLY_RECAP_MESSAGES = [
+  'Your last month\'s recap is ready.',
+  'See how you did last month.',
+  'Your monthly fasting story is ready to open.',
+  'Last month in review — tap to see your score.',
+];
+
+/**
+ * Schedule local notification for 9:00 on the 1st of each month when report data exists.
+ */
+export async function scheduleMonthlyRecap(profile: UserProfile | null): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  await cancelMonthlyRecap();
+
+  if (!(await hasPermission())) return;
+  if (!(await getNotificationsEnabled())) return;
+  if (!(await getMonthlyRecapEnabled())) return;
+
+  const records = await loadFastingRecordsForNotifs();
+  const availability = getReportAvailability(profile, records);
+  if (!availability.available) return;
+
+  try {
+    const now = new Date();
+    const msg = MONTHLY_RECAP_MESSAGES[now.getMonth() % MONTHLY_RECAP_MESSAGES.length];
+
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Your monthly recap is ready ✨',
+        body: msg,
+        sound: true,
+        data: { type: 'monthly_recap' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
+        day: 1,
+        hour: 9,
+        minute: 0,
+      },
+    });
+
+    await AsyncStorage.setItem(MONTHLY_RECAP_NOTIF_ID_KEY, id);
+  } catch (e) {
+    if (__DEV__) console.log('[notifications] Monthly recap schedule error:', e);
+  }
+}
+
+export async function cancelMonthlyRecap(): Promise<void> {
+  try {
+    const id = await AsyncStorage.getItem(MONTHLY_RECAP_NOTIF_ID_KEY);
+    if (id) {
+      await cancelById(id);
+      await AsyncStorage.removeItem(MONTHLY_RECAP_NOTIF_ID_KEY);
+    }
+  } catch {}
+}
+
 // ─── 5. Enable / Disable All ─────────────────────────────────────────
 
 export async function enableNotifications(profile?: UserProfile | null): Promise<boolean> {
@@ -552,6 +648,7 @@ export async function disableNotifications(): Promise<void> {
   await setNotificationsEnabled(false);
   await cancelDailyReminder();
   await cancelWeeklySummary();
+  await cancelMonthlyRecap();
   await cancelBeforeFastStartNotifications();
   await cancelBeforeFastEndNotifications();
   await cancelWaterReminderNotifications();

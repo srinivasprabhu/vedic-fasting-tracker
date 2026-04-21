@@ -27,6 +27,10 @@ import {
   setReminderBeforeFastEnd,
   getWaterRemindersEnabled,
   setWaterRemindersEnabled,
+  getMonthlyRecapEnabled,
+  setMonthlyRecapEnabled,
+  scheduleMonthlyRecap,
+  cancelMonthlyRecap,
   syncRecurringNotifications,
 } from '@/utils/notifications';
 import {
@@ -45,21 +49,24 @@ export default function NotificationSettingsScreen() {
   const [beforeStart, setBeforeStart] = useState(true);
   const [beforeEnd, setBeforeEnd] = useState(true);
   const [water, setWater] = useState(false);
+  const [monthlyRecapEnabled, setMonthlyRecapEnabledState] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [showWeeklyDaysEdit, setShowWeeklyDaysEdit] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [m, a, b, w] = await Promise.all([
+      const [m, a, b, w, r] = await Promise.all([
         getNotificationsEnabled(),
         getReminderBeforeFastStart(),
         getReminderBeforeFastEnd(),
         getWaterRemindersEnabled(),
+        getMonthlyRecapEnabled(),
       ]);
       setMasterOn(m);
       setBeforeStart(a);
       setBeforeEnd(b);
       setWater(w);
+      setMonthlyRecapEnabledState(r);
       setHydrated(true);
     })();
   }, []);
@@ -126,6 +133,20 @@ export default function NotificationSettingsScreen() {
       await applySync();
     },
     [applySync],
+  );
+
+  const handleMonthlyRecapToggle = useCallback(
+    async (value: boolean) => {
+      setMonthlyRecapEnabledState(value);
+      await setMonthlyRecapEnabled(value);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (value) {
+        await scheduleMonthlyRecap(profile ?? null);
+      } else {
+        await cancelMonthlyRecap();
+      }
+    },
+    [profile],
   );
 
   if (Platform.OS === 'web') {
@@ -271,6 +292,23 @@ export default function NotificationSettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ALSO INCLUDED</Text>
           <View style={styles.card}>
+            <View style={[styles.row, !masterOn && styles.rowMuted]}>
+              <View style={styles.rowContent}>
+                <Text style={styles.rowLabel}>Monthly recap</Text>
+                <Text style={styles.rowDesc}>
+                  Your recap, delivered on the 1st of each month at 9:00 AM (when you have enough fasts
+                  logged for the prior month)
+                </Text>
+              </View>
+              <Switch
+                value={monthlyRecapEnabled}
+                disabled={!hydrated || !masterOn}
+                onValueChange={handleMonthlyRecapToggle}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <View style={styles.divider} />
             <Text style={[styles.footerNote, { color: colors.textMuted }]}>
               With this master switch on, you also get a weekly summary (Sunday ~6 PM). Fast
               milestones and post-fast tips use system notification permission and fire around active
@@ -278,6 +316,42 @@ export default function NotificationSettingsScreen() {
             </Text>
           </View>
         </View>
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={{
+              marginTop: 8,
+              marginHorizontal: 20,
+              padding: 12,
+              borderRadius: 8,
+              backgroundColor: colors.surface,
+              alignItems: 'center',
+            }}
+            onPress={async () => {
+              const NotificationsMod = await import('expo-notifications');
+              await NotificationsMod.scheduleNotificationAsync({
+                content: {
+                  title: 'Your monthly recap is ready ✨',
+                  body: 'Tap to see last month\'s recap.',
+                  sound: true,
+                  data: { type: 'monthly_recap' },
+                },
+                trigger: {
+                  type: NotificationsMod.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                  seconds: 5,
+                },
+              });
+              Alert.alert(
+                'Test notification scheduled',
+                'Will fire in 5 seconds. Lock the device to see it.',
+              );
+            }}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              [DEV] Fire monthly recap test notification
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useFasting } from '@/contexts/FastingContext';
 import { getNotificationsEnabled, syncRecurringNotifications } from '@/utils/notifications';
 
 /**
  * Keeps plan-based + water recurring notifications aligned with profile.plan and lastMealTime.
+ * Also re-syncs when fasting records change (e.g. monthly recap eligibility after enough completed fasts).
  *
  * Important: we only react to fields that affect notification times (fast window).
  * Using the whole `profile` object as a dependency caused re-sync on every plan tweak
@@ -11,6 +13,7 @@ import { getNotificationsEnabled, syncRecurringNotifications } from '@/utils/not
  */
 export function NotificationScheduleSync() {
   const { profile } = useUserProfile();
+  const { completedRecords } = useFasting();
   const profileRef = useRef(profile);
   profileRef.current = profile;
 
@@ -35,6 +38,14 @@ export function NotificationScheduleSync() {
     profile?.plan?.weeklyFastDays?.join(','),
   ]);
 
+  const fastingFingerprint = useMemo(() => {
+    const n = completedRecords.length;
+    const c = completedRecords.filter((r) => r.completed).length;
+    return `${n}\u0001${c}`;
+  }, [completedRecords]);
+
+  const syncFingerprint = `${planFingerprint}\u0002${fastingFingerprint}`;
+
   useEffect(() => {
     let cancelled = false;
     const timeoutId = setTimeout(() => {
@@ -53,7 +64,7 @@ export function NotificationScheduleSync() {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [planFingerprint]);
+  }, [syncFingerprint]);
 
   return null;
 }
