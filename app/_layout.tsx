@@ -18,7 +18,7 @@ import { NotificationScheduleSync } from '@/components/NotificationScheduleSync'
 import { DailySyncManager } from '@/components/DailySyncManager';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 import BrandedSplash from '@/components/BrandedSplash';
-import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY } from '@/constants/storageKeys';
+import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY, WALKTHROUGH_COMPLETE_KEY } from '@/constants/storageKeys';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -48,6 +48,7 @@ function RootLayoutNav() {
   const [isReady, setIsReady] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
   const [needsProfile, setNeedsProfile] = useState<boolean>(false);
+  const [needsWalkthrough, setNeedsWalkthrough] = useState<boolean>(false);
   const [showBrandedSplash, setShowBrandedSplash] = useState<boolean>(true);
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
@@ -79,7 +80,7 @@ function RootLayoutNav() {
 
   // Cold start: open recap when the user launched the app from the monthly recap notification.
   useEffect(() => {
-    if (!isReady || showOnboarding || needsProfile) return;
+    if (!isReady || showOnboarding || needsProfile || needsWalkthrough) return;
     let cancelled = false;
     void Notifications.getLastNotificationResponseAsync().then(async (response) => {
       if (cancelled || !response) return;
@@ -94,18 +95,21 @@ function RootLayoutNav() {
     return () => {
       cancelled = true;
     };
-  }, [isReady, showOnboarding, needsProfile]);
+  }, [isReady, showOnboarding, needsProfile, needsWalkthrough]);
 
   useEffect(() => {
     async function checkOnboarding() {
       try {
         const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
         const profileData = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+        const walkthroughDone = await AsyncStorage.getItem(WALKTHROUGH_COMPLETE_KEY);
         console.log('Onboarding status:', completed, 'Profile:', !!profileData);
         if (completed !== 'true') {
           setShowOnboarding(true);
         } else if (!profileData) {
           setNeedsProfile(true);
+        } else if (walkthroughDone !== 'true') {
+          setNeedsWalkthrough(true);
         }
       } catch (e) {
         console.log('Error checking onboarding:', e);
@@ -123,8 +127,10 @@ function RootLayoutNav() {
       router.replace('/onboarding' as any);
     } else if (isReady && needsProfile) {
       router.replace('/profile-setup' as any);
+    } else if (isReady && needsWalkthrough) {
+      router.replace('/feature-walkthrough' as any);
     }
-  }, [isReady, showOnboarding, needsProfile]);
+  }, [isReady, showOnboarding, needsProfile, needsWalkthrough]);
 
   if (!isReady) return null;
 
@@ -155,6 +161,14 @@ function RootStack() {
       />
       <Stack.Screen
         name="profile-setup"
+        options={{
+          headerShown: false,
+          animation: 'fade',
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="feature-walkthrough"
         options={{
           headerShown: false,
           animation: 'fade',

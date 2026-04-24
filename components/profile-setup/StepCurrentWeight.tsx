@@ -10,6 +10,7 @@ import { calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor } from '@/u
 import type { WeightUnit } from '@/types/user';
 import { Scale } from 'lucide-react-native';
 import { RulerPicker } from './RulerPicker';
+import { BMIScale } from './BMIScale';
 
 interface Props {
   value:        string;
@@ -19,89 +20,20 @@ interface Props {
   onUnitChange: (u: WeightUnit) => void;
 }
 
-// ── BMI scale bar ─────────────────────────────────────────────────────────────
-
-const BMIScale: React.FC<{ bmi: number; isDark: boolean; compact?: boolean }> = ({
-  bmi, isDark, compact,
-}) => {
-  const minBMI = 10, maxBMI = 40;
-  const pct    = Math.min(100, Math.max(0, ((bmi - minBMI) / (maxBMI - minBMI)) * 100));
-  const needleAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(needleAnim, { toValue: pct, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-  }, [pct]);
-
-  if (compact) {
-    return (
-      <View style={bsc.wrap}>
-        <View style={bsc.bar}>
-          <View style={[bsc.seg, { flex: 1.7, backgroundColor: '#5b8dd9' }]} />
-          <View style={[bsc.seg, { flex: 1.5, backgroundColor: '#3aaa6e' }]} />
-          <View style={[bsc.seg, { flex: 1,   backgroundColor: '#e8c05a' }]} />
-          <View style={[bsc.seg, { flex: 1.2, backgroundColor: '#e07b30' }]} />
-          <View style={[bsc.seg, { flex: 2,   backgroundColor: '#e05555' }]} />
-        </View>
-        <View style={bsc.needleTrack}>
-          <Animated.View style={[bsc.needle, {
-            left: needleAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
-          }]} />
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={bs.wrap}>
-      <View style={bs.bar}>
-        <View style={[bs.seg, { flex: 1.7, backgroundColor: '#5b8dd9' }]} />
-        <View style={[bs.seg, { flex: 1.5, backgroundColor: '#3aaa6e' }]} />
-        <View style={[bs.seg, { flex: 1,   backgroundColor: '#e8c05a' }]} />
-        <View style={[bs.seg, { flex: 1.2, backgroundColor: '#e07b30' }]} />
-        <View style={[bs.seg, { flex: 2,   backgroundColor: '#e05555' }]} />
-      </View>
-      <View style={bs.needleTrack}>
-        <Animated.View style={[bs.needle, {
-          left: needleAnim.interpolate({ inputRange: [0,100], outputRange: ['0%','100%'] }),
-        }]} />
-      </View>
-      <View style={bs.labels}>
-        {['Under','Normal','Over','Obese'].map(l => (
-          <Text key={l} style={[bs.lbl, { color: isDark ? 'rgba(200,135,42,.4)' : 'rgba(160,104,32,.45)' }]}>{l}</Text>
-        ))}
-      </View>
-    </View>
-  );
-};
-
-const bsc = StyleSheet.create({
-  wrap:        { marginTop: 4 }                                                         as ViewStyle,
-  bar:         { flexDirection: 'row' as const, height: 5, borderRadius: 3, overflow: 'hidden' as const } as ViewStyle,
-  seg:         { height: '100%' as any }                                                as ViewStyle,
-  needleTrack: { height: 9, position: 'relative' as const }                              as ViewStyle,
-  needle:      { position: 'absolute' as const, width: 2, height: 9, borderRadius: 1, backgroundColor: '#fff', top: 0, marginLeft: -1, shadowColor: '#000', shadowOffset: { width:0, height:1 }, shadowOpacity: .35, shadowRadius: 1.5 } as ViewStyle,
-});
-
-const bs = StyleSheet.create({
-  wrap:        { marginTop: 6 }                                                         as ViewStyle,
-  bar:         { flexDirection: 'row' as const, height: 8, borderRadius: 4, overflow: 'hidden' as const } as ViewStyle,
-  seg:         { height: '100%' as any }                                                as ViewStyle,
-  needleTrack: { height: 14, position: 'relative' as const }                            as ViewStyle,
-  needle:      { position: 'absolute' as const, width: 3, height: 14, borderRadius: 2, backgroundColor: '#fff', top: 0, marginLeft: -1.5, shadowColor: '#000', shadowOffset: { width:0, height:1 }, shadowOpacity: .4, shadowRadius: 2 } as ViewStyle,
-  labels:      { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginTop: 2 } as ViewStyle,
-  lbl:         { fontFamily: FONTS.bodyRegular, fontSize: fs(10) }                           as TextStyle,
-});
-
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, unit, onUnitChange }) => {
   const { isDark } = useTheme();
 
   const opac  = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(16)).current;
 
-  // Decimal part of weight (e.g. ".4" in "83.4")
   const [decimal, setDecimal] = useState('');
+
+  useEffect(() => {
+    const parts = value.split('.');
+    if (parts.length < 2 || parts[1] === '') {
+      setDecimal('');
+    }
+  }, [value]);
 
   useEffect(() => {
     Animated.parallel([
@@ -115,7 +47,6 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
   const goldLt   = isDark ? '#e8a84c' : '#a06820';
   const mutedCl  = isDark ? '#7a6040' : '#7a5028';
 
-  // Parse integer kg from string
   const defaultKg  = unit === 'lbs' ? 165 : 74;
   const minVal     = unit === 'lbs' ? 60  : 30;
   const maxVal     = unit === 'lbs' ? 400 : 180;
@@ -133,7 +64,6 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
     onChange(full);
   }, [safeVal, onChange]);
 
-  // Live BMI
   const weightKg = unit === 'lbs' ? parseFloat(value) / 2.20462 : parseFloat(value);
   const cm       = parseFloat(heightCm);
   const bmi      = (!isNaN(weightKg) && !isNaN(cm) && cm > 50) ? calcBMI(weightKg, cm) : null;
@@ -153,7 +83,6 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
         BMI summary below — use the ruler for weight
       </Text>
 
-      {/* Unit toggle */}
       <View style={[s.unitToggle, {
         backgroundColor: isDark ? 'rgba(200,135,42,.06)' : 'rgba(200,135,42,.07)',
         borderColor:     isDark ? 'rgba(200,135,42,.18)' : 'rgba(200,135,42,.22)',
@@ -168,7 +97,7 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
           >
             <Text style={[s.unitBtnText, {
               color:      unit === u ? goldLt : mutedCl,
-              fontWeight: (unit === u ? '600' : '400') as any,
+              fontWeight: (unit === u ? '600' : '400') as '600' | '400',
             }]}>
               {u}
             </Text>
@@ -176,7 +105,6 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
         ))}
       </View>
 
-      {/* Compact BMI above a shorter ruler so weight controls clear the bottom CTA */}
       {bmi && (
         <View style={[s.bmiCard, {
           backgroundColor: isDark ? 'rgba(200,135,42,.06)' : 'rgba(200,135,42,.05)',
@@ -197,6 +125,7 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
       )}
 
       <RulerPicker
+        key={unit}
         value={safeVal}
         min={minVal}
         max={maxVal}
@@ -205,8 +134,7 @@ export const StepCurrentWeight: React.FC<Props> = ({ value, onChange, heightCm, 
         showDecimal
         decimal={decimal}
         onDecimalChange={handleDecimalChange}
-        visibleRows={3}
-        compact
+        accentColor={goldLt}
       />
     </Animated.View>
   );

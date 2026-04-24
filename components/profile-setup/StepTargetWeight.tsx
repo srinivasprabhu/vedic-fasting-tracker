@@ -10,6 +10,7 @@ import { calcBMI, getBMICategory, bmiCategoryLabel, bmiCategoryColor } from '@/u
 import type { WeightUnit } from '@/types/user';
 import { Target, Check } from 'lucide-react-native';
 import { RulerPicker } from './RulerPicker';
+import { BMIScale } from './BMIScale';
 
 interface Props {
   value:           string;
@@ -25,6 +26,13 @@ export const StepTargetWeight: React.FC<Props> = ({ value, onChange, currentWeig
   const opac  = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(16)).current;
   const [decimal, setDecimal] = useState('');
+
+  useEffect(() => {
+    const parts = value.split('.');
+    if (parts.length < 2 || parts[1] === '') {
+      setDecimal('');
+    }
+  }, [value]);
 
   useEffect(() => {
     Animated.parallel([
@@ -65,7 +73,7 @@ export const StepTargetWeight: React.FC<Props> = ({ value, onChange, currentWeig
   const targetColor = bmiCategoryColor(targetCat, isDark);
 
   return (
-    <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }], paddingTop: SPACING.xl }}>
+    <Animated.View style={{ opacity: opac, transform: [{ translateY: slide }], paddingTop: SPACING.lg }}>
       <View style={[s.iconWrap, { backgroundColor: 'rgba(58,170,110,.1)', borderColor: isDark ? 'rgba(58,170,110,.2)' : 'rgba(58,170,110,.28)' }]}>
         <Target size={20} color={green} />
       </View>
@@ -100,10 +108,12 @@ export const StepTargetWeight: React.FC<Props> = ({ value, onChange, currentWeig
               </View>
             </View>
           </View>
+          <BMIScale bmi={targetBmi} isDark={isDark} compact />
         </View>
       )}
 
       <RulerPicker
+        key={unit}
         value={safeVal}
         min={minVal}
         max={maxVal}
@@ -119,13 +129,13 @@ export const StepTargetWeight: React.FC<Props> = ({ value, onChange, currentWeig
 };
 
 const s = StyleSheet.create({
-  iconWrap:        { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.lg } as ViewStyle,
-  heading:         { fontFamily: FONTS.displayLight, fontSize: fs(36), lineHeight: lh(36), letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
-  accent:          { fontFamily: FONTS.displayItalic, fontSize: fs(36), lineHeight: lh(36) } as TextStyle,
+  iconWrap:        { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: SPACING.md } as ViewStyle,
+  heading:         { fontFamily: FONTS.displayLight, fontSize: fs(32), lineHeight: lh(32), letterSpacing: .2, marginBottom: SPACING.xs } as TextStyle,
+  accent:          { fontFamily: FONTS.displayItalic, fontSize: fs(32), lineHeight: lh(32) } as TextStyle,
   sub:             { fontFamily: FONTS.bodyRegular, fontSize: fs(13), lineHeight: lh(13, 1.35), marginBottom: SPACING.md } as TextStyle,
   previewCard:     { borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.sm } as ViewStyle,
-  previewLabel:    { fontFamily: FONTS.bodyMedium, fontSize: fs(10), letterSpacing: .14, fontWeight: '500' as const, marginBottom: 8, textTransform: 'uppercase' as const } as TextStyle,
-  previewRow:      { flexDirection: 'row' as const, alignItems: 'flex-end' as const, justifyContent: 'space-between' as const, marginBottom: 8 } as ViewStyle,
+  previewLabel:    { fontFamily: FONTS.bodyMedium, fontSize: fs(9), letterSpacing: .12, fontWeight: '500' as const, marginBottom: 4, textTransform: 'uppercase' as const } as TextStyle,
+  previewRow:      { flexDirection: 'row' as const, alignItems: 'flex-end' as const, justifyContent: 'space-between' as const, marginBottom: 4 } as ViewStyle,
   previewValRow:   { flexDirection: 'row' as const, alignItems: 'baseline' as const, gap: 4 } as ViewStyle,
   previewBig:      { fontFamily: FONTS.displayLight, fontSize: fs(32), fontWeight: '300' as const, lineHeight: lh(32) } as TextStyle,
   previewUnit:     { fontFamily: FONTS.bodyMedium, fontSize: fs(11) } as TextStyle,

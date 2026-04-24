@@ -36,7 +36,8 @@ interface ZoneDef {
   endHour: number | null;
 }
 
-const ZONE_DEFS: ZoneDef[] = [
+/** Exported for onboarding / education UI (metabolic zone strip). */
+export const ZONE_DEFS: ZoneDef[] = [
   { id: 'anabolic', name: 'Anabolic', color: '#5b8dd9', startHour: 0, endHour: 4 },
   { id: 'catabolic', name: 'Catabolic', color: '#d4a017', startHour: 4, endHour: 12 },
   { id: 'fatBurning', name: 'Fat Burning', color: '#e07b30', startHour: 12, endHour: 18 },

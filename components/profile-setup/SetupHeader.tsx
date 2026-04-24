@@ -12,11 +12,13 @@ interface SetupHeaderProps {
   step:    number;
   total:   number;
   onBack?: () => void;
+  /** Hide the "n of m" pill (e.g. welcome interstitial). */
+  hideProgress?: boolean;
   style?:  ViewStyle;
 }
 
 export const SetupHeader: React.FC<SetupHeaderProps> = ({
-  step, total, onBack, style,
+  step, total, onBack, hideProgress, style,
 }) => {
   const { colors } = useTheme();
   const goldColor = colors.primary;
@@ -55,17 +57,21 @@ export const SetupHeader: React.FC<SetupHeaderProps> = ({
       </View>
 
       <View style={[styles.side, styles.sideRight]}>
-        <View style={[
-          styles.stepPill,
-          {
-            backgroundColor: `${colors.primary}18`,
-            borderColor: `${colors.primary}40`,
-          },
-        ]}>
-          <Text style={[styles.stepText, { color: muted }]}>
-            {step} of {total}
-          </Text>
-        </View>
+        {hideProgress ? (
+          <View style={{ width: 56 }} />
+        ) : (
+          <View style={[
+            styles.stepPill,
+            {
+              backgroundColor: `${colors.primary}18`,
+              borderColor: `${colors.primary}40`,
+            },
+          ]}>
+            <Text style={[styles.stepText, { color: muted }]}>
+              {step} of {total}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );

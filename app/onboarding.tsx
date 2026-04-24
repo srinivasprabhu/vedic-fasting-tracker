@@ -26,7 +26,7 @@ import { AayuMandala } from '@/components/onboarding/AayuMandala';
 import { OnboardingSlide } from '@/components/onboarding/OnboardingSlide';
 import { AuthButtons } from '@/components/onboarding/AuthButtons';
 import type { OnboardingSlideData } from '@/components/onboarding/types';
-import { Flame, Sparkles, ArrowRight } from 'lucide-react-native';
+import { Flame, Sparkles, ArrowRight, Shield } from 'lucide-react-native';
 import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY } from '@/constants/storageKeys';
 import type { ColorScheme } from '@/constants/colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -66,13 +66,13 @@ function buildOnboardingSlides(colors: ColorScheme, isDark: boolean): Onboarding
       iconBg: iconBgStreak,
     },
     {
-      id: 'begin',
-      tag: 'YOUR JOURNEY STARTS NOW',
-      title: 'Begin Your',
-      titleAccent: 'Path',
-      body: 'Sign in to save your progress across devices, or start as a guest. Your transformation begins now.',
+      id: 'privacy',
+      tag: 'YOUR DATA STAYS YOURS',
+      title: 'Privacy by',
+      titleAccent: 'Design',
+      body: 'Your health data stays on your device. We never sell or share your information. Sign in only to sync across devices — or start as a guest.',
       icon: '',
-      iconComponent: <Sparkles size={56} color={colors.primary} strokeWidth={1.5} />,
+      iconComponent: <Shield size={56} color={colors.primary} strokeWidth={1.5} />,
       bgColors: isDark
         ? ([colors.background, colors.surface, colors.surfaceWarm] as const)
         : ([colors.background, colors.surface, colors.surfaceWarm] as const),

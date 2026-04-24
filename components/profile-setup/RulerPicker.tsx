@@ -101,12 +101,14 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When value changes externally (nudge buttons), scroll to follow
+  // When value changes externally (nudge buttons, profile unit toggle), snap scroll.
+  // animated: false avoids intermediate offsets mapping to wrong values under new min/max.
   useEffect(() => {
     if (!mounted.current || isUserDrag.current) return;
     const y = (value - min) * ITEM_H;
-    scrollRef.current?.scrollTo({ y, animated: true });
-  }, [value, min]);
+    emittedValue.current = value;
+    scrollRef.current?.scrollTo({ y, animated: false });
+  }, [value, min, max]);
 
   const handleScrollBegin = useCallback(() => {
     isUserDrag.current = true;
@@ -114,6 +116,7 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
 
   // Fires continuously during scroll — update display value + haptics
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!mounted.current) return;
     const y   = e.nativeEvent.contentOffset.y;
     const idx = Math.round(y / ITEM_H);
     const v   = Math.min(max, Math.max(min, min + idx));
@@ -127,6 +130,7 @@ export const RulerPicker: React.FC<RulerPickerProps> = ({
   // Only fires after momentum ends — emit final value, clear drag flag
   const handleMomentumEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     isUserDrag.current = false;
+    if (!mounted.current) return;
     const y   = e.nativeEvent.contentOffset.y;
     const idx = Math.round(y / ITEM_H);
     const v   = Math.min(max, Math.max(min, min + idx));

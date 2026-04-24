@@ -10,6 +10,8 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Step1Name }           from '@/components/profile-setup/Step1Name';
+import { StepWelcome }         from '@/components/profile-setup/StepWelcome';
+import { StepWhyTrack }        from '@/components/profile-setup/StepWhyTrack';
 import { StepGoal }            from '@/components/profile-setup/StepGoal';
 import { StepSex }             from '@/components/profile-setup/StepSex';
 import { StepAge }             from '@/components/profile-setup/StepAge';
@@ -38,7 +40,7 @@ import type {
   LastMealTime, SafetyFlags, UserProfile,
 } from '@/types/user';
 
-const TOTAL_STEPS = 14;
+const TOTAL_STEPS = 16;
 
 export default function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
@@ -61,6 +63,27 @@ export default function ProfileSetupScreen() {
   const [safetyFlags, setSafetyFlags]     = useState<SafetyFlags>({});
   const [fastingLevel, setFastingLevel]   = useState<FastingLevel | null>(null);
 
+  const handleUnitChange = useCallback((newUnit: WeightUnit) => {
+    if (newUnit === weightUnit) return;
+
+    const cw = parseFloat(currentWeight);
+    if (!isNaN(cw) && cw > 0) {
+      const converted = newUnit === 'lbs'
+        ? Math.round(cw * 2.20462)
+        : Math.round(cw / 2.20462);
+      setCurrentWeight(String(converted));
+    }
+
+    const tw = parseFloat(targetWeight);
+    if (!isNaN(tw) && tw > 0) {
+      const converted = newUnit === 'lbs'
+        ? Math.round(tw * 2.20462)
+        : Math.round(tw / 2.20462);
+      setTargetWeight(String(converted));
+    }
+
+    setWeightUnit(newUnit);
+  }, [weightUnit, currentWeight, targetWeight]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && profile?.name?.trim()) {
@@ -113,17 +136,16 @@ export default function ProfileSetupScreen() {
   useEffect(() => { animateIn(); }, [step]);
   useEffect(() => { animateIn(); }, []);
 
+  const handleWelcomeAutoAdvance = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setStep(3);
+  }, []);
+
   const handleBack = useCallback(() => {
     if (step > 1) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      // Skip the building screen when going back from the plan reveal
-      setStep(s => s === 14 ? 12 : s - 1);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setStep(s => (s === 16 ? 14 : s - 1));
     }
-  }, [step]);
-
-  const handleNext = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (step < TOTAL_STEPS) { setStep(s => s + 1); } else { handleComplete(); }
   }, [step]);
 
   const handleComplete = useCallback(() => {
@@ -162,11 +184,16 @@ export default function ProfileSetupScreen() {
     } else {
       updateProfile({ ...common } as UserProfile);
     }
-    router.replace('/(tabs)/(home)' as any);
+    router.replace('/feature-walkthrough' as any);
   }, [
     name, fastingLevel, sex, heightCm, currentWeight, targetWeight, weightUnit, purpose, lastMealTime,
     age, healthConcerns, safetyFlags, activityLevel, profile?.startingWeightKg, updateProfile,
   ]);
+
+  const handleNext = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (step < TOTAL_STEPS) { setStep(s => s + 1); } else { handleComplete(); }
+  }, [step, handleComplete]);
 
   // ── Safety checks ───────────────────────────────────────────────────────────
   const isMinor = age < 18;
@@ -185,35 +212,39 @@ export default function ProfileSetupScreen() {
   const canProceed = useMemo(() => {
     switch (step) {
       case 1:  return name.trim().length > 0;
-      case 2:  return purpose !== null && !isMinorWeightLoss;
-      case 3:  return sex !== null;
-      case 4:  return age >= 14 && age <= 80;
-      case 5:  return parseFloat(heightCm) > 50;
-      case 6:  return parseFloat(currentWeight) > 0;
-      case 7:  return !isUnderweightLosingMore;
-      case 8:  return activityLevel !== null;
-      case 9:  return lastMealTime !== null;
-      case 10: return true;
-      case 11: return true;
-      case 12: return fastingLevel !== null;
-      case 13: return false;
-      case 14: return true;
+      case 2:  return true;
+      case 3:  return true;
+      case 4:  return purpose !== null && !isMinorWeightLoss;
+      case 5:  return sex !== null;
+      case 6:  return age >= 14 && age <= 80;
+      case 7:  return parseFloat(heightCm) > 50;
+      case 8:  return parseFloat(currentWeight) > 0;
+      case 9:  return !isUnderweightLosingMore;
+      case 10: return activityLevel !== null;
+      case 11: return lastMealTime !== null;
+      case 12: return true;
+      case 13: return true;
+      case 14: return fastingLevel !== null;
+      case 15: return false;
+      case 16: return true;
       default: return false;
     }
   }, [step, name, purpose, sex, age, heightCm, currentWeight, activityLevel, lastMealTime, fastingLevel, isMinorWeightLoss, isUnderweightLosingMore]);
 
   const ctaLabel = useMemo(() => {
-    if (step === 7)  return targetWeight ? 'Continue →' : 'Skip for now →';
-    if (step === 12) return plan ? 'Build my plan →' : 'Continue →';
-    if (step === 13) return '';  // building screen — no CTA shown
-    if (step === 14) return 'Start my first fast →';
+    if (step === 9)  return targetWeight ? 'Continue →' : 'Skip for now →';
+    if (step === 14) return plan ? 'Build my plan →' : 'Continue →';
+    if (step === 15) return '';
+    if (step === 16) return 'Start my first fast →';
     return 'Continue →';
   }, [step, targetWeight, plan]);
 
   const renderStep = () => {
     switch (step) {
       case 1:  return <Step1Name value={name} onChange={setName} onSubmit={canProceed ? handleNext : undefined} />;
-      case 2:  return (
+      case 2:  return <StepWelcome name={name} onAutoAdvance={handleWelcomeAutoAdvance} />;
+      case 3:  return <StepWhyTrack />;
+      case 4:  return (
         <>
           <StepGoal value={purpose} onChange={setPurpose} />
           {isMinorWeightLoss && (
@@ -226,11 +257,11 @@ export default function ProfileSetupScreen() {
           )}
         </>
       );
-      case 3:  return <StepSex value={sex} onChange={setSex} />;
-      case 4:  return <StepAge value={age} onChange={setAge} />;
-      case 5:  return <StepHeight value={heightCm} onChange={setHeightCm} />;
-      case 6:  return <StepCurrentWeight value={currentWeight} onChange={setCurrentWeight} heightCm={heightCm} unit={weightUnit} onUnitChange={setWeightUnit} />;
-      case 7:  return (
+      case 5:  return <StepSex value={sex} onChange={setSex} />;
+      case 6:  return <StepAge value={age} onChange={setAge} />;
+      case 7:  return <StepHeight value={heightCm} onChange={setHeightCm} />;
+      case 8:  return <StepCurrentWeight value={currentWeight} onChange={setCurrentWeight} heightCm={heightCm} unit={weightUnit} onUnitChange={handleUnitChange} />;
+      case 9:  return (
         <>
           <StepTargetWeight value={targetWeight} onChange={setTargetWeight} currentWeightKg={currentWeight} heightCm={heightCm} unit={weightUnit} />
           {isUnderweightLosingMore && (
@@ -243,13 +274,13 @@ export default function ProfileSetupScreen() {
           )}
         </>
       );
-      case 8:  return <StepActivity value={activityLevel} onChange={setActivityLevel} />;
-      case 9:  return <StepLastMeal value={lastMealTime} onChange={setLastMealTime} />;
-      case 10: return <StepHealthConcerns value={healthConcerns} onChange={setHealthConcerns} />;
-      case 11: return <StepSafety value={safetyFlags} onChange={setSafetyFlags} sex={sex} />;
-      case 12: return <StepExperience value={fastingLevel} onChange={setFastingLevel} />;
-      case 13: return <StepBuildingPlan userName={name} onComplete={handleNext} />;
-      case 14: {
+      case 10: return <StepActivity value={activityLevel} onChange={setActivityLevel} />;
+      case 11: return <StepLastMeal value={lastMealTime} onChange={setLastMealTime} />;
+      case 12: return <StepHealthConcerns value={healthConcerns} onChange={setHealthConcerns} />;
+      case 13: return <StepSafety value={safetyFlags} onChange={setSafetyFlags} sex={sex} />;
+      case 14: return <StepExperience value={fastingLevel} onChange={setFastingLevel} />;
+      case 15: return <StepBuildingPlan userName={name} onComplete={handleNext} />;
+      case 16: {
         if (!plan) return null;
         const cwKg = weightUnit === 'lbs' ? parseFloat(currentWeight) / 2.20462 : parseFloat(currentWeight);
         const gwKg = targetWeight
@@ -285,7 +316,7 @@ export default function ProfileSetupScreen() {
         <LinearGradient colors={bgColors} style={StyleSheet.absoluteFillObject} start={{ x: .3, y: 0 }} end={{ x: .7, y: 1 }} />
         <View style={[s.ambientGlow, { backgroundColor: goldColor, opacity: isDark ? .04 : .035 }]} />
 
-        {step !== 13 && (
+        {step !== 2 && step !== 15 && (
           <View style={[s.progressTrack, { top: insets.top }]}>
             <Animated.View style={[s.progressFill, {
               width: progressAnim.interpolate({ inputRange: [0,1], outputRange: ['0%','100%'] }),
@@ -294,8 +325,14 @@ export default function ProfileSetupScreen() {
           </View>
         )}
 
-        {step !== 13 && (
-          <SetupHeader step={step > 13 ? step - 1 : step} total={TOTAL_STEPS - 1} onBack={step > 1 ? handleBack : undefined} style={{ paddingTop: insets.top + 12 }} />
+        {step !== 15 && (
+          <SetupHeader
+            step={step}
+            total={TOTAL_STEPS}
+            onBack={step > 1 ? handleBack : undefined}
+            hideProgress={step === 2}
+            style={{ paddingTop: insets.top + 12 }}
+          />
         )}
 
         <ScrollView
@@ -310,7 +347,7 @@ export default function ProfileSetupScreen() {
           </Animated.View>
         </ScrollView>
 
-        {step !== 13 && (
+        {step !== 15 && (
           <View style={[s.bottomWrap, { paddingBottom: insets.bottom + 16 }]}>
             <TouchableOpacity
               activeOpacity={canProceed ? .85 : 1}

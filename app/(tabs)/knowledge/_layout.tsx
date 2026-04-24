@@ -15,6 +15,8 @@ export default function KnowledgeLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="article/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="quiz" options={{ headerShown: false }} />
+      <Stack.Screen name="meals" options={{ headerShown: false }} />
+      <Stack.Screen name="meal-detail" options={{ headerShown: false }} />
     </Stack>
   );
 }

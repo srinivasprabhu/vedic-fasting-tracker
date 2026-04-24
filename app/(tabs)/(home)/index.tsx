@@ -17,6 +17,7 @@ import { useUserProfile }  from '@/contexts/UserProfileContext';
 import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import CircularTimer       from '@/components/CircularTimer';
 import YesterdayCard       from '@/components/YesterdayCard';
+import MealSuggestionStrip from '@/components/meals/MealSuggestionStrip';
 import FastTimePickerModal from '@/components/FastTimePickerModal';
 import MetabolicZoneRiver  from '@/components/MetabolicZoneRiver';
 import { useFastTimer }    from '@/hooks/useFastTimer';
@@ -531,6 +532,13 @@ export default function HomeScreen() {
           {/* Yesterday motivation card */}
           {yesterdayData && completedFastCount > 0 && (
             <YesterdayCard data={yesterdayData} />
+          )}
+
+          {completedFastCount > 0 && (
+            <MealSuggestionStrip
+              fastDurationHours={activeFast ? timer.hoursElapsed : 0}
+              isFasting={!!activeFast}
+            />
           )}
 
         </ScrollView>

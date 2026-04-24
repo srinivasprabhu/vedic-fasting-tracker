@@ -19,3 +19,6 @@ export const HEALTH_SYNC_ENABLED_KEY = 'aayu_health_sync_enabled';
 /** Timestamp of last health sync (throttle guard) */
 export const HEALTH_SYNC_LAST_KEY = 'aayu_health_sync_last';
 
+/** Set to 'true' after the user completes the feature walkthrough (shows only once). */
+export const WALKTHROUGH_COMPLETE_KEY = 'aayu_walkthrough_complete';
+
