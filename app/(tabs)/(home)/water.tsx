@@ -2,6 +2,7 @@
 // Full water tracker screen — manual logging, ring progress, quick-add, log history.
 
 import { fs } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -118,6 +119,8 @@ export default function WaterScreen() {
   const { colors, isDark } = useTheme();
   const { profile, updateDailyTarget } = useUserProfile();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const waterScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(waterScrollRef);
 
   const goalMl = profile?.plan?.dailyWaterMl ?? 2500;
 
@@ -162,6 +165,7 @@ export default function WaterScreen() {
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView
+          ref={waterScrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}

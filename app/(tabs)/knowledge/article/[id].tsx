@@ -14,7 +14,8 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo } from 'react';
+import { useScrollToTop } from '@react-navigation/native';
+import React, { useMemo, useRef } from 'react';
 import {
   ImageBackground,
   ScrollView,
@@ -43,6 +44,8 @@ export default function LearnArticleScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const articleScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(articleScrollRef);
   const article = typeof id === 'string' ? getArticleById(id) : undefined;
   const related = article ? getRelatedArticles(article) : [];
 
@@ -132,6 +135,7 @@ export default function LearnArticleScreen() {
       )}
 
       <ScrollView
+        ref={articleScrollRef}
         style={[styles.scroll, { backgroundColor: colors.background }]}
         contentContainerStyle={[
           styles.scrollContent,

@@ -1,4 +1,5 @@
-import React, { useMemo, useCallback } from 'react';
+import { useScrollToTop } from '@react-navigation/native';
+import React, { useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
   ViewStyle, TextStyle, ImageStyle,
@@ -17,6 +18,8 @@ import type { ColorScheme } from '@/constants/colors';
 export default function MealDetailScreen() {
   const { colors } = useTheme();
   const { isProUser, presentPaywall } = useRevenueCat();
+  const detailScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(detailScrollRef);
   const { id } = useLocalSearchParams<{ id: string }>();
   const meal = useMemo(() => BREAKFAST_MEALS.find(m => m.id === id), [id]);
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -64,9 +67,9 @@ export default function MealDetailScreen() {
             <View style={[styles.lockedIcon, { backgroundColor: hexAlpha(colors.primary, 0.1) }]}>
               <Lock size={28} color={colors.primary} />
             </View>
-            <Text style={[styles.lockedTitle, { color: colors.text }]}>{meal.name}</Text>
+            <Text style={[styles.lockedTitle, { color: colors.text }]}>Pro break-fast guide</Text>
             <Text style={[styles.lockedBody, { color: colors.textSecondary }]}>
-              This break-fast meal is part of Aayu Pro. Unlock for the full guide, ingredients, and steps.
+              This recipe is part of Aayu Pro. Unlock to see the full guide, ingredients, and steps.
             </Text>
             <TouchableOpacity
               style={[styles.unlockBtn, { backgroundColor: colors.primary }]}
@@ -94,6 +97,7 @@ export default function MealDetailScreen() {
         </View>
 
         <ScrollView
+          ref={detailScrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}

@@ -2,6 +2,7 @@
 // Weight tracker screen — log today's weight, see trend toward goal.
 
 import { fs } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -126,6 +127,8 @@ export default function WeightScreen() {
   const [log, setLog]         = useState<WeightEntry[]>([]);
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(true);
+  const weightScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(weightScrollRef);
 
   useEffect(() => {
     loadWeightLog().then((l) => { setLog(l); setLoading(false); });
@@ -199,6 +202,7 @@ export default function WeightScreen() {
       <View style={styles.root}>
         <SafeAreaView style={styles.safe} edges={['top']}>
           <ScrollView
+            ref={weightScrollRef}
             style={styles.scroll}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}

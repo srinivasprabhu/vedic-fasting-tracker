@@ -1,5 +1,5 @@
 import { resolveLearnHeroImage } from '@/constants/learnHeroImages';
-import { hexAlpha } from '@/constants/colors';
+import { useScrollToTop } from '@react-navigation/native';
 import { fs, FONTS, RADIUS } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -27,7 +27,6 @@ import {
   Star,
   Timer,
   User,
-  UtensilsCrossed,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -111,6 +110,8 @@ export default function KnowledgeScreen() {
   const router = useRouter();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const learnScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(learnScrollRef);
   const [search, setSearch] = useState('');
   const [difficulty, setDifficulty] = useState<ArticleDifficulty | 'all'>('all');
 
@@ -271,7 +272,7 @@ export default function KnowledgeScreen() {
         </Animated.View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={learnScrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {featured.length > 0 ? (
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHead}>
@@ -299,23 +300,6 @@ export default function KnowledgeScreen() {
             />
           </View>
         ) : null}
-
-        <TouchableOpacity
-          style={[styles.mealsSection, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
-          onPress={() => router.push('/knowledge/meals' as any)}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.mealsSectionIcon, { backgroundColor: hexAlpha(colors.primary, 0.1) }]}>
-            <UtensilsCrossed size={22} color={colors.primary} />
-          </View>
-          <View style={styles.mealsSectionText}>
-            <Text style={[styles.mealsSectionTitle, { color: colors.text }]}>Break-fast meals</Text>
-            <Text style={[styles.mealsSectionSub, { color: colors.textSecondary }]}>
-              30 meals curated for how you break your fast
-            </Text>
-          </View>
-          <ChevronRight size={18} color={colors.textMuted} />
-        </TouchableOpacity>
 
         {HUB_SECTION_ORDER.map((sid) => {
           const items = bySection(sid);
@@ -458,35 +442,6 @@ function makeStyles(colors: ColorScheme) {
     chipDot: { width: 7, height: 7, borderRadius: 4 },
     chipLabel: { fontSize: fs(12), fontWeight: '600' as const },
     scroll: { paddingHorizontal: 20, paddingTop: 8 },
-    mealsSection: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 14,
-      padding: 16,
-      borderRadius: 16,
-      borderWidth: 1,
-      marginBottom: 20,
-    },
-    mealsSectionIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    mealsSectionText: {
-      flex: 1,
-    },
-    mealsSectionTitle: {
-      fontFamily: FONTS.bodyMedium,
-      fontSize: fs(16),
-      fontWeight: '700' as const,
-      marginBottom: 2,
-    },
-    mealsSectionSub: {
-      fontFamily: FONTS.bodyRegular,
-      fontSize: fs(13),
-    },
     sectionBlock: { marginBottom: 22 },
     sectionHead: {
       flexDirection: 'row' as const,

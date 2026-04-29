@@ -16,6 +16,9 @@ const IOS_API_KEY_PRODUCTION = 'appl_rsLgjSpTNwKfBNvDTLaqvOtMXEK';
  * **Local:** Use a root `.env` (and `env: load` via Expo) or `eas env:pull` — otherwise
  * the iOS fallback below uses the embedded production constant when `!__DEV__`.
  *
+ * **Expo:** Keep `app.json` → `plugins` → `./plugins/withRevenueCat` ios/android keys aligned
+ * with the fallbacks here for documentation parity (SDK is still configured from JS).
+ *
  * iOS: env → else production constant when `!__DEV__` → else test key for local Metro.
  * Android: env `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` → else test key until you add `goog_`.
  */

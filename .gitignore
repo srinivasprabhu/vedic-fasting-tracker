@@ -43,6 +43,7 @@ serviceAccountKey*.json
 *.tsbuildinfo
 .vercel
 
+# local env / secrets (never commit)
 .env
-node_modules
-.expo
+.env.local
+sentry.properties

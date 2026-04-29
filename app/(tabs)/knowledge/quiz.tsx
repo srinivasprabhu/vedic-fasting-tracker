@@ -1,9 +1,10 @@
 import { fs, RADIUS } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LEARN_QUIZ } from '@/mocks/learn-registry';
 import type { QuizQuestion } from '@/types/learn';
 import { Stack, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ColorScheme } from '@/constants/colors';
@@ -12,6 +13,8 @@ export default function LearnQuizScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const quizScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(quizScrollRef);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -71,6 +74,7 @@ export default function LearnQuizScreen() {
       </View>
 
       <ScrollView
+        ref={quizScrollRef}
         style={styles.scrollFlex}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}

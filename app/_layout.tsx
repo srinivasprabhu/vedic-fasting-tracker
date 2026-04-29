@@ -19,7 +19,10 @@ import { DailySyncManager } from '@/components/DailySyncManager';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 import BrandedSplash from '@/components/BrandedSplash';
 import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY, WALKTHROUGH_COMPLETE_KEY } from '@/constants/storageKeys';
+import { initSentry, Sentry } from '@/lib/sentry';
+import { trackAppOpened } from '@/lib/analytics';
 
+initSentry();
 SplashScreen.preventAutoHideAsync();
 
 if (Platform.OS !== 'web') {
@@ -132,6 +135,10 @@ function RootLayoutNav() {
     }
   }, [isReady, showOnboarding, needsProfile, needsWalkthrough]);
 
+  useEffect(() => {
+    trackAppOpened();
+  }, []);
+
   if (!isReady) return null;
 
   return (
@@ -237,7 +244,7 @@ function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayoutInner() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -258,3 +265,5 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+export default Sentry.wrap(RootLayoutInner);

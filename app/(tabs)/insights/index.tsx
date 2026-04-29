@@ -2,6 +2,7 @@
 // Insights tab — Metabolic Discipline Score + health metrics with Pro gating.
 
 import { fs } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -381,6 +382,8 @@ export default function InsightsScreen() {
   const [weightLogs, setWeightLogs] = useState<WeightLogEntry[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const insightsScrollRef = useRef(null);
+  useScrollToTop(insightsScrollRef);
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, []);
@@ -556,6 +559,7 @@ export default function InsightsScreen() {
         </View>
 
         <Animated.ScrollView
+          ref={insightsScrollRef}
           style={[{ flex: 1 }, { opacity: fadeAnim }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}

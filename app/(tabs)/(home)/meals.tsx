@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { useScrollToTop } from '@react-navigation/native';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ViewStyle, TextStyle,
@@ -12,10 +13,7 @@ import { useRevenueCat } from '@/contexts/RevenueCatContext';
 import {
   BREAKFAST_MEALS,
   DIET_FILTERS,
-  MEAL_TYPE_FILTERS,
-  FREE_MEAL_COUNT,
   type DietFilterKey,
-  type MealTypeFilterKey,
 } from '@/constants/breakfastMeals';
 import MealCard from '@/components/meals/MealCard';
 import { FONTS, fs, lh } from '@/constants/theme';
@@ -26,8 +24,9 @@ export default function MealsListScreen() {
   const { colors } = useTheme();
   const { isProUser, presentPaywall } = useRevenueCat();
   const [activeDiet, setActiveDiet] = useState<DietFilterKey>('all');
-  const [activeMealType, setActiveMealType] = useState<MealTypeFilterKey>('all');
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const listScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(listScrollRef);
 
   const filteredMeals = useMemo(() => {
     return BREAKFAST_MEALS.filter(m => {
@@ -36,12 +35,9 @@ export default function MealsListScreen() {
       } else if (activeDiet !== 'all') {
         if (m.diet !== activeDiet) return false;
       }
-      if (activeMealType !== 'all') {
-        if (m.mealType !== activeMealType) return false;
-      }
       return true;
     });
-  }, [activeDiet, activeMealType]);
+  }, [activeDiet]);
 
   const handleMealPress = useCallback((mealId: string, isFree: boolean) => {
     if (!isFree && !isProUser) {
@@ -50,7 +46,7 @@ export default function MealsListScreen() {
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/knowledge/meal-detail', params: { id: mealId } } as any);
+    router.push({ pathname: '/(tabs)/(home)/meal-detail', params: { id: mealId } } as any);
   }, [isProUser, presentPaywall]);
 
   return (
@@ -63,9 +59,8 @@ export default function MealsListScreen() {
           </TouchableOpacity>
           <View style={styles.headerTextCol}>
             <Text style={styles.headerTitle}>Break-fast meals</Text>
-            <Text style={styles.headerSub}>
-              {BREAKFAST_MEALS.length} meals · {FREE_MEAL_COUNT} free · Indian, Japanese, Mediterranean & more
-            </Text>
+            <Text style={styles.headerSub}>Curated meals to ease your body out of fasting</Text>
+            {/* <Text style={styles.headerSubLine2}>Free & Pro options available</Text> */}
           </View>
         </View>
 
@@ -96,36 +91,7 @@ export default function MealsListScreen() {
         </ScrollView>
 
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          style={styles.filterScrollSecondary}
-        >
-          {MEAL_TYPE_FILTERS.map(f => {
-            const isActive = activeMealType === f.key;
-            return (
-              <TouchableOpacity
-                key={f.key}
-                style={[
-                  styles.filterChipOutline,
-                  { borderColor: colors.borderLight },
-                  isActive && { borderColor: colors.text, backgroundColor: hexAlpha(colors.text, 0.06) },
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setActiveMealType(f.key);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.filterLabel, { color: isActive ? colors.text : colors.textMuted }]}>
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <ScrollView
+          ref={listScrollRef}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -141,8 +107,8 @@ export default function MealsListScreen() {
             <MealCard
               key={meal.id}
               meal={meal}
+              teaserPro={!isProUser && !meal.isFree}
               onPress={() => handleMealPress(meal.id, meal.isFree)}
-              isLocked={!meal.isFree && !isProUser}
             />
           ))}
 
@@ -160,21 +126,15 @@ function makeStyles(colors: ColorScheme) {
     backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
     headerTextCol: { flex: 1 } as ViewStyle,
     headerTitle: { fontFamily: FONTS.displayLight, fontSize: fs(22), fontWeight: '700', color: colors.text, letterSpacing: -0.3 } as TextStyle,
-    headerSub: { fontFamily: FONTS.bodyRegular, fontSize: fs(13), color: colors.textMuted, marginTop: 2 } as TextStyle,
+    headerSub: { fontFamily: FONTS.bodyRegular, fontSize: fs(13), color: colors.textMuted, marginTop: 2, lineHeight: lh(13, 1.35) } as TextStyle,
+    headerSubLine2: { fontFamily: FONTS.bodyRegular, fontSize: fs(13), color: colors.textMuted, marginTop: 4, lineHeight: lh(13, 1.35) } as TextStyle,
     filterScroll: { maxHeight: 44 } as ViewStyle,
-    filterScrollSecondary: { maxHeight: 40, marginTop: -2 } as ViewStyle,
     filterRow: { paddingHorizontal: 20, gap: 8, paddingVertical: 6 } as ViewStyle,
     filterChip: {
       paddingHorizontal: 14,
       paddingVertical: 7,
       borderRadius: 10,
       backgroundColor: colors.surface,
-    } as ViewStyle,
-    filterChipOutline: {
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      borderRadius: 10,
-      borderWidth: 1,
     } as ViewStyle,
     filterLabel: { fontFamily: FONTS.bodyMedium, fontSize: fs(13), fontWeight: '600' } as TextStyle,
     list: { flex: 1 } as ViewStyle,

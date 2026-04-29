@@ -1,4 +1,5 @@
 import { fs } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
@@ -249,6 +250,8 @@ export default function AnalyticsScreen() {
   const pedometer = __usePedometer();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const journeyScrollRef = useRef(null);
+  useScrollToTop(journeyScrollRef);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [selectedMetric, setSelectedMetric] = useState<MetricKnowledge | null>(null);
   const [knowledgeModalVisible, setKnowledgeModalVisible] = useState(false);
@@ -920,6 +923,7 @@ export default function AnalyticsScreen() {
         </View>
 
         <Animated.ScrollView
+          ref={journeyScrollRef}
           style={[styles.scroll, { opacity: fadeAnim }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}

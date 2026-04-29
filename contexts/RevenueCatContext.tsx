@@ -13,6 +13,11 @@ import Purchases, { CustomerInfo, LOG_LEVEL } from 'react-native-purchases';
 import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { useAuth } from '@/contexts/AuthContext';
 import {
+  trackPaywallShown,
+  trackPaywallDismissed,
+  trackPaywallConverted,
+} from '@/lib/analytics';
+import {
   getRevenueCatApiKey,
   REVENUECAT_ENTITLEMENT_PRO,
 } from '@/constants/revenuecat';
@@ -199,20 +204,44 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     if (!configuredRef.current) return;
 
     try {
+      trackPaywallShown({ trigger: 'manual' });
       const result = await RevenueCatUI.presentPaywallIfNeeded({
         requiredEntitlementIdentifier: REVENUECAT_ENTITLEMENT_PRO,
       });
 
       if (result === PAYWALL_RESULT.ERROR) {
         Alert.alert('Something went wrong', 'Could not open the subscription screen. Please try again.');
+        return;
       }
+
+      if (result === PAYWALL_RESULT.CANCELLED) {
+        trackPaywallDismissed({ trigger: 'manual' });
+        return;
+      }
+
+      if (result === PAYWALL_RESULT.NOT_PRESENTED) {
+        return;
+      }
+
+      try {
+        const info = await Purchases.getCustomerInfo();
+        const ent = info.entitlements.active[REVENUECAT_ENTITLEMENT_PRO];
+        const productId = ent?.productIdentifier ?? 'unknown';
+        if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
+          trackPaywallConverted({ trigger: 'manual', productId });
+        }
+      } catch {
+        /* analytics must not block paywall */
+      }
+
+      await refreshCustomerInfo();
     } catch (e) {
       if (__DEV__) console.warn('[RevenueCat] presentPaywallIfNeeded:', e);
       if (!isUserCancelled(e)) {
         Alert.alert('Error', e instanceof Error ? e.message : 'Unable to show subscriptions.');
       }
     }
-  }, []);
+  }, [refreshCustomerInfo]);
 
   const presentCustomerCenter = useCallback(async () => {
     if (!nativeIap) {

@@ -28,6 +28,7 @@ import { AuthButtons } from '@/components/onboarding/AuthButtons';
 import type { OnboardingSlideData } from '@/components/onboarding/types';
 import { Flame, Sparkles, ArrowRight, Shield } from 'lucide-react-native';
 import { ONBOARDING_COMPLETE_KEY, PROFILE_STORAGE_KEY } from '@/constants/storageKeys';
+import { trackOnboardingCompleted } from '@/lib/analytics';
 import type { ColorScheme } from '@/constants/colors';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -160,22 +161,36 @@ export default function OnboardingScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
+      let profile: Record<string, unknown> | null = null;
       if (userId) {
         await syncOnSignIn(userId);
         const stored = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
-        const profile = stored ? JSON.parse(stored) : null;
-        const hasProfile = profile?.name && String(profile.name).trim().length > 0;
-        await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
-        if (hasProfile) {
-          router.replace('/(tabs)/(home)' as any);
-          return;
-        }
+        profile = stored ? JSON.parse(stored) : null;
       }
+
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+
+      const hasProfile =
+        !!profile &&
+        typeof profile.name === 'string' &&
+        String(profile.name).trim().length > 0;
+      const plan = profile?.plan as { fastLabel?: string; fastHours?: number } | undefined;
+      const planLabel =
+        plan?.fastLabel ?? (plan?.fastHours != null ? `${plan.fastHours}h` : 'default');
+      trackOnboardingCompleted({
+        goal: String((profile as { fastingPurpose?: string })?.fastingPurpose ?? 'onboarding'),
+        plan: planLabel,
+      });
+
+      if (userId && hasProfile) {
+        router.replace('/(tabs)/(home)' as any);
+        return;
+      }
       router.replace('/profile-setup' as any);
     } catch (e) {
       console.log('Failed to complete onboarding after sign-in:', e);
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+      trackOnboardingCompleted({ goal: 'onboarding', plan: 'default' });
       router.replace('/profile-setup' as any);
     }
   }, []);
@@ -183,6 +198,7 @@ export default function OnboardingScreen() {
   const completeOnboarding = useCallback(async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+      trackOnboardingCompleted({ goal: 'onboarding', plan: 'default' });
       router.replace('/profile-setup' as any);
     } catch (e) {
       console.log('Failed to save onboarding state:', e);

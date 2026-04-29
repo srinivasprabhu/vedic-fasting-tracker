@@ -2,6 +2,7 @@
 // Full steps tracker screen — manual logging, ring, 7-day bar chart.
 
 import { fs } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -152,6 +153,8 @@ export default function StepsScreen() {
   const [showInput, setShowInput] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingTarget, setEditingTarget] = useState(false);
+  const stepsScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(stepsScrollRef);
 
   // Use pedometer for live step count (same source as Today screen)
   const steps = pedometer.steps;
@@ -195,6 +198,7 @@ export default function StepsScreen() {
       <View style={styles.root}>
         <SafeAreaView style={styles.safe} edges={['top']}>
           <ScrollView
+            ref={stepsScrollRef}
             style={styles.scroll}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}

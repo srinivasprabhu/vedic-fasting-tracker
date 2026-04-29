@@ -1,4 +1,5 @@
 import { fs } from '@/constants/theme';
+import { useScrollToTop } from '@react-navigation/native';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -32,6 +33,7 @@ import type { ColorScheme } from '@/constants/colors';
 import { loadYesterdayData, type YesterdayData } from '@/utils/yesterdayData';
 import { StatTile } from '@/components/ui/StatTile';
 import { formatInsightHours } from '@/utils/analytics-helpers';
+import { trackFastStarted, trackFastCompleted } from '@/lib/analytics';
 import {
   formatNextFastHomeLabel,
   getPlannedFastStartMinutes,
@@ -175,6 +177,8 @@ export default function HomeScreen() {
 
   // ── Animations ─────────────────────────────────────────────────────────────
   const buttonScale = useRef(new Animated.Value(1)).current;
+  const homeScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(homeScrollRef);
 
   const timer = useFastTimer(activeFast ? { startTime: activeFast.startTime, onZoneChange: () => {} } : null);
 
@@ -190,12 +194,22 @@ export default function HomeScreen() {
   const handleStartNow = useCallback(() => {
     if (!pendingFast) return;
     startFast(pendingFast.type, pendingFast.name, pendingFast.duration * 3600000);
+    trackFastStarted({
+      planLabel: pendingFast.name,
+      targetHours: pendingFast.duration,
+      isCustomStartTime: false,
+    });
     setPendingFast(null);
   }, [pendingFast, startFast]);
 
   const handleStartCustom = useCallback((ts: number) => {
     if (!pendingFast) return;
     startFast(pendingFast.type, pendingFast.name, pendingFast.duration * 3600000, ts);
+    trackFastStarted({
+      planLabel: pendingFast.name,
+      targetHours: pendingFast.duration,
+      isCustomStartTime: true,
+    });
     setPendingFast(null);
   }, [pendingFast, startFast]);
 
@@ -207,17 +221,31 @@ export default function HomeScreen() {
   const handleEndNow = useCallback(() => {
     const completed = timer.elapsedMs >= (activeFast?.targetDuration ?? 0) * 0.8;
     Haptics.notificationAsync(completed ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
+    trackFastCompleted({
+      planLabel: activeFast?.label ?? 'unknown',
+      targetHours: (activeFast?.targetDuration ?? 0) / 3600000,
+      actualHours: timer.elapsedMs / 3600000,
+      completed,
+      streak,
+    });
     endFast(completed);
     setTimeout(() => router.push('/fast-complete' as any), 300);
-  }, [activeFast, timer.elapsedMs, endFast]);
+  }, [activeFast, timer.elapsedMs, endFast, streak]);
 
   const handleEndCustom = useCallback((ts: number) => {
     if (!activeFast) return;
     const completed = (ts - activeFast.startTime) >= activeFast.targetDuration * 0.8;
     Haptics.notificationAsync(completed ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
+    trackFastCompleted({
+      planLabel: activeFast.label,
+      targetHours: activeFast.targetDuration / 3600000,
+      actualHours: (ts - activeFast.startTime) / 3600000,
+      completed,
+      streak,
+    });
     endFast(completed, ts);
     setTimeout(() => router.push('/fast-complete' as any), 300);
-  }, [activeFast, endFast]);
+  }, [activeFast, endFast, streak]);
 
   const pressIn  = useCallback(() => Animated.spring(buttonScale, { toValue: 0.95, friction: 8, useNativeDriver: true }).start(), []);
   const pressOut = useCallback(() => Animated.spring(buttonScale, { toValue: 1,    friction: 8, useNativeDriver: true }).start(), []);
@@ -327,7 +355,12 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={homeScrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
 
           {showReview && <ReviewPromptCard onReview={handleReview} onDismiss={dismissReview} />}
 

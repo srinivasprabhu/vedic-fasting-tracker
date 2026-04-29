@@ -1,6 +1,6 @@
 // constants/breakfastMeals.ts
 // 30 curated break-fast meals — static data. 8 free, 22 Pro.
-// Add PNGs under assets/images/meals/{id}.png and register in MEAL_IMAGES below.
+// Add images under assets/images/meals/{id}.webp (or .png) and register in MEAL_IMAGES below.
 
 import type { ImageSourcePropType } from 'react-native';
 
@@ -30,7 +30,28 @@ export interface BreakfastMeal {
 
 /** Metro: only add requires for files that exist, or the bundle fails. */
 const MEAL_IMAGES: Partial<Record<string, ImageSourcePropType>> = {
-  'avocado-eggs': require('@/assets/images/meals/avocado-eggs.png'),
+  'avocado-eggs': require('@/assets/images/meals/avocado-eggs.webp'),
+  'banana-almond-smoothie': require('@/assets/images/meals/banana-almond-smoothie.webp'),
+  'bone-broth-starter': require('@/assets/images/meals/bone-broth-starter.webp'),
+  'chicken-sweet-potato': require('@/assets/images/meals/chicken-sweet-potato.webp'),
+  'curd-rice': require('@/assets/images/meals/curd-rice.webp'),
+  'dahi-poha': require('@/assets/images/meals/dahi-poha.webp'),
+  'egg-veggie-frittata': require('@/assets/images/meals/egg-veggie-frittata.webp'),
+  'greek-yoghurt-bowl': require('@/assets/images/meals/greek-yoghurt-bowl.webp'),
+  'hummus-plate': require('@/assets/images/meals/hummus-plate.webp'),
+  'idli-chutney': require('@/assets/images/meals/idli-chutney.webp'),
+  'labneh-za-atar': require('@/assets/images/meals/labneh-za-atar.webp'),
+  'lentil-soup-lebanese': require('@/assets/images/meals/lentil-soup-lebanese.webp'),
+  'miso-soup-tofu': require('@/assets/images/meals/miso-soup-tofu.webp'),
+  'moong-dal-khichdi': require('@/assets/images/meals/moong-dal-khichdi.webp'),
+  'natto-rice': require('@/assets/images/meals/natto-rice.webp'),
+  'overnight-oats': require('@/assets/images/meals/overnight-oats.webp'),
+  'pesarattu': require('@/assets/images/meals/pesarattu.webp'),
+  'pongal': require('@/assets/images/meals/pongal.webp'),
+  'ragi-porridge': require('@/assets/images/meals/ragi-porridge.webp'),
+  'salmon-greens': require('@/assets/images/meals/salmon-greens.webp'),
+  'shakshuka': require('@/assets/images/meals/shakshuka.webp'),
+  'upma-vegetables': require('@/assets/images/meals/upma-vegetables.webp'),
 };
 
 export function getMealImage(id: string): ImageSourcePropType | null {

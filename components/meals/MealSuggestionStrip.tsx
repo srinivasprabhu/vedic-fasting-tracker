@@ -61,7 +61,7 @@ export default function MealSuggestionStrip({ fastDurationHours, isFasting }: Pr
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/knowledge/meals' as any);
+    router.push('/(tabs)/(home)/meals' as any);
   };
 
   const label = isFasting ? 'Plan your break-fast' : 'Break-fast idea';

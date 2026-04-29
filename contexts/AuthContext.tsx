@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
 } from 'react';
@@ -12,6 +13,8 @@ import type { Session, User } from '@supabase/supabase-js';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { syncOnSignIn } from '@/lib/sync';
+import { identifyUser, resetAnalytics } from '@/lib/analytics';
+import { setSentryUser } from '@/lib/sentry';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@/constants/auth';
 
 interface AuthState {
@@ -34,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const prevAuthUserIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -50,6 +54,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const uid = session?.user?.id ?? null;
+    const prev = prevAuthUserIdRef.current;
+
+    if (uid) {
+      setSentryUser(uid);
+      void identifyUser(uid);
+      prevAuthUserIdRef.current = uid;
+      return;
+    }
+
+    if (prev) {
+      setSentryUser(null);
+      void resetAnalytics();
+    }
+    prevAuthUserIdRef.current = undefined;
+  }, [session?.user?.id]);
 
   useEffect(() => {
     const uid = session?.user?.id;
